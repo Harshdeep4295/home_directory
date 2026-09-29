@@ -27,9 +27,9 @@ abstract final class TuyaDp {
   }
 }
 
-/// Tuya LAN devices (Wipro, Syska, Smart Life …), protocol 3.1 / 3.3 / 3.4 over TCP 6668.
+/// Tuya LAN devices (Wipro, Syska, Smart Life …), protocol 3.1 / 3.3 / 3.4 / 3.5 over TCP 6668.
 /// Ported from tinytuya 1.20.0 (see tuya_codec.dart). 3.4 negotiates a session key
-/// first (T7.1); 3.5 arrives in T7.2.
+/// first (T7.1), 3.5 does the same over AES-GCM 6699 frames (T7.2).
 class TuyaAdapter extends DeviceAdapter {
   TuyaAdapter(
     this._sockets,
@@ -112,7 +112,7 @@ class TuyaAdapter extends DeviceAdapter {
       now: _now,
       onStatus: (dps) => _emitStatus(d, dps),
     );
-    if (codec is TuyaCodec34) {
+    if (codec is TuyaSessionCodec) {
       final n = await conn.negotiate();
       if (n case Err(:final error)) {
         conn.close();
@@ -295,6 +295,10 @@ class _TuyaConn {
 
   late final _decoder = TuyaFrameDecoder(hmacKey: _codec.frameKey);
   final Map<int, Completer<TuyaFrame>> _pending = {};
+
+  /// Command each pending request expects back (3.5 replies carry the device's own
+  /// incrementing seqno, not ours — tinytuya XenonDevice._get_retcode).
+  final Map<int, int> _pendingCmd = {};
   Completer<TuyaFrame>? _negotiation;
   late final StreamSubscription<Uint8List> _sub;
   late final Timer _heartbeat;
@@ -320,11 +324,20 @@ class _TuyaConn {
         continue;
       }
       if (!f.crcOk) continue;
-      final waiter = _pending.remove(f.seq);
-      if (waiter != null && f.cmd != TuyaCmd.status) {
-        waiter.complete(f);
-      } else if (f.cmd == TuyaCmd.status) {
+      if (f.cmd == TuyaCmd.status) {
         _handleStatus(f);
+        continue;
+      }
+      final seq = _codec.version == '3.5'
+          ? _pendingCmd.entries
+                .where((e) => e.value == f.cmd)
+                .map((e) => e.key)
+                .firstOrNull
+          : f.seq;
+      final waiter = seq == null ? null : _pending.remove(seq);
+      if (seq != null) _pendingCmd.remove(seq);
+      if (waiter != null) {
+        waiter.complete(f);
       } else if (f.cmd == TuyaCmd.heartBeat) {
         _missedBeats = 0;
       }
@@ -344,10 +357,10 @@ class _TuyaConn {
     }
   }
 
-  /// Protocol 3.4 session key negotiation (tinytuya XenonDevice._negotiate_session_key).
+  /// Protocol 3.4/3.5 session key negotiation (tinytuya XenonDevice._negotiate_session_key).
   /// A device that cannot prove it knows the local key → auth error.
   Future<Result<void>> negotiate() async {
-    final codec = _codec as TuyaCodec34;
+    final codec = _codec as TuyaSessionCodec;
     final rnd = Random.secure();
     final nonce = Uint8List.fromList(
       List.generate(16, (_) => rnd.nextInt(256)),
@@ -384,6 +397,7 @@ class _TuyaConn {
     final seq = _seq++;
     final waiter = Completer<TuyaFrame>();
     _pending[seq] = waiter;
+    _pendingCmd[seq] = cmd;
     try {
       _socket.add(_codec.encode(seq, cmd, json));
       final f = await waiter.future.timeout(timeout);
@@ -393,6 +407,7 @@ class _TuyaConn {
       return Ok(_codec.decode(f.payload, device22: payloads.device22));
     } on TimeoutException {
       _pending.remove(seq);
+      _pendingCmd.remove(seq);
       return Err(DeviceError.timeout('tuya: no reply to cmd $cmd'));
     } on StateError {
       return Err(DeviceError.offline('tuya: connection closed'));
@@ -441,6 +456,7 @@ class _TuyaConn {
       }
     }
     _pending.clear();
+    _pendingCmd.clear();
     final neg = _negotiation;
     if (neg != null && !neg.isCompleted) {
       neg.completeError(StateError('closed'));

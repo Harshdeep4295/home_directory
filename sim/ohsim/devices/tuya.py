@@ -1,4 +1,4 @@
-"""Tuya 3.1 / 3.3 / 3.4 plug/bulb simulator (TCP, 55AA frames), plus optional UDP beacons.
+"""Tuya 3.1 / 3.3 / 3.4 / 3.5 plug/bulb simulator (TCP, 55AA frames), plus optional UDP beacons.
 
 Framing and crypto come from tinytuya (test dependency, CLAUDE.md rule 2):
 tinytuya/core/message_helper.py (unpack_message), crypto_helper.AESCipher, header.py,
@@ -20,9 +20,14 @@ Protocol 3.4 (tinytuya XenonDevice._negotiate_session_key*, device side mirrored
 - DP_QUERY_NEW → {"dps"}; CONTROL_NEW {"protocol":5,"data":{"dps"}} → empty ACK + STATUS push
   {"protocol":4,"t","data":{"dps"}} (push format VERIFY on hardware)
 
+Protocol 3.5: as 3.4, but every frame is 6699 AES-GCM (tinytuya message_helper.pack_message),
+payloads are not ECB-encrypted, the session key is GCM(local key, iv=nonce[:12], xor)[:16],
+and replies carry the device's own incrementing seqno (tinytuya: "v3.5 devices respond with a
+global incrementing seqno, not the sent seqno"). Beacons are 6699 frames (port 7000 style).
+
 Options:
     key=<16 chars>        local key (default 0123456789abcdef)
-    version=3.3|3.1|3.4   protocol version (default 3.3)
+    version=3.3|3.1|3.4|3.5  protocol version (default 3.3)
     profile=plug|bulb     DP map: plug {1: switch, 9: countdown}; bulb v2 {20 switch, 22 bright,
                           23 temp, 26 countdown} (PSEUDOCODE §6.3 defaults, VERIFY per model)
     device22=1            behave like a 22-char-id device that ignores DP_QUERY
@@ -45,7 +50,7 @@ from tinytuya.core import command_types as CT
 from tinytuya.core import header as H
 from tinytuya.core import udp_helper
 from tinytuya.core.crypto_helper import AESCipher
-from tinytuya.core.message_helper import parse_header, unpack_message
+from tinytuya.core.message_helper import TuyaMessage, pack_message, parse_header, unpack_message
 
 from ..base import TcpSimDevice
 
@@ -103,6 +108,7 @@ class TuyaSim(TcpSimDevice):
         self.push_seq = 0
         self.received: list[int] = []  # commands received, for tests
         self._sessions: dict[asyncio.StreamWriter, _Session] = {}
+        self._dev_seq = 100  # 3.5 replies use the device's own counter
 
     def default_device_id(self) -> str:
         n = 22 if self.options.get("device22", "0") in ("1", "true", "yes") else 20
@@ -166,12 +172,19 @@ class TuyaSim(TcpSimDevice):
 
     @property
     def v34(self) -> bool:
-        return self.version == "3.4"
+        """3.4 or 3.5: session key negotiation and the CONTROL_NEW/DP_QUERY_NEW commands."""
+        return self.version in ("3.4", "3.5")
+
+    @property
+    def v35(self) -> bool:
+        return self.version == "3.5"
 
     def _encrypt(self, obj: dict[str, Any] | str, header: bool, sess: _Session | None = None) -> bytes:
         raw = (obj if isinstance(obj, str) else json.dumps(obj, separators=(",", ":"))).encode()
         if self.version == "3.1":
             return raw  # 3.1 devices answer queries in plaintext
+        if self.v35:
+            return (H.PROTOCOL_35_HEADER + raw) if header else raw  # GCM happens in the frame
         if self.v34:
             assert sess is not None and sess.key is not None
             return AESCipher(sess.key).encrypt((H.PROTOCOL_34_HEADER + raw) if header else raw, use_base64=False)
@@ -181,6 +194,9 @@ class TuyaSim(TcpSimDevice):
     def _decrypt(self, payload: bytes, sess: _Session | None = None) -> dict[str, Any] | None:
         if not payload:
             return None
+        if self.v35:
+            raw = payload[len(H.PROTOCOL_35_HEADER) :] if payload.startswith(H.PROTOCOL_VERSION_BYTES_35) else payload
+            return json.loads(raw.decode())
         if self.v34:
             assert sess is not None and sess.key is not None
             raw = AESCipher(sess.key).decrypt(payload, use_base64=False, decode_text=False)
@@ -198,6 +214,11 @@ class TuyaSim(TcpSimDevice):
         return json.loads(data)
 
     def _frame(self, seq: int, cmd: int, payload: bytes, sess: _Session | None, retcode: int = 0) -> bytes:
+        if self.v35:
+            key35 = sess.key if sess is not None and sess.key is not None else self.key
+            self._dev_seq += 1
+            msg = TuyaMessage(self._dev_seq, cmd, retcode, payload, 0, True, H.PREFIX_6699_VALUE, True)
+            return pack_message(msg, hmac_key=key35)
         key = None
         if self.v34:
             key = sess.key if sess is not None and sess.key is not None else self.key
@@ -215,7 +236,7 @@ class TuyaSim(TcpSimDevice):
                 if not chunk:
                     return
                 buf += chunk
-                while len(buf) >= 16:
+                while len(buf) >= (18 if self.v35 else 16):  # 6699 header is 18 bytes
                     header = parse_header(buf)
                     if len(buf) < header.total_length:
                         break
@@ -238,16 +259,22 @@ class TuyaSim(TcpSimDevice):
         """Device side of tinytuya's 3.4 session key negotiation."""
         real = AESCipher(self.key)
         if msg.cmd == CT.SESS_KEY_NEG_START:
-            sess.local_nonce = real.decrypt(msg.payload, use_base64=False, decode_text=False)[:16]
+            nonce = msg.payload if self.v35 else real.decrypt(msg.payload, use_base64=False, decode_text=False)
+            sess.local_nonce = nonce[:16]
             sess.remote_nonce = os.urandom(16)
             body = sess.remote_nonce + hmac.new(self.key, sess.local_nonce, sha256).digest()
-            return [self._frame(msg.seqno, CT.SESS_KEY_NEG_RESP, real.encrypt(body, use_base64=False), None)]
+            if not self.v35:
+                body = real.encrypt(body, use_base64=False)
+            return [self._frame(msg.seqno, CT.SESS_KEY_NEG_RESP, body, None)]
         if msg.cmd == CT.SESS_KEY_NEG_FINISH and sess.remote_nonce:
-            got = real.decrypt(msg.payload, use_base64=False, decode_text=False)[:32]
-            if got != hmac.new(self.key, sess.remote_nonce, sha256).digest():
+            got = msg.payload if self.v35 else real.decrypt(msg.payload, use_base64=False, decode_text=False)
+            if got[:32] != hmac.new(self.key, sess.remote_nonce, sha256).digest():
                 return None
             xor = bytes(a ^ b for a, b in zip(sess.local_nonce, sess.remote_nonce))
-            sess.key = real.encrypt(xor, use_base64=False, pad=False)
+            if self.v35:
+                sess.key = real.encrypt(xor, use_base64=False, pad=False, iv=sess.local_nonce[:12])[12:28]
+            else:
+                sess.key = real.encrypt(xor, use_base64=False, pad=False)
             return []
         return None  # anything else before a session exists: hang up
 
@@ -315,7 +342,11 @@ class TuyaSim(TcpSimDevice):
             "productKey": "simproductkey",
             "version": self.version,
         }
-        enc = udp_helper.encrypt(json.dumps(beacon, separators=(",", ":")).encode(), udp_helper.udpkey)
+        raw = json.dumps(beacon, separators=(",", ":")).encode()
+        if self.v35:  # 6699 beacon, as 3.5 devices send on port 7000
+            msg = TuyaMessage(0, CT.UDP_NEW, None, raw, 0, True, H.PREFIX_6699_VALUE, True)
+            return pack_message(msg, hmac_key=udp_helper.udpkey)
+        enc = udp_helper.encrypt(raw, udp_helper.udpkey)
         return device_frame(0, CT.UDP_NEW, enc)
 
     async def _beacons(self, port: int) -> None:

@@ -78,6 +78,20 @@ void main() {
     );
   });
 
+  adapterContractTest('Tuya 3.5', () async {
+    final sim = await SimProcess.start('tuya:key=$key:version=3.5');
+    final s = sim['tuya'];
+    expect(s.protocol, 'tuya-3.5');
+    return ContractHarness(
+      adapter: await adapterFor(s),
+      device: tuyaDevice(s),
+      stopDevice: sim.stop,
+      tearDown: sim.stop,
+      expectedTimeout: timeout,
+      countdownSupported: true,
+    );
+  });
+
   group('Tuya adapter vs simulator', () {
     late SimProcess sim;
     late TuyaAdapter a;
@@ -129,6 +143,23 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 300));
       await sub.cancel();
       expect(pushes, contains(true));
+    });
+
+    test('3.5: wrong key → auth error', () async {
+      sim = await SimProcess.start('tuya:key=$key:version=3.5');
+      a = await adapterFor(sim['tuya'], k: 'fedcba9876543210');
+      final r = await a.getState(tuyaDevice(sim['tuya']));
+      expect(r.errorOrNull?.kind, DeviceErrorKind.auth, reason: '$r');
+    });
+
+    test('3.5: replies matched by command (device seqno differs)', () async {
+      sim = await SimProcess.start('tuya:key=$key:version=3.5');
+      a = await adapterFor(sim['tuya']);
+      final d = tuyaDevice(sim['tuya']);
+      for (var i = 0; i < 3; i++) {
+        expect(await a.setPower(d, i.isEven), isA<Ok<void>>());
+        expect((await a.getState(d)).valueOrNull?.on, i.isEven);
+      }
     });
 
     test('protocol 3.1', () async {

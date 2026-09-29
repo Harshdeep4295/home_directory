@@ -279,7 +279,8 @@ writes clear instructions, then stops.
 
 - [x] **T7.1 Tuya 3.4** (M) — deps: T2.6 — Ref: §Tuya 3.4
   Note: session negotiation + HMAC framing + CONTROL_NEW/DP_QUERY_NEW payloads, byte-exact vs tinytuya (vectors_34.json); TuyaSim version=3.4 verified with tinytuya's client; contract suite green. VERIFY: 3.4 STATUS push shape, device behaviour on a wrong key (we map hang-up → auth). Hardware check #12.
-- [ ] **T7.2 Tuya 3.5** (M) — deps: T7.1 — Ref: §Tuya 3.5
+- [x] **T7.2 Tuya 3.5** (M) — deps: T7.1 — Ref: §Tuya 3.5
+  Note: 6699 AES-GCM frames, GCM session negotiation, replies matched by command (3.5 seqno is the device's), port-7000 beacons + REQ_DEVINFO broadcast; byte-exact vs tinytuya (vectors_35.json); TuyaSim version=3.5 verified with tinytuya; contract suite green. Hardware check #13.
 - [ ] **T7.3 Tuya bulb + multi-gang profiles** (S) — deps: T2.6
 - [ ] **T7.4 Shelly Gen1 + Gen2** (M) — deps: T2.1 — Ref: §Shelly
 - [ ] **T7.5 Kasa legacy** (M) — deps: T2.1 — Ref: §Kasa legacy

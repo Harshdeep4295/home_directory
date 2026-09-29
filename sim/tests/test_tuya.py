@@ -117,3 +117,20 @@ async def test_protocol_34_wrong_key_gets_nothing() -> None:
         assert "Error" in st or "Err" in st, st
         assert sim.on is False
         d.close()
+
+
+async def test_protocol_35_session_status_control() -> None:
+    async with TuyaSim(key=KEY, version="3.5") as sim:
+        d = client(sim, version=3.5)
+        st = await run(d.status)
+        assert st["dps"] == {"1": False, "9": 0}, st
+        await run(d.turn_on)
+        assert sim.on is True
+        st = await run(d.status)
+        assert st["dps"]["1"] is True
+        d.close()
+
+
+def test_protocol_35_beacon_decrypts_with_tinytuya() -> None:
+    sim = TuyaSim(key=KEY, version="3.5")
+    assert json.loads(udp_helper.decrypt_udp(sim.beacon_frame()))["version"] == "3.5"
