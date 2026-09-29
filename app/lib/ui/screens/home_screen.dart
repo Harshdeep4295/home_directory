@@ -23,6 +23,15 @@ class HomeScreen extends ConsumerWidget {
 
   static const otherRoom = 'Other';
 
+  /// Tile tap: toggle, then apply the device's default auto-off if it came on.
+  static Future<void> toggle(WidgetRef ref, Device d) async {
+    final s = ref.read(servicesProvider);
+    final r = await s.engine.power([d], PowerAction.toggle);
+    if (r.single.result.isOk && s.engine.cached(d.id)?.on == true) {
+      await s.timerService.applyAutoOff([d]);
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final devices = ref.watch(devicesProvider).value ?? const <Device>[];
@@ -94,11 +103,7 @@ class HomeScreen extends ConsumerWidget {
                     state: states[d.id],
                     timer: timers[d.id],
                     now: now,
-                    onTap: () => unawaited(
-                      ref.read(servicesProvider).engine.power([
-                        d,
-                      ], PowerAction.toggle),
-                    ),
+                    onTap: () => unawaited(toggle(ref, d)),
                     onLongPress: onOpenDevice == null
                         ? null
                         : () => onOpenDevice!(d),

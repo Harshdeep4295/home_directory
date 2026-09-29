@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
 import '../widgets/net_banner.dart';
+import 'device_detail_screen.dart';
 import 'home_screen.dart';
 
 /// Bottom navigation: Home · Timers · Settings. Screens arrive in T5.2–T5.7; the
@@ -33,7 +34,13 @@ class _ShellState extends ConsumerState<Shell> {
       'Home',
       Icons.home_outlined,
       Icons.home,
-      (_) => const HomeScreen(),
+      (context) => HomeScreen(
+        onOpenDevice: (d) => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => DeviceDetailScreen(deviceId: d.id),
+          ),
+        ),
+      ),
     ),
     ShellPage(
       'Timers',

@@ -233,9 +233,10 @@ writes clear instructions, then stops.
 - [x] **T5.2 Home screen** (M) — deps: T5.1, T3.2
   Do: rooms → device tiles (state, tap toggle, long-press detail), "Local mode" banner, mic FAB.
   Note: ui/screens/home_screen.dart: devices grouped by room (sort order) + 'Other', responsive tile grid, tap → engine toggle, long-press → onOpenDevice, empty state → Add devices, large mic FAB; ui/widgets/device_tile.dart: icon by name/capability, On/Off/Offline (greyed), timer chip 'off in 18m · Plug' (tier named). Banner comes from the shell. Wired as the Home tab. 3 widget tests.
-- [ ] **T5.3 Device detail** (M) — deps: T5.2, T3.3
+- [x] **T5.3 Device detail** (M) — deps: T5.2, T3.3
   Do: power, sliders by capability, timer presets (15/30/60/custom), default auto-off, name, room,
   aliases, protocol info, "re-scan IP".
+  Note: ui/screens/device_detail_screen.dart: power switch (offline-aware), brightness / colour-temperature sliders only with those capabilities, current timer with tier + cancel, presets on for 15/30/60 min + custom (iOS phone-tier warning), default auto-off dropdown (TimerService.applyAutoOff now runs after app/voice power-on), rename, room, aliases with Hinglish suggestions (ui/alias_suggestions.dart), connection info (brand/protocol/IP/MAC/id, Tuya key stored?), Re-scan IP, remove device (cancels timers, deletes key). Feedback via SnackBar. Long-press on Home opens it. 5 widget tests + auto-off test.
 - [ ] **T5.4 Timers screen** (S) — deps: T3.3
   Do: list with remaining time, tier badge (Plug / Phone), cancel, reconcile on open.
 - [ ] **T5.5 Voice sheet** (S) — deps: T4.8
