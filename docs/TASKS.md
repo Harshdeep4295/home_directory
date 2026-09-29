@@ -261,8 +261,9 @@ writes clear instructions, then stops.
 
 ## M6 — Key import (onboarding/cloud_import — the only internet code)
 
-- [ ] **T6.1 tinytuya devices.json import** (S) — deps: T5.6, T1.8 — Ref: §Key import
+- [x] **T6.1 tinytuya devices.json import** (S) — deps: T5.6, T1.8 — Ref: §Key import
   Accept: sample file imports; keys land in SecretStore; devices matched by id.
+  Note: lib/onboarding/devices_json_import.dart (no network) + import screen; dpMap from mapping codes (switch_1/switch_led, countdown_1/countdown); sub-devices skipped; quick scan + status check per device. Hardware check #10 pending.
 - [ ] **T6.2 Manual key entry** (S) — deps: T6.1
 - [ ] **T6.3 Tuya OpenAPI in-app import** (M) — deps: T6.1 — Ref: §Tuya cloud import
   Do: user enters access id/secret + region; signed requests; fetch device list with local_key.

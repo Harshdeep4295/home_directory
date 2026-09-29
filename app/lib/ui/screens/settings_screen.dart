@@ -9,6 +9,7 @@ import '../file_access.dart';
 import '../providers.dart';
 import 'add_devices_screen.dart';
 import 'debug_menu.dart';
+import 'devices_json_import_screen.dart';
 
 /// Settings (T5.7): voice language + TTS, polling, backup, diagnostics.
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -141,12 +142,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             AddDevicesScreen(onImportDevicesJson: widget.onImportDevicesJson),
           ),
         ),
-        if (widget.onImportDevicesJson != null)
-          ListTile(
-            leading: const Icon(Icons.key),
-            title: const Text('Import Tuya keys (devices.json)'),
-            onTap: widget.onImportDevicesJson,
-          ),
+        ListTile(
+          leading: const Icon(Icons.key),
+          title: const Text('Import Tuya keys (devices.json)'),
+          onTap:
+              widget.onImportDevicesJson ??
+              () => openDevicesJsonImport(context),
+        ),
         ListTile(
           leading: const Icon(Icons.sync),
           title: const Text('Refresh device state every'),

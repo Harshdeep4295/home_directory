@@ -11,6 +11,7 @@ import '../../registry/secret_store.dart';
 import '../alias_suggestions.dart';
 import '../providers.dart';
 import '../widgets/prompt.dart';
+import 'devices_json_import_screen.dart';
 
 /// Scan → badges → resolve (key) → name, room, aliases → add (T5.6, PSEUDOCODE §0.1).
 class AddDevicesScreen extends ConsumerStatefulWidget {
@@ -96,6 +97,12 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
     ),
   );
 
+  void _importDevicesJson() {
+    final cb = widget.onImportDevicesJson;
+    if (cb != null) return cb();
+    openDevicesJsonImport(context);
+  }
+
   /// Tuya: paste the 16-character local key; verified against the device before adding.
   Future<bool> _pasteTuyaKey(Candidate c) async {
     final id = c.deviceId;
@@ -113,18 +120,16 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
       message: 'Device $id',
       hint: '16 characters from devices.json',
       maxLength: 16,
-      extra: widget.onImportDevicesJson == null
-          ? null
-          : Builder(
-              builder: (ctx) => TextButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  widget.onImportDevicesJson!();
-                },
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Import devices.json instead'),
-              ),
-            ),
+      extra: Builder(
+        builder: (ctx) => TextButton.icon(
+          onPressed: () {
+            Navigator.pop(ctx);
+            _importDevicesJson();
+          },
+          icon: const Icon(Icons.upload_file),
+          label: const Text('Import devices.json instead'),
+        ),
+      ),
     );
     if (key == null || key.length != 16) return false;
     final s = ref.read(servicesProvider);
@@ -186,12 +191,11 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
       appBar: AppBar(
         title: const Text('Add devices'),
         actions: [
-          if (widget.onImportDevicesJson != null)
-            IconButton(
-              tooltip: 'Import devices.json',
-              onPressed: widget.onImportDevicesJson,
-              icon: const Icon(Icons.upload_file),
-            ),
+          IconButton(
+            tooltip: 'Import devices.json',
+            onPressed: _importDevicesJson,
+            icon: const Icon(Icons.upload_file),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
