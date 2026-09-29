@@ -21,7 +21,7 @@ fmt-check: ## fail if Dart code is not formatted (CI)
 	cd $(APP) && $(DART) format --output=none --set-exit-if-changed .
 
 analyze: ## static analysis
-	cd $(APP) && $(FLUTTER) analyze
+	cd $(APP) && $(FLUTTER) analyze --fatal-infos
 
 codegen: ## run build_runner (freezed, json_serializable, drift)
 	cd $(APP) && $(DART) run build_runner build --delete-conflicting-outputs

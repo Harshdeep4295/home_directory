@@ -88,9 +88,10 @@ writes clear instructions, then stops.
   Do: stream of `NetState{wifi, internet, ssid, ip, prefix}`; UI banner "Local mode" when no internet.
   Accept: unit tests with fake platform channel.
   Note: net/network_monitor.dart: NetworkMonitor (seed + platform changes, dedup, wifiChanges ignores internet-only flips), bannerFor → none/localMode/noWifi (iOS unknown internet → no banner); ui/widgets/net_banner.dart shown on debug screen. network_info_plus removed (plugins provide the data). Riverpod provider wiring in T5.1.
-- [ ] **T1.7 Database (drift)** (M) — deps: T1.1 — Ref: §Registry
+- [x] **T1.7 Database (drift)** (M) — deps: T1.1 — Ref: §Registry
   Do: tables devices, rooms, aliases, timer_jobs, settings, device_state_cache; migrations v1.
   Accept: repository CRUD tests; migration test.
+  Note: registry/: drift tables (rooms, devices, aliases, timer_jobs+meta_json, device_state_cache, settings; FKs with cascade/set-null, foreign_keys ON, dates as text), AppDatabase.open()/memory(), repositories (Device w/ alias sync, Room, Timer, StateCache, Settings). Schema dump drift_schemas/app/v1 + SchemaVerifier migration test. upsertFromCandidate/merge is T2.9.
 - [ ] **T1.8 SecretStore** (S) — deps: T1.1
   Do: wrapper over flutter_secure_storage; keys `secret/<deviceId>/<name>`; in-memory fake for tests.
   Accept: tests; no secret columns in SQLite (schema test).

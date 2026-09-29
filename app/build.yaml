@@ -5,3 +5,8 @@ targets:
         options:
           explicit_to_json: true
           include_if_null: false
+      drift_dev:
+        options:
+          store_date_time_values_as_text: true
+          databases:
+            app: lib/registry/database.dart
