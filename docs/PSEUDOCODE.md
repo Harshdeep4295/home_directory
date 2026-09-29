@@ -244,28 +244,27 @@ setColorTemp: send setPilot {"temp": clamp(k,2200,6500)}                       /
 nativeCountdownMax → null  (phone tier)
 ```
 
-### 6.2 Tuya codec 3.1/3.3 — ref: tinytuya core
+### 6.2 Tuya codec 3.1/3.3 — ref: tinytuya 1.20.0 core (IMPLEMENTED T2.4, byte-exact vectors)
 ```
-PREFIX=0x000055AA SUFFIX=0x0000AA99
+PREFIX=0x000055AA SUFFIX=0x0000AA55        // header.py (NOT AA99)
 CMD: CONTROL=0x07 STATUS=0x08 HEART_BEAT=0x09 DP_QUERY=0x0a CONTROL_NEW=0x0d DP_QUERY_NEW=0x10
-     SESS_KEY_NEG_START=0x03 SESS_KEY_NEG_RESP=0x04 SESS_KEY_NEG_FINISH=0x05      // VERIFY all
-encodeFrame(seq, cmd, payload):
+     UPDATEDPS=0x12 UDP_NEW=0x13 SESS_KEY_NEG_START/RESP/FINISH=0x03/0x04/0x05   // command_types.py
+encodeFrame(seq, cmd, payload):             // message_helper.pack_message
   header = be32(PREFIX) + be32(seq) + be32(cmd) + be32(len(payload) + 8)
-  body = header + payload
-  return body + be32(crc32(body)) + be32(SUFFIX)
-decodeFrame(bytes):  // may contain several frames; loop
-  check prefix, read seq, cmd, len; payload = next (len-8) bytes; verify crc; check suffix
-  replies from device start with 4-byte return code → strip if present (retcode & 0xFFFFFF00 == 0)
-encryptPayload33(key, cmd, json):
-  ct = aesEcbEncrypt(key, pkcs7(utf8(json)))
-  if cmd in {DP_QUERY, DP_REFRESH?}: return ct                  // no version header — VERIFY
-  return b"3.3" + 12*0x00 + ct
-decryptPayload33(key, payload):
-  if payload.startsWith(b"3.3"): payload = payload[15:]
-  return json(unpad(aesEcbDecrypt(key, payload)))
-3.1: CONTROL payload = b"3.1" + md5hex-signature + base64(aesEcb(json)); DP_QUERY plaintext  // VERIFY; low priority
-Tuya UDP beacons: port 6666 plaintext, 6667 AES-ECB with key md5(b"yGAdlopoPVldABfn")   // VERIFY
-  beacon JSON → {ip, gwId, version, productKey, encrypt}
+  return header + payload + be32(crc32(header + payload)) + be32(SUFFIX)
+decodeFrame: device→client frames carry a 4-byte retcode after the header (always stripped).
+3.3 encode (XenonDevice._encode_message): ct = AES-ECB(key, pkcs7(json));
+  if cmd not in NO_PROTOCOL_HEADER_CMDS {DP_QUERY, DP_QUERY_NEW, UPDATEDPS, HEART_BEAT, SESS_*,
+  LAN_EXT_STREAM}: payload = b"3.3" + 12*0x00 + ct   (header OUTSIDE the ciphertext)
+3.3 decode: strip "3.3"+12 if present (device22: also when len % 16 != 0), AES-ECB decrypt, unpad;
+  "data unvalid" in plaintext → device is device22
+3.1: CONTROL payload = b"3.1" + md5hex("data="+b64+"||lpv=3.1||"+key)[8:24] + b64(AES-ECB(json));
+  other commands plaintext JSON
+JSON bodies (generate_payload, compact, key order matters): t is a STRING of epoch seconds (<3.4)
+  DP_QUERY {"gwId","devId","uid","t"}; CONTROL {"devId","uid","t","dps"}; HEART_BEAT {"gwId","devId"}
+  device22 DP_QUERY → cmd CONTROL_NEW {"devId","uid","t","dps":{"1":null,...}}
+UDP beacons: 6666 plaintext, 6667 AES-ECB with key md5(b"yGAdlopoPVldABfn"), 55AA-framed (udp_helper)
+  beacon JSON → {ip, gwId, version, productKey, encrypt, active, ...}
 ```
 
 ### 6.3 Tuya adapter (3.1/3.3; 3.4/3.5 via codec strategy)

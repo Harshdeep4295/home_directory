@@ -75,8 +75,11 @@ home_directory/          (repo root; project working name "Offline Home")
   adapters never throw across their public interface.
 - All sockets are created through `LanSocketFactory` (so Android binds them to Wi-Fi).
 - Logging via `log.d/i/w/e` with a `tag`; redact anything from `SecretStore`.
-- Tests: unit tests next to the feature in `test/`, simulator-backed tests in
-  `integration_test/`. Voice parser has a golden corpus in `test/voice/corpus/*.yaml`.
+- Tests: unit tests next to the feature in `test/`. Simulator-backed adapter tests live in
+  `test/sim/` (tag `sim`; they spawn `sim/run.py` via `test/support/sim_process.dart`, Python
+  from `$OH_PYTHON` or `python3`) — `integration_test/` is reserved for on-device tests.
+  Every adapter runs `adapterContractTest()` against its simulator. Voice parser has a golden
+  corpus in `test/voice/corpus/*.yaml`.
 
 ## Owner context
 

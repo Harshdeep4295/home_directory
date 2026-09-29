@@ -1,0 +1,4 @@
+tags:
+  sim:
+    # Simulator-backed tests start Python processes (sim/run.py); give them more time.
+    timeout: 2x

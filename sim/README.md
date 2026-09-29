@@ -1,6 +1,7 @@
 # sim — device simulators
 
-Fake LAN devices on `127.0.0.1` for adapter tests. Python 3.11+, stdlib only at runtime.
+Fake LAN devices on `127.0.0.1` for adapter tests. Python 3.11+; the Tuya simulator uses
+`tinytuya` (the reference implementation) for framing and crypto.
 
 ```sh
 pip install -r sim/requirements-dev.txt
@@ -14,7 +15,8 @@ listen, then runs until SIGINT/SIGTERM or until stdin closes. Device spec syntax
 
 | kind | protocol | task |
 |---|---|---|
-| `wiz` | UDP JSON `getPilot`/`setPilot` | T0.2 (minimal), T2.2 (full) |
+| `tuya` | TCP 55AA, 3.3/3.1, AES-ECB; opts `key`, `version`, `profile=plug\|bulb`, `device22=1`, `beacon_port` | T2.5 |
+| `wiz` | UDP JSON getPilot/setPilot/getSystemConfig/registration; opts `mac`, `module`, `fw`, `drop` | T2.2 |
 
 Add a simulator: subclass `UdpSimDevice` or `TcpSimDevice` in `ohsim/devices/`, register it in
 `ohsim/registry.py`, add tests in `tests/`.

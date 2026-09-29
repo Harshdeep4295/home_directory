@@ -1,25 +1,38 @@
 import 'package:flutter/material.dart';
 
+import 'app/services.dart';
 import 'net/platform_bridge.dart';
 import 'ui/debug/net_debug_screen.dart';
+import 'ui/debug/scan_debug_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final platform = platformBridgeForHost();
-  await platform.init();
-  runApp(OfflineHomeApp(platform: platform));
+  final services = await AppServices.create();
+  runApp(OfflineHomeApp(platform: services.platform, services: services));
 }
 
-/// Placeholder shell showing the network debug screen; the real shell arrives in T5.1.
+/// Placeholder shell with the debug screens; the real shell arrives in T5.1.
 class OfflineHomeApp extends StatelessWidget {
-  const OfflineHomeApp({super.key, required this.platform});
+  const OfflineHomeApp({super.key, required this.platform, this.services});
   final PlatformBridge platform;
+  final AppServices? services;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Offline Home',
-      home: NetDebugScreen(platform: platform),
+      home: Builder(
+        builder: (context) => NetDebugScreen(
+          platform: platform,
+          onOpenScan: services == null
+              ? null
+              : () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ScanDebugScreen(services: services!),
+                  ),
+                ),
+        ),
+      ),
     );
   }
 }

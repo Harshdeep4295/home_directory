@@ -1,21 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import '../../core/result.dart';
-import '../../net/android_platform_bridge.dart';
 import '../../net/ios_platform_bridge.dart';
 import '../../net/lan_socket_factory.dart';
 import '../../net/platform_bridge.dart';
 import '../widgets/net_banner.dart';
-
-PlatformBridge platformBridgeForHost() => Platform.isAndroid
-    ? AndroidPlatformBridge()
-    : Platform.isIOS
-    ? IosPlatformBridge()
-    : DefaultPlatformBridge();
 
 /// Shown when iOS Local Network access is denied (T1.5; full screen in T5.8).
 const localNetworkDeniedHelp =
@@ -26,8 +18,11 @@ const localNetworkDeniedHelp =
 /// Developer screen for the T1.4/T1.5 hardware checks: shows what the platform plugin
 /// reports and sends a WiZ getPilot to any IP:port over the bound Wi-Fi network.
 class NetDebugScreen extends StatefulWidget {
-  const NetDebugScreen({super.key, required this.platform});
+  const NetDebugScreen({super.key, required this.platform, this.onOpenScan});
   final PlatformBridge platform;
+
+  /// Opens the T2.10 scan + toggle screen (null in tests without services).
+  final VoidCallback? onOpenScan;
 
   @override
   State<NetDebugScreen> createState() => _NetDebugScreenState();
@@ -98,6 +93,12 @@ class _NetDebugScreenState extends State<NetDebugScreen> {
       appBar: AppBar(
         title: const Text('Network debug'),
         actions: [
+          if (widget.onOpenScan != null)
+            IconButton(
+              tooltip: 'Scan + toggle',
+              onPressed: widget.onOpenScan,
+              icon: const Icon(Icons.radar),
+            ),
           IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
         ],
       ),

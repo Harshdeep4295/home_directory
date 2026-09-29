@@ -108,6 +108,13 @@ class SecretStore {
   Future<void> delete(String deviceId, SecretName name) =>
       _backend.delete(keyFor(deviceId, name));
 
+  /// Ids that have at least one secret (discovery uses this for "Ready" badges).
+  Future<Set<String>> deviceIdsWithSecrets() async => {
+    for (final k in (await _backend.readAll()).keys)
+      if (k.startsWith(_prefix) && k.indexOf('/', _prefix.length) > 0)
+        k.substring(_prefix.length, k.indexOf('/', _prefix.length)),
+  };
+
   /// Removes every secret of a device (when the device is deleted).
   Future<void> deleteDevice(String deviceId) async {
     final prefix = '$_prefix$deviceId/';
