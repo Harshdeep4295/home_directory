@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 from .base import SimDevice
 from .devices.kasa import KasaSim
+from .devices.klap import KlapSim
 from .devices.shelly import ShellySim
 from .devices.tuya import TuyaSim
 from .devices.wiz import WizSim
@@ -15,6 +16,7 @@ SIM_TYPES: dict[str, type[SimDevice]] = {
     TuyaSim.kind: TuyaSim,
     ShellySim.kind: ShellySim,
     KasaSim.kind: KasaSim,
+    KlapSim.kind: KlapSim,
 }
 
 

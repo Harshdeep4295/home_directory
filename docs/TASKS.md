@@ -288,6 +288,10 @@ writes clear instructions, then stops.
 - [x] **T7.5 Kasa legacy** (M) — deps: T2.1 — Ref: §Kasa legacy
   Note: KasaAdapter (TCP 9999 XOR per python-kasa; plugs, strip outlets via context child_ids, bulbs via lightingservice); absolute countdown rules (count_down → countdown fallback); KasaSim verified with python-kasa's IotPlug/IotStrip/IotBulb; contract suite green (plug, plug w/ `countdown` module, bulb). VERIFY: countdown module/add_rule/remain on real plugs; strip outlets and bulb caps are not auto-created on add yet (T7.12). Hardware check #16.
 - [ ] **T7.6 KLAP transport + Tapo/Kasa new** (L → split) — deps: T7.5 — Ref: §KLAP
+  - [x] **T7.6a KLAP transport** — handshake1/2 (v1 md5 / v2 sha256 hashes, default + blank credential fallback), TP_SESSIONID cookie, AES-CBC session with signed seq; byte-exact vs python-kasa `klaptransport.py`; KlapSim.
+    Note: lib/adapters/kasa/klap.dart byte-exact vs python-kasa (klap_vectors.json, v1+v2); KlapSim (device side built from python-kasa's own session/hash helpers) verified with python-kasa's KlapTransport(V2)+Smart/IotProtocol; Dart transport green incl. default creds, wrong account, 403 re-handshake.
+  - [ ] **T7.6b Devices over KLAP** — IOT.KLAP (legacy JSON, reuse KasaAdapter) and SMART.KLAP (Tapo: get_device_info / set_device_info device_on, brightness, color_temp). python-kasa 0.10.2 has no SMART countdown-rule API → phone-tier timers.
+  - [ ] **T7.6c TP-Link account + discovery** — account e-mail/password in SecretStore (`tplink`), add-flow prompt, fingerprinter maps 20002 device_type → `klap-iot` / `klap-smart` (AES → not supported yet).
 - [ ] **T7.7 Hue bridge + link-button pairing** (M) — deps: T2.1 — Ref: §Hue
 - [ ] **T7.8 Yeelight** (S) — deps: T2.1 — Ref: §Yeelight
 - [ ] **T7.9 Sonoff LAN (DIY + encrypted)** (M) — deps: T2.1 — Ref: §Sonoff
