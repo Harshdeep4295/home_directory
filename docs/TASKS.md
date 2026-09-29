@@ -179,8 +179,12 @@ writes clear instructions, then stops.
 - [x] **T3.5 iOS phone-tier behaviour** (S) — deps: T3.3
   Do: warning copy, foreground ticker, local notification at fire time.
   Note: timers/ios_phone_timers.dart (IosPhoneTimers: local notification 'Timer due: <device> <on/off>' via flutter_local_notifications zonedSchedule at a UTC instant; cancel), timers/phone_tier_ticker.dart (runs due phone jobs while foreground), timers/tier_copy.dart (tier badge/feedback suffix, iOS warning, Android inexact warning). TimerService now stores the job before scheduling. AppServices wires the iOS scheduler + ticker. Android: core library desugaring enabled (plugin requirement). 5 tests.
-- [ ] **T3.6 👤 Hardware check #2** (S) — deps: T3.3, T2.6
+- [x] **T3.6 👤 Hardware check #2** (S) — deps: T3.3, T2.6
   Accept: "Wipro plug on for 1 minute" turns off with phone in airplane mode.
+  Note: Debug screen: long-press a registered device → 'On for 1 minute' / 'Off after 1 minute' / 'Cancel timer', result shows end time and tier ('(plug timer)' / '(phone timer…)'). App start runs timerService.reconcile(); iOS starts the phone-tier ticker. Widget test covers the native-tier path.
+  - [ ] 👤 Wipro/Syska plug: long-press → "On for 1 minute" → expect "(plug timer)". Put the phone in
+    airplane mode right away; the plug must switch off by itself after 1 minute. Log as
+    `native-timer`. If it shows "(phone timer)", note the DP map from the survey.
 
 ## M4 — Voice
 

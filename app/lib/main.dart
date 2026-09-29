@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import 'app/services.dart';
@@ -9,6 +12,10 @@ import 'ui/debug/scan_debug_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final services = await AppServices.create();
+  unawaited(services.timerService.reconcile());
+  if (Platform.isIOS) {
+    services.phoneTicker.start(); // lifecycle handling in T5.1
+  }
   runApp(OfflineHomeApp(platform: services.platform, services: services));
 }
 

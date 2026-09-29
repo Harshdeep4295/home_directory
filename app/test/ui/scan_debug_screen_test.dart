@@ -78,6 +78,17 @@ void main() {
     expect(find.textContaining('turned on'), findsOneWidget);
     expect(fake.power['a8bb5006033d'], isTrue);
 
+    // T3.6: long-press → timer; the fake has a native countdown → plug tier.
+    await tester.longPress(find.text('WiZ 033d'));
+    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Off after 1 minute'));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+    expect(find.textContaining('(plug timer)'), findsOneWidget);
+
+    await fake.disposeAll(); // cancels the fake's pending countdown timer
     await tester.runAsync(db.close);
     await platform.dispose();
   });

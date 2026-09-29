@@ -18,6 +18,8 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 2 | T1.4 | Android: WAN unplugged + mobile data on → debug screen reaches `sim/run.py --devices wiz --host 0.0.0.0 --base-port 38899` on the laptop | Android phone, laptop |
 | 3 | T1.5 | iPhone: Local Network prompt → granted; deny → guidance card; getPilot to laptop sim | iPhone, laptop |
 | 4 | T2.10 | Scan + toggle: WiZ + Wipro/Syska found, Tuya key pasted, each toggles offline | both phones, devices |
+| 5 | T3.6 | Wipro/Syska plug: long-press → "On for 1 minute" shows (plug timer); airplane mode; plug turns off by itself | Android or iPhone, plug |
+| 6 | T3.4 | Android + WiZ: long-press → "On for 1 minute" shows (phone timer); lock the screen; WiZ turns off after 1 min (allow "Alarms & reminders" if asked) | Android, WiZ |
 
 ## Device survey (T0.6)
 

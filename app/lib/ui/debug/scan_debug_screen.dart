@@ -1,12 +1,16 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import '../../app/services.dart';
+import '../../core/intent.dart';
 import '../../core/models.dart';
 import '../../core/result.dart';
 import '../../discovery/discovery_service.dart';
 import '../../registry/secret_store.dart';
+import '../../timers/tier_copy.dart';
+import '../../timers/timer_service.dart';
 
 /// T2.10 hardware check: scan the LAN, add what was found, paste a Tuya key, toggle.
 class ScanDebugScreen extends StatefulWidget {
@@ -103,6 +107,50 @@ class _ScanDebugScreenState extends State<ScanDebugScreen> {
     );
   }
 
+  /// T3.6: timer actions (long-press a device).
+  Future<void> _timerMenu(Device d) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (key, label) in const [
+              ('for', 'On for 1 minute'),
+              ('after', 'Off after 1 minute'),
+              ('cancel', 'Cancel timer'),
+            ])
+              ListTile(
+                title: Text(label),
+                onTap: () => Navigator.pop(ctx, key),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null) return;
+    const minute = Duration(minutes: 1);
+    final t = s.timerService;
+    final List<TimerOutcome> out = switch (choice) {
+      'for' => await t.powerFor([d], PowerAction.on, minute),
+      'after' => await t.powerAfter([d], PowerAction.off, minute),
+      _ => await t.cancel([d]).then((_) => const <TimerOutcome>[]),
+    };
+    if (!mounted) return;
+    setState(() {
+      _status[d.id] = out.isEmpty
+          ? 'timer cancelled'
+          : switch (out.single.result) {
+              Ok(value: final j) =>
+                'timer: ${j.endOn ? 'on' : 'off'} at '
+                    '${TimeOfDay.fromDateTime(j.fireAt.toLocal()).format(context)} '
+                    '${TierCopy.feedbackSuffix(j.tier, isIOS: Platform.isIOS)}',
+              Err(:final error) =>
+                'timer FAILED: ${error.kind.name} ${error.message}',
+            };
+    });
+  }
+
   static String _describe(Result<DeviceState> r) => switch (r) {
     Ok(:final value) => 'on: ${value.on}',
     Err(:final error) => '${error.kind.name}: ${error.message}',
@@ -135,6 +183,7 @@ class _ScanDebugScreenState extends State<ScanDebugScreen> {
               subtitle: Text('${d.protocol} · ${d.ip}\n${_status[d.id] ?? ''}'),
               isThreeLine: true,
               onTap: () => _toggle(d),
+              onLongPress: () => _timerMenu(d),
               trailing: d.brand == Brand.tuya
                   ? IconButton(
                       tooltip: 'Paste local key',
