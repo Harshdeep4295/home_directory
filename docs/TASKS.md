@@ -225,7 +225,7 @@ writes clear instructions, then stops.
   - [ ] timer on WiZ fires (Android phone tier) with screen off
   - [ ] device IP change (reboot router) → recovered within one scan
   - [ ] no request leaves the LAN (check router logs or Android `PCAPdroid`)
-- [ ] **T8.4 README + LICENSE + disclaimer** (S) — MIT/Apache-2.0, "not affiliated", build + install steps for both phones.
+- [ ] **T8.4 README + LICENSE + disclaimer** (S) — MIT (LICENSE + README disclaimer added in M0; T8.4 finishes install docs), "not affiliated", build + install steps for both phones.
 - [ ] **T8.5 Build scripts** (S) — `make apk`, `make ios-device` with notes on 7-day free signing.
 
 ## Later (not v1)
