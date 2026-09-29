@@ -96,6 +96,19 @@ class DiscoveryService {
     );
     await _devices.upsert(updated);
     if (moved != null) log.i(_tag, '${existing.id} moved $moved → ${c.ip}');
+    // Gangs 2..N of a multi-gang Tuya switch share the host (meta.tuyaId).
+    for (final sib in await _devices.all()) {
+      if (sib.meta['tuyaId'] == existing.id &&
+          (sib.ip != updated.ip || sib.protocol != updated.protocol)) {
+        await _devices.upsert(
+          sib.copyWith(
+            ip: updated.ip,
+            protocol: updated.protocol,
+            lastSeen: updated.lastSeen,
+          ),
+        );
+      }
+    }
     return ScanResult(c, device: updated, movedFrom: moved);
   }
 

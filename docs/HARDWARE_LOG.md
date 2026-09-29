@@ -27,6 +27,7 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 11 | T6.3 | Phone with internet: Settings → Import Tuya keys → Import from Tuya cloud → Access ID/Secret from iot.tuya.com, data centre India → keys import and each device shows "Key works" (if the token step fails, tell me the error text) | phone, Tuya IoT project |
 | 12 | T7.1 | Any Tuya device whose devices.json / beacon says version 3.4: toggle, state refresh, "On for 1 minute" (plug timer), and one wrong key (edit it on the device page) → "key rejected" | phone, 3.4 device if you have one |
 | 13 | T7.2 | A Tuya 3.5 device (newer Tuya/Smart Life plugs): appears in a scan (port-7000 beacon), toggles, state refresh, plug timer | phone, 3.5 device if you have one |
+| 14 | T7.3 | Syska/Wipro bulb after devices.json import: brightness + colour-temp sliders work (note which end of the temp slider is warm); a 2/3-gang switch (if any) shows one tile per gang, each toggles its own relay, "On for 1 minute" per gang | phone, Tuya bulb / multi-gang switch |
 
 ## Device survey (T0.6)
 

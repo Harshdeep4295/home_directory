@@ -12,19 +12,98 @@ import '../device_adapter.dart';
 import 'tuya_codec.dart';
 
 /// Data-point roles and default profiles (PSEUDOCODE §6.3). Defaults are the common
-/// Tuya layouts; VERIFY per device with spike/survey.py and override via [Device.dpMap].
+/// Tuya layouts; VERIFY per device with spike/survey.py and override via [Device.dpMap]
+/// (devices.json / cloud import derive it from the device's own mapping).
 abstract final class TuyaDp {
   static const switch_ = 'switch';
   static const countdown = 'countdown';
+  static const mode = 'mode';
+  static const brightness = 'brightness';
+  static const colorTemp = 'colorTemp';
+
+  /// Raw value range of brightness / colour temperature (stored in the dpMap).
+  static const valueMin = 'valueMin';
+  static const valueMax = 'valueMax';
+
+  /// tinytuya BulbDevice.DPS_MODE_WHITE.
+  static const modeWhite = 'white';
 
   static const plug = {switch_: 1, countdown: 9};
-  static const bulb = {switch_: 20, countdown: 26};
 
-  /// Picks a profile from the DP ids a device reports.
+  /// tinytuya 1.20.0 BulbDevice.DEFAULT_DPSET['B'] (timer = countdown).
+  static const bulb = {
+    switch_: 20,
+    mode: 21,
+    brightness: 22,
+    colorTemp: 23,
+    countdown: 26,
+    valueMin: 10,
+    valueMax: 1000,
+  };
+
+  /// tinytuya BulbDevice.DEFAULT_DPSET['A'].
+  static const bulbA = {
+    switch_: 1,
+    mode: 2,
+    brightness: 3,
+    colorTemp: 4,
+    countdown: 7,
+    valueMin: 25,
+    valueMax: 255,
+  };
+
+  /// tinytuya BulbDevice.DEFAULT_DPSET['C'] (basic dimmable, no mode/timer).
+  static const bulbC = {
+    switch_: 1,
+    brightness: 2,
+    colorTemp: 3,
+    valueMin: 25,
+    valueMax: 255,
+  };
+
+  /// Gang [n] (1-based) of a multi-gang switch without a stored mapping: switch_n = n,
+  /// countdown_n = 6 + n (PSEUDOCODE §6.3 "countdown_n = 7..10"). VERIFY per model —
+  /// imports use the device's own switch_N / countdown_N codes instead.
+  static Map<String, int> gang(int n) => {switch_: n, countdown: 6 + n};
+
+  /// Picks a profile from the DPs a device reports. Bulb rules ported from tinytuya
+  /// BulbDevice.detect_bulb(): 20+1 → not a bulb; 20+21 → B; 1+2 → A if DP 2 is a
+  /// string (mode) else C. Like tinytuya, optional roles are kept only when reported.
   static Map<String, int> detect(Map<String, Object?> dps) {
-    if (dps.containsKey('20') && !dps.containsKey('1')) return bulb;
-    return plug;
+    final Map<String, int> base;
+    if (dps.containsKey('20') && dps.containsKey('1')) {
+      return plug;
+    } else if (dps.containsKey('20') && dps.containsKey('21')) {
+      base = bulb;
+    } else if (dps.containsKey('20') && !dps.containsKey('1')) {
+      base = bulb;
+    } else if (dps.containsKey('1') && dps.containsKey('2')) {
+      base = dps['2'] is String ? bulbA : bulbC;
+    } else {
+      return plug;
+    }
+    return {
+      for (final e in base.entries)
+        if (e.key == switch_ ||
+            e.key == valueMin ||
+            e.key == valueMax ||
+            dps.containsKey('${e.value}'))
+          e.key: e.value,
+    };
   }
+
+  /// Capabilities a dpMap supports.
+  static Set<Capability> capabilities(Map<String, int> map) => {
+    Capability.power,
+    if (map.containsKey(countdown)) Capability.nativeCountdown,
+    if (map.containsKey(brightness)) Capability.brightness,
+    if (map.containsKey(colorTemp)) Capability.colorTemp,
+  };
+
+  /// Colour temperature: Tuya reports 0..valueMax (warm → cold, as tinytuya's
+  /// percentage helpers), not Kelvin. VERIFY: linear map onto the app's slider range.
+  static const kelvinMin = 2200;
+  static const kelvinMax = 6500;
 }
 
 /// Tuya LAN devices (Wipro, Syska, Smart Life …), protocol 3.1 / 3.3 / 3.4 / 3.5 over TCP 6668.
@@ -53,6 +132,9 @@ class TuyaAdapter extends DeviceAdapter {
   final Duration heartbeatEvery;
   final DateTime Function() _now;
   final Map<String, _TuyaConn> _conns = {};
+
+  /// App devices sharing one Tuya connection (multi-gang), by Tuya id.
+  final Map<String, Map<String, Device>> _gangs = {};
   final Map<String, StreamController<DeviceState>> _watchers = {};
 
   @override
@@ -65,7 +147,18 @@ class TuyaAdapter extends DeviceAdapter {
   static String versionOf(Device d) =>
       d.protocol.startsWith('tuya-') ? d.protocol.substring(5) : '3.3';
 
-  Map<String, int> dpMapOf(Device d) => d.dpMap ?? TuyaDp.plug;
+  Map<String, int> dpMapOf(Device d) =>
+      d.dpMap ?? (gangOf(d) > 1 ? TuyaDp.gang(gangOf(d)) : TuyaDp.plug);
+
+  /// The Tuya device id (key, session, devId). Gangs 2..N of a multi-gang switch are
+  /// separate app devices `<tuyaId>#<n>` with `meta.tuyaId` set; gang 1 keeps the id.
+  static String tuyaIdOf(Device d) => (d.meta['tuyaId'] as String?) ?? d.id;
+
+  static int gangOf(Device d) => (d.meta['gang'] as num?)?.toInt() ?? 1;
+
+  /// App-device id for gang [n] of Tuya device [tuyaId].
+  static String gangDeviceId(String tuyaId, int n) =>
+      n == 1 ? tuyaId : '$tuyaId#$n';
 
   @override
   Future<Candidate?> probe(ProbeContext ctx) async {
@@ -86,10 +179,12 @@ class TuyaAdapter extends DeviceAdapter {
   }
 
   Future<Result<_TuyaConn>> _conn(Device d) async {
-    final existing = _conns[d.id];
+    final tid = tuyaIdOf(d);
+    (_gangs[tid] ??= {})[d.id] = d;
+    final existing = _conns[tid];
     if (existing != null && existing.isOpen) return Ok(existing);
-    final key = await _secrets.get(d.id, SecretName.localKey);
-    if (key == null) return Err(DeviceError.auth('no local key for ${d.id}'));
+    final key = await _secrets.get(tid, SecretName.localKey);
+    if (key == null) return Err(DeviceError.auth('no local key for $tid'));
     final version = versionOf(d);
     final TuyaCodec codec;
     try {
@@ -103,14 +198,18 @@ class TuyaAdapter extends DeviceAdapter {
       (s as Ok<Socket>).value,
       codec,
       TuyaPayloads(
-        d.id,
+        tid,
         device22: d.meta['tuyaDevice22'] == true,
         version: version,
       ),
       timeout: timeout,
       heartbeatEvery: heartbeatEvery,
       now: _now,
-      onStatus: (dps) => _emitStatus(d, dps),
+      onStatus: (dps) {
+        for (final g in (_gangs[tid] ?? {d.id: d}).values) {
+          _emitStatus(g, dps);
+        }
+      },
     );
     if (codec is TuyaSessionCodec) {
       final n = await conn.negotiate();
@@ -119,7 +218,7 @@ class TuyaAdapter extends DeviceAdapter {
         return Err(error);
       }
     }
-    return Ok(_conns[d.id] = conn);
+    return Ok(_conns[tid] = conn);
   }
 
   /// Queries all DPs, switching to device22 mode if the device asks for it.
@@ -138,7 +237,11 @@ class TuyaAdapter extends DeviceAdapter {
               return Ok((json['dps']! as Map).cast<String, Object?>());
             case TuyaDevice22():
               log.i(_tag, '${d.id}: device22 detected, retrying query');
-              conn.payloads = TuyaPayloads(d.id, device22: true);
+              conn.payloads = TuyaPayloads(
+                tuyaIdOf(d),
+                device22: true,
+                version: conn.payloads.version,
+              );
             case final other:
               return Err(DeviceError.protocol('tuya: unexpected reply $other'));
           }
@@ -147,14 +250,24 @@ class TuyaAdapter extends DeviceAdapter {
       });
 
   /// True once the adapter learned the device needs device22 queries (persist in meta).
-  bool isDevice22(Device d) => _conns[d.id]?.payloads.device22 ?? false;
+  bool isDevice22(Device d) => _conns[tuyaIdOf(d)]?.payloads.device22 ?? false;
 
   DeviceState _stateFrom(Device d, Map<String, Object?> dps) {
-    final map = d.dpMap ?? TuyaDp.detect(dps);
+    final map = d.dpMap ?? (gangOf(d) > 1 ? dpMapOf(d) : TuyaDp.detect(dps));
     final cd = dps['${map[TuyaDp.countdown]}'];
+    final max = map[TuyaDp.valueMax];
+    final b = dps['${map[TuyaDp.brightness]}'];
+    final t = dps['${map[TuyaDp.colorTemp]}'];
     return DeviceState(
       on: dps['${map[TuyaDp.switch_]}'] as bool?,
       countdownLeft: cd is num && cd > 0 ? Duration(seconds: cd.toInt()) : null,
+      brightness: b is num && max != null && max > 0
+          ? (b * 100 / max).round().clamp(1, 100)
+          : null,
+      colorTemp: t is num && max != null && max > 0
+          ? TuyaDp.kelvinMin +
+                ((TuyaDp.kelvinMax - TuyaDp.kelvinMin) * t / max).round()
+          : null,
       at: _now(),
     );
   }
@@ -175,6 +288,47 @@ class TuyaAdapter extends DeviceAdapter {
   @override
   Future<Result<void>> setPower(Device d, bool on) =>
       setDps(d, {dpMapOf(d)[TuyaDp.switch_]!: on});
+
+  /// tinytuya BulbDevice.set_white(): mode "white" + brightness (+ switch on), value =
+  /// int(value_max * pct // 100) as in set_brightness_percentage(), not below value_min.
+  @override
+  Future<Result<void>> setBrightness(Device d, int pct) {
+    final map = dpMapOf(d);
+    final dp = map[TuyaDp.brightness];
+    final max = map[TuyaDp.valueMax];
+    if (dp == null || max == null) {
+      return Future.value(Err(DeviceError.unsupported('brightness')));
+    }
+    final v = (max * pct.clamp(0, 100) ~/ 100).clamp(
+      map[TuyaDp.valueMin] ?? 0,
+      max,
+    );
+    return setDps(d, {
+      ?map[TuyaDp.mode]: TuyaDp.modeWhite,
+      dp: v,
+      map[TuyaDp.switch_]!: true,
+    });
+  }
+
+  /// tinytuya BulbDevice.set_colourtemp(): mode "white" + colourtemp (+ switch on).
+  @override
+  Future<Result<void>> setColorTemp(Device d, int kelvin) {
+    final map = dpMapOf(d);
+    final dp = map[TuyaDp.colorTemp];
+    final max = map[TuyaDp.valueMax];
+    if (dp == null || max == null) {
+      return Future.value(Err(DeviceError.unsupported('color temperature')));
+    }
+    final k = kelvin.clamp(TuyaDp.kelvinMin, TuyaDp.kelvinMax);
+    final v =
+        (max * (k - TuyaDp.kelvinMin) / (TuyaDp.kelvinMax - TuyaDp.kelvinMin))
+            .round();
+    return setDps(d, {
+      ?map[TuyaDp.mode]: TuyaDp.modeWhite,
+      dp: v,
+      map[TuyaDp.switch_]!: true,
+    });
+  }
 
   @override
   Duration? nativeCountdownMax(Device d) =>
@@ -250,7 +404,11 @@ class TuyaAdapter extends DeviceAdapter {
   }
 
   @override
-  Future<void> dispose(Device d) async => _conns.remove(d.id)?.close();
+  Future<void> dispose(Device d) async {
+    final tid = tuyaIdOf(d);
+    _gangs[tid]?.remove(d.id);
+    _conns.remove(tid)?.close();
+  }
 
   @override
   Future<void> disposeAll() async {
@@ -258,6 +416,7 @@ class TuyaAdapter extends DeviceAdapter {
       c.close();
     }
     _conns.clear();
+    _gangs.clear();
     for (final w in _watchers.values) {
       await w.close();
     }

@@ -28,8 +28,11 @@ global incrementing seqno, not the sent seqno"). Beacons are 6699 frames (port 7
 Options:
     key=<16 chars>        local key (default 0123456789abcdef)
     version=3.3|3.1|3.4|3.5  protocol version (default 3.3)
-    profile=plug|bulb     DP map: plug {1: switch, 9: countdown}; bulb v2 {20 switch, 22 bright,
-                          23 temp, 26 countdown} (PSEUDOCODE §6.3 defaults, VERIFY per model)
+    profile=plug|bulb|bulba  DP map: plug {1: switch, 9: countdown}; bulb = tinytuya BulbDevice
+                          type B {20 switch, 21 mode, 22 bright 10..1000, 23 temp, 26 countdown};
+                          bulba = type A {1 switch, 2 mode, 3 bright 25..255, 4 temp, 7 timer}
+    gang=N                multi-gang switch: switch_n = n, countdown_n = 6 + n (PSEUDOCODE §6.3,
+                          VERIFY per model); overrides profile
     device22=1            behave like a 22-char-id device that ignores DP_QUERY
     beacon_port=<port>    send encrypted 6667-style beacons to 127.0.0.1:<port> every second
 """
@@ -58,6 +61,11 @@ TUYA_PORT = 6668  # tinytuya: TCPPORT = 6668
 
 PROFILES: dict[str, dict[str, Any]] = {
     "plug": {"switch": "1", "countdown": "9", "dps": {"1": False, "9": 0}},
+    "bulba": {
+        "switch": "1",
+        "countdown": "7",
+        "dps": {"1": False, "2": "white", "3": 255, "4": 0, "7": 0},
+    },
     "bulb": {
         "switch": "20",
         "countdown": "26",
@@ -98,12 +106,23 @@ class TuyaSim(TcpSimDevice):
         if len(self.key) != 16:
             raise ValueError("tuya sim key must be 16 characters")
         self.device22 = self.options.get("device22", "0") in ("1", "true", "yes")
-        prof = PROFILES[self.options.get("profile", "plug")]
+        gangs = int(self.options.get("gang", "0"))
+        if gangs:
+            prof = {
+                "switch": "1",
+                "countdown": "7",
+                "dps": {**{str(n): False for n in range(1, gangs + 1)}, **{str(6 + n): 0 for n in range(1, gangs + 1)}},
+            }
+            # countdown DP → the switch it flips
+            self.countdown_to_switch = {str(6 + n): str(n) for n in range(1, gangs + 1)}
+        else:
+            prof = PROFILES[self.options.get("profile", "plug")]
+            self.countdown_to_switch = {prof["countdown"]: prof["switch"]}
         self.switch_dp: str = prof["switch"]
         self.countdown_dp: str = prof["countdown"]
         self.dps: dict[str, Any] = dict(prof["dps"])
-        self._countdown_deadline: float | None = None
-        self._countdown_task: asyncio.Task[None] | None = None
+        self._deadlines: dict[str, float] = {}
+        self._countdown_tasks: dict[str, asyncio.Task[None]] = {}
         self._beacon_task: asyncio.Task[None] | None = None
         self.push_seq = 0
         self.received: list[int] = []  # commands received, for tests
@@ -133,8 +152,9 @@ class TuyaSim(TcpSimDevice):
 
     def current_dps(self) -> dict[str, Any]:
         dps = dict(self.dps)
-        if self._countdown_deadline is not None:
-            dps[self.countdown_dp] = max(0, round(self._countdown_deadline - time.monotonic()))
+        now = time.monotonic()
+        for cd, deadline in self._deadlines.items():
+            dps[cd] = max(0, round(deadline - now))
         return dps
 
     def _set_dps(self, changes: dict[str, Any]) -> dict[str, Any]:
@@ -142,31 +162,32 @@ class TuyaSim(TcpSimDevice):
         for dp, value in changes.items():
             if dp not in self.dps:
                 continue
-            if dp == self.countdown_dp:
-                self._arm_countdown(int(value))
+            if dp in self.countdown_to_switch:
+                self._arm_countdown(dp, int(value))
             else:
                 self.dps[dp] = value
             applied[dp] = value
         return applied
 
-    def _arm_countdown(self, seconds: int) -> None:
-        if self._countdown_task is not None:
-            self._countdown_task.cancel()
-            self._countdown_task = None
-        self.dps[self.countdown_dp] = seconds
+    def _arm_countdown(self, cd: str, seconds: int) -> None:
+        task = self._countdown_tasks.pop(cd, None)
+        if task is not None:
+            task.cancel()
+        self.dps[cd] = seconds
         if seconds <= 0:
-            self._countdown_deadline = None
+            self._deadlines.pop(cd, None)
             return
-        self._countdown_deadline = time.monotonic() + seconds
-        self._countdown_task = asyncio.get_running_loop().create_task(self._countdown(seconds))
+        self._deadlines[cd] = time.monotonic() + seconds
+        self._countdown_tasks[cd] = asyncio.get_running_loop().create_task(self._countdown(cd, seconds))
 
-    async def _countdown(self, seconds: int) -> None:
+    async def _countdown(self, cd: str, seconds: int) -> None:
         await asyncio.sleep(seconds)
-        self.dps[self.switch_dp] = not self.dps[self.switch_dp]  # countdown flips the switch
-        self.dps[self.countdown_dp] = 0
-        self._countdown_deadline = None
-        self._countdown_task = None
-        await self._push({self.switch_dp: self.dps[self.switch_dp], self.countdown_dp: 0})
+        sw = self.countdown_to_switch[cd]
+        self.dps[sw] = not self.dps[sw]  # countdown flips the switch
+        self.dps[cd] = 0
+        self._deadlines.pop(cd, None)
+        self._countdown_tasks.pop(cd, None)
+        await self._push({sw: self.dps[sw], cd: 0})
 
     # ------------------------------------------------------------------ crypto
 
@@ -365,8 +386,9 @@ class TuyaSim(TcpSimDevice):
             self._beacon_task = asyncio.get_running_loop().create_task(self._beacons(int(self.options["beacon_port"])))
 
     async def stop(self) -> None:
-        for t in (self._beacon_task, self._countdown_task):
+        for t in (self._beacon_task, *self._countdown_tasks.values()):
             if t is not None:
                 t.cancel()
-        self._beacon_task = self._countdown_task = None
+        self._beacon_task = None
+        self._countdown_tasks.clear()
         await super().stop()

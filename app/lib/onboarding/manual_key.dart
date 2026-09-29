@@ -1,4 +1,5 @@
 import '../adapters/device_adapter.dart';
+import '../adapters/tuya/tuya_adapter.dart';
 import '../core/models.dart';
 import '../core/result.dart';
 import '../engine/command_engine.dart';
@@ -33,8 +34,9 @@ Future<ManualKeyResult> enterLocalKey({
 }) async {
   key = key.trim();
   if (!isValidLocalKey(key)) return ManualKeyResult.invalid;
-  final previous = await secrets.get(d.id, SecretName.localKey);
-  await secrets.set(d.id, SecretName.localKey, key);
+  final id = TuyaAdapter.tuyaIdOf(d); // one key for all gangs of a switch
+  final previous = await secrets.get(id, SecretName.localKey);
+  await secrets.set(id, SecretName.localKey, key);
   final adapter = adapters.adapterFor(d);
   await adapter?.dispose(d);
   if (d.ip.isEmpty) return ManualKeyResult.unverified;
@@ -44,9 +46,9 @@ Future<ManualKeyResult> enterLocalKey({
       return ManualKeyResult.ok;
     case Err(:final error) when error.kind == DeviceErrorKind.auth:
       if (previous == null) {
-        await secrets.delete(d.id, SecretName.localKey);
+        await secrets.delete(id, SecretName.localKey);
       } else {
-        await secrets.set(d.id, SecretName.localKey, previous);
+        await secrets.set(id, SecretName.localKey, previous);
       }
       await adapter?.dispose(d);
       return ManualKeyResult.rejected;

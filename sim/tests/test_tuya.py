@@ -134,3 +134,27 @@ async def test_protocol_35_session_status_control() -> None:
 def test_protocol_35_beacon_decrypts_with_tinytuya() -> None:
     sim = TuyaSim(key=KEY, version="3.5")
     assert json.loads(udp_helper.decrypt_udp(sim.beacon_frame()))["version"] == "3.5"
+
+
+async def test_multi_gang_switches_and_countdowns() -> None:
+    async with TuyaSim(key=KEY, gang="3") as sim:
+        d = client(sim)
+        st = await run(d.status)
+        assert st["dps"] == {"1": False, "2": False, "3": False, "7": 0, "8": 0, "9": 0}
+        await run(d.turn_on, 2)
+        assert sim.dps["2"] is True and sim.dps["1"] is False
+        await run(d.set_value, 8, 1)
+        await asyncio.sleep(1.3)
+        assert sim.dps["2"] is False
+        d.close()
+
+
+async def test_bulb_type_a_detected_by_tinytuya() -> None:
+    async with TuyaSim(key=KEY, profile="bulba") as sim:
+        b = tinytuya.BulbDevice(sim.device_id, sim.host, KEY, version=3.3, port=sim.port, connection_timeout=2)
+        b.set_socketRetryLimit(1)
+        await run(b.detect_bulb)
+        assert b.bulb_type == "A"
+        await run(b.set_brightness_percentage, 50)
+        assert sim.dps["3"] == 127 and sim.dps["1"] is True
+        b.close()

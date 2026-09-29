@@ -76,7 +76,14 @@ void main() {
     final bulb = (await devices.byId('bf9876543210zyxwvuts'))!;
     expect(bulb.protocol, 'tuya');
     expect(bulb.ip, '');
-    expect(bulb.dpMap, {TuyaDp.switch_: 20, TuyaDp.countdown: 26});
+    expect(bulb.dpMap, {
+      TuyaDp.switch_: 20,
+      TuyaDp.countdown: 26,
+      TuyaDp.brightness: 22,
+      TuyaDp.valueMin: 10,
+      TuyaDp.valueMax: 1000,
+    });
+    expect(bulb.capabilities, contains(Capability.brightness));
     expect(await devices.byId('bfsub0000000000000aa'), isNull);
     expect(await devices.byId('bfnokey0000000000000'), isNull);
 
@@ -129,5 +136,66 @@ void main() {
     );
     expect(out.single.status, ImportStatus.badKey);
     expect(await devices.byId('bfshort'), isNull);
+  });
+
+  test('bulb ranges: from mapping values, else tinytuya defaults', () {
+    expect(
+      dpMapFromMapping({
+        1: 'switch_led',
+        2: 'work_mode',
+        3: 'bright_value',
+        4: 'temp_value',
+      }),
+      {
+        TuyaDp.switch_: 1,
+        TuyaDp.mode: 2,
+        TuyaDp.brightness: 3,
+        TuyaDp.colorTemp: 4,
+        TuyaDp.valueMin: 25,
+        TuyaDp.valueMax: 255,
+      },
+    );
+    expect(
+      dpMapFromMapping(
+        {20: 'switch_led', 22: 'bright_value_v2'},
+        ranges: {22: (10, 1000)},
+      )![TuyaDp.valueMax],
+      1000,
+    );
+    expect(rangeOf('{"min":10,"max":1000,"scale":0}'), (10, 1000));
+    expect(rangeOf({'min': 25, 'max': 255}), (25, 255));
+    expect(rangeOf('{}'), isNull);
+  });
+
+  test('multi-gang switch → one app device per gang, one shared key', () async {
+    const text =
+        '[{"id":"bfgang0000000000000x","name":"Hall Board","key":"k3yK3YkeyKEY0003",'
+        '"version":"3.3","mapping":{'
+        '"1":{"code":"switch_1","type":"Boolean","values":{}},'
+        '"2":{"code":"switch_2","type":"Boolean","values":{}},'
+        '"3":{"code":"switch_3","type":"Boolean","values":{}},'
+        '"7":{"code":"countdown_1","type":"Integer","values":{}},'
+        '"8":{"code":"countdown_2","type":"Integer","values":{}},'
+        '"9":{"code":"countdown_3","type":"Integer","values":{}}}}]';
+    final out = await importer.importText(text);
+    expect(out.single.status, ImportStatus.added);
+    expect(out.single.devices.map((d) => d.id), [
+      'bfgang0000000000000x',
+      'bfgang0000000000000x#2',
+      'bfgang0000000000000x#3',
+    ]);
+    final g2 = (await devices.byId('bfgang0000000000000x#2'))!;
+    expect(g2.name, 'Hall Board 2');
+    expect(g2.dpMap, {TuyaDp.switch_: 2, TuyaDp.countdown: 8});
+    expect(TuyaAdapter.tuyaIdOf(g2), 'bfgang0000000000000x');
+    expect(TuyaAdapter.gangOf(g2), 2);
+    expect(
+      await secrets.get('bfgang0000000000000x', SecretName.localKey),
+      'k3yK3YkeyKEY0003',
+    );
+    expect(
+      await secrets.has('bfgang0000000000000x#2', SecretName.localKey),
+      isFalse,
+    );
   });
 }
