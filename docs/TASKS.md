@@ -285,7 +285,8 @@ writes clear instructions, then stops.
   Note: bulb types A/B/C + detection + value ranges ported from tinytuya BulbDevice (set_white semantics); import derives bulb roles/ranges and one app device per gang (`<id>#n`, shared key/session); sim profile=bulba, gang=N. VERIFY: gang countdown default 6+n, Kelvin↔Tuya temp mapping; bulbs added by scan only (no devices.json) get power caps until a mapping is imported. Hardware check #14.
 - [x] **T7.4 Shelly Gen1 + Gen2** (M) — deps: T2.1 — Ref: §Shelly
   Note: ShellyAdapter (Gen1 REST relay/turn/timer + Basic auth; Gen2 JSON-RPC POST /rpc Switch.GetStatus/Set/toggle_after + aioshelly AuthData digest, byte-checked vs aioshelly vectors); flip-based countdown + combined powerFor; ShellySim gen=1|2 password=; contract suite green for 4 variants; add-flow asks for the Shelly password. VERIFY: in-frame digest over HTTP POST, countdown max, cancel by re-sending state, Gen2 timer vs phone clock. Hardware check #15.
-- [ ] **T7.5 Kasa legacy** (M) — deps: T2.1 — Ref: §Kasa legacy
+- [x] **T7.5 Kasa legacy** (M) — deps: T2.1 — Ref: §Kasa legacy
+  Note: KasaAdapter (TCP 9999 XOR per python-kasa; plugs, strip outlets via context child_ids, bulbs via lightingservice); absolute countdown rules (count_down → countdown fallback); KasaSim verified with python-kasa's IotPlug/IotStrip/IotBulb; contract suite green (plug, plug w/ `countdown` module, bulb). VERIFY: countdown module/add_rule/remain on real plugs; strip outlets and bulb caps are not auto-created on add yet (T7.12). Hardware check #16.
 - [ ] **T7.6 KLAP transport + Tapo/Kasa new** (L → split) — deps: T7.5 — Ref: §KLAP
 - [ ] **T7.7 Hue bridge + link-button pairing** (M) — deps: T2.1 — Ref: §Hue
 - [ ] **T7.8 Yeelight** (S) — deps: T2.1 — Ref: §Yeelight

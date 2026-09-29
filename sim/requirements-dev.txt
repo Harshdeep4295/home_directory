@@ -3,3 +3,4 @@ pytest-asyncio>=0.23
 tinytuya==1.20.0
 aioshelly==13.34.0
 python-kasa==0.10.2
+tzdata
