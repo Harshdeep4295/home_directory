@@ -121,11 +121,12 @@ writes clear instructions, then stops.
   PSEUDOCODE §6.3; sim must support it as an option.
   Accept: contract suite green vs sim (normal + device22); reconnect after sim restart.
   Note: adapters/tuya/tuya_adapter.dart: persistent TCP session per device (seq-matched replies, STATUS pushes → watch(), heartbeat 10 s, closes on error, lazy reconnect), key from SecretStore (missing → auth), device22 auto-switch on 'data unvalid' (isDevice22() for persisting to meta), 3.1/3.3, plug/bulb DP profiles + detect(), flip-based countdown (canCountdownTo, refuses when already in target state; max 86400 s VERIFY). Contract suite + 8 more sim tests green (normal, device22, 3.1, reconnect after restart, pushes, countdown get/cancel). Brightness/multi-gang in T7.3.
-- [ ] **T2.7 Candidate collectors** (M) — deps: T1.3, T1.4 — Ref: §Discovery
+- [x] **T2.7 Candidate collectors** (M) — deps: T1.3, T1.4 — Ref: §Discovery
   Do: mDNS (bonsoir), UDP listeners (6666/6667), broadcast probes (38899, 9999, 20002, 1982),
   unicast fallback for iOS, TCP port scan /24 (concurrency 64, 300 ms).
   Accept: with sims running, collector returns expected candidates; iOS path unit-tested with
   broadcast disabled flag.
+  Note: discovery/: HostEvidence/MdnsRecord/UdpProbe/ScanPort, BonsoirMdnsBrowser (bonsoir 7, resolves services → IPv4), CandidateCollector running in parallel: mDNS, Tuya beacon listeners (6666/6667 + MulticastLock), WiZ registration broadcast bound to 38899 (pywizlight), Kasa XOR 9999 + KLAP 20002 static query (python-kasa 0.10.2), Yeelight SSDP (Android only), TCP scan (64 conc., 300 ms), HTTP probes on port-80 hosts; iOS = unicast to every host. adapters/kasa/kasa_xor.dart with python-kasa vectors. All ports overridable; sim test + iOS-path test green. VERIFY on hardware: WiZ reply port, KLAP static query answered, Tuya beacons on iOS.
 - [ ] **T2.8 Fingerprinter** (M) — deps: T2.7 — Ref: §Fingerprinter
   Accept: table-driven tests using recorded replies for every brand in PLAN §6 (use sim replies
   where no real recording exists; mark them).

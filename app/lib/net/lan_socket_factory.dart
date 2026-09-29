@@ -108,12 +108,15 @@ class LanSocketFactory {
   }
 
   /// Broadcasts [payload] on the Wi-Fi subnet and collects replies for [window].
+  /// [bindPort] fixes the local port for protocols whose devices reply to a well-known
+  /// port instead of the sender's (pywizlight binds 38899 for discovery).
   /// `Err(unsupported)` where the platform cannot broadcast (iOS, PLAN §5).
   Future<Result<List<UdpReply>>> broadcast(
     int port,
     List<int> payload, {
     Duration window = const Duration(seconds: 2),
     String? broadcastAddress,
+    int bindPort = 0,
   }) async {
     if (!platform.canBroadcast) {
       return Err(DeviceError.unsupported('broadcast not available'));
@@ -134,6 +137,7 @@ class LanSocketFactory {
         timeout: window,
         expectMany: true,
         broadcast: true,
+        bindPort: bindPort,
       );
     } finally {
       await platform.releaseMulticastLock();
@@ -147,8 +151,9 @@ class LanSocketFactory {
     required Duration timeout,
     required bool expectMany,
     required bool broadcast,
+    int bindPort = 0,
   }) async {
-    final bound = await udp(broadcast: broadcast);
+    final bound = await udp(bindPort: bindPort, broadcast: broadcast);
     if (bound case Err(:final error)) return Err(error);
     final socket = (bound as Ok<RawDatagramSocket>).value;
     final replies = <UdpReply>[];
