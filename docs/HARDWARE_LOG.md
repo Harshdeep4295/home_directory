@@ -32,6 +32,7 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 16 | T7.5 | Only if you own an older Kasa plug (HS1xx/KP1xx): scan finds it, toggle, "On for 1 minute" shows plug timer and it turns off by itself | phone, Kasa plug |
 | 17 | T7.6 | Only if you own a Tapo / new Kasa device: scan finds it (UDP 20002), enter the TP-Link account, toggle; bulbs: brightness slider. If the scan misses it, tell me the model | phone, Tapo device |
 | 18 | T7.7 | Only if you own a Hue bridge: scan → Needs pairing → press the bridge button → lights appear; toggle, brightness, "On for 1 minute" (bridge timer) | phone, Hue bridge |
+| 19 | T7.8 | Only if you own a Yeelight: enable "LAN Control" in the Yeelight app, scan, toggle, brightness, "off in 2 minutes" (bulb timer) | phone, Yeelight |
 
 ## Device survey (T0.6)
 

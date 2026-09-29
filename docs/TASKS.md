@@ -296,7 +296,8 @@ writes clear instructions, then stops.
     Note: fingerprinter maps 20002 device_type/encrypt_type like kasa/device_factory.py → `klap-iot` / `klap-smart` (AES / HTTPS → `tplink-*` = not supported yet); add flow asks for the TP-Link account once (SecretStore `tplink`). VERIFY: the static 20002 query is answered at home. Hardware check #17.
 - [x] **T7.7 Hue bridge + link-button pairing** (M) — deps: T2.1 — Ref: §Hue
   Note: HueAdapter (v1 REST per aiohue: pairing, lights on/bri/ct, errors 1/101, bridge-id normalisation); one app device per light (`<bridge>-<light>`), username in SecretStore; timers = bridge schedules `PT hh:mm:ss` found again via GET /schedules; add-flow pairing dialog with 30 s countdown; discovery moves lights with the bridge IP. HueSim verified with aiohue. VERIFY: schedule API/limits and starttime clock on a real bridge. Hardware check #18.
-- [ ] **T7.8 Yeelight** (S) — deps: T2.1 — Ref: §Yeelight
+- [x] **T7.8 Yeelight** (S) — deps: T2.1 — Ref: §Yeelight
+  Note: YeelightAdapter (TCP 55443 JSON lines per python-yeelight: get_prop, set_power/bright/ct_abx + smooth 300 ms, props notifications skipped); native timer = cron off-timer in whole minutes (so ON-ending timers use the phone tier); YeelightSim verified with python-yeelight's Bulb. VERIFY: cron_get reply shape and max delay; LAN control must be enabled in the Yeelight app. Hardware check #19.
 - [ ] **T7.9 Sonoff LAN (DIY + encrypted)** (M) — deps: T2.1 — Ref: §Sonoff
 - [ ] **T7.10 Tasmota** (S) — deps: T2.1 — Ref: §Tasmota
 - [ ] **T7.11 ESPHome (web server REST)** (S) — deps: T2.1 — Ref: §ESPHome

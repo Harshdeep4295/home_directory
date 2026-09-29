@@ -5,3 +5,4 @@ aioshelly==13.34.0
 python-kasa==0.10.2
 tzdata
 aiohue==4.9.0
+yeelight==0.7.16
