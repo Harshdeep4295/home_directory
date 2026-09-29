@@ -163,9 +163,10 @@ writes clear instructions, then stops.
     `cancelAlarm(jobId)`, `canScheduleExactAlarms()`; AlarmManager `setExactAndAllowWhileIdle`;
     Dart side behind `PhoneAlarmScheduler` interface with a fake for tests.
     Note: AlarmStore.kt (SharedPreferences jobId→fireAt, setExactAndAllowWhileIdle, inexact fallback when exact not allowed, distinct PendingIntent per job via data URI) + AlarmsPlugin.kt channel offline_home/alarms; Dart AndroidPhoneAlarmScheduler (reports inexact fallback, openExactAlarmSettings) with mocked-channel tests.
-  - [ ] **T3.4b Background Dart entrypoint** (M): `@pragma('vm:entry-point') timerCallback(jobId)`
+  - [x] **T3.4b Background Dart entrypoint** (M): `@pragma('vm:entry-point') timerCallback(jobId)`
     that opens the DB, builds adapters + CommandEngine without Flutter UI, runs `onAlarm(jobId)`.
     Accept: Dart unit test runs the entrypoint against a fake adapter.
+    Note: timers/alarm_runner.dart: drainAlarms(host, timerService) pulls job ids until null, runs onAlarm each (crash-safe), reports finished/done; MethodChannelAlarmRunnerHost; @pragma('vm:entry-point') timerAlarmMain in main.dart builds AppServices and drains. AppServices now owns CommandEngine, StatePoller, TimerService (+ phone scheduler per platform). DB uses WAL (two engines share the file). Unit test runs the entry-point logic against a fake adapter.
   - [x] **T3.4c AlarmReceiver + TimerForegroundService** (M): receiver starts the FGS, FGS starts a
     headless `FlutterEngine` on the entrypoint, passes jobId, stops itself when done (timeout 30 s);
     binds to Wi-Fi via LanBindingPlugin before running.

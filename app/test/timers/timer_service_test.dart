@@ -359,9 +359,8 @@ void main() {
       await svc.reconcile();
       // Stored as UTC; compare instants.
       expect(
-        (await timers.byId(j.id))!.fireAt.isAtSameMomentAs(
-          now.add(const Duration(minutes: 5)),
-        ),
+        (await timers.byId(j.id))!.fireAt
+            .isAtSameMomentAs(now.add(const Duration(minutes: 5))),
         isTrue,
       );
     });
