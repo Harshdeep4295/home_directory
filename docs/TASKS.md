@@ -50,8 +50,9 @@ writes clear instructions, then stops.
   Candidate, `Result<T,E>`, `DeviceError`.
   Accept: JSON round-trip tests for every model.
   Note: lib/core: result.dart (sealed Result<T> Ok/Err + freezed DeviceError), models.dart (Device, DeviceState, Room, Alias, TimerJob w/ meta, Candidate + enums), intent.dart (Intent union keyed by 'type', TargetSpan, ClockTime). Durations as seconds, DateTimes UTC ISO. Generated code committed; CI step make codegen-check. 19 tests.
-- [ ] **T1.2 Logger + redaction** (S) — deps: T1.1
+- [x] **T1.2 Logger + redaction** (S) — deps: T1.1
   Accept: test proves values registered in SecretStore never appear in log output.
+  Note: core/log.dart: Logger (d/i/w/e + tag), Redactor (longest-first, min length 4), ConsoleSink, MemorySink ring (500) for diagnostics. Message, error, stack and tag all redacted. End-to-end 'SecretStore value never logged' test lands with T1.8.
 - [ ] **T1.3 LanSocketFactory (Dart side)** (M) — deps: T1.1 — Ref: §LanSocketFactory
   Do: tcp(), udp(), udpBroadcast(), http() with timeouts; delegates Android binding to plugin.
   Accept: unit tests with local echo servers; timeouts return `DeviceError.timeout`.
