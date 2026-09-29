@@ -28,3 +28,28 @@ async def test_garbage_is_ignored_and_sim_survives(udp) -> None:
         s.close()
         r = await udp.request(sim.host, sim.port, {"method": "getPilot", "params": {}})
         assert r["method"] == "getPilot"
+
+
+async def test_system_config_and_registration(udp) -> None:
+    async with WizSim(module="ESP01_SHDW1C_31", fw="1.21.0") as sim:
+        r = await udp.request(sim.host, sim.port, {"method": "getSystemConfig", "params": {}})
+        assert r["result"]["moduleName"] == "ESP01_SHDW1C_31"
+        assert r["result"]["fwVersion"] == "1.21.0"
+        reg = {
+            "method": "registration",
+            "params": {"phoneMac": "AAAAAAAAAAAA", "register": False, "phoneIp": "1.2.3.4", "id": "1"},
+        }
+        r = await udp.request(sim.host, sim.port, reg)
+        assert r["result"] == {"mac": sim.device_id, "success": True}
+
+
+async def test_drop_first_n(udp) -> None:
+    import asyncio
+
+    import pytest
+
+    async with WizSim(drop="1") as sim:
+        with pytest.raises(asyncio.TimeoutError):
+            await udp.request(sim.host, sim.port, {"method": "getPilot", "params": {}}, timeout=0.3)
+        r = await udp.request(sim.host, sim.port, {"method": "getPilot", "params": {}})
+        assert r["method"] == "getPilot"

@@ -14,7 +14,7 @@ listen, then runs until SIGINT/SIGTERM or until stdin closes. Device spec syntax
 
 | kind | protocol | task |
 |---|---|---|
-| `wiz` | UDP JSON `getPilot`/`setPilot` | T0.2 (minimal), T2.2 (full) |
+| `wiz` | UDP JSON getPilot/setPilot/getSystemConfig/registration; opts `mac`, `module`, `fw`, `drop` | T2.2 |
 
 Add a simulator: subclass `UdpSimDevice` or `TcpSimDevice` in `ohsim/devices/`, register it in
 `ohsim/registry.py`, add tests in `tests/`.
