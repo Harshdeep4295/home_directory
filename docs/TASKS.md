@@ -145,10 +145,11 @@ writes clear instructions, then stops.
 
 ## M3 — Engine, state, timers
 
-- [ ] **T3.1 CommandEngine** (M) — deps: T2.1, T1.7 — Ref: §CommandEngine
+- [x] **T3.1 CommandEngine** (M) — deps: T2.1, T1.7 — Ref: §CommandEngine
   Do: per-device serial queue, parallel across devices, retry (2x, backoff 150/400 ms),
   optimistic state + confirm read-back, result aggregation for multi-target commands.
   Accept: tests with FakeAdapter incl. partial failures.
+  Note: engine/command_engine.dart: per-device SerialQueue, parallel across devices, retry x2 (150/400 ms) except auth/unsupported, optimistic state + revert on failure + read-back (800 ms) confirm, cache persisted to device_state_cache (warmUp/remember), stateChanges stream, power/powerOne/status/run, Aggregate ok/failed. 8 tests with FakeAdapter incl. partial failure.
 - [ ] **T3.2 StatePoller** (S) — deps: T3.1 — Ref: §StatePoller
   Do: push where adapter supports it, else poll every 5 s while app foreground, 0 when background;
   cache to device_state_cache.
