@@ -92,3 +92,28 @@ async def test_beacons_decrypt_with_tinytuya() -> None:
 def test_bad_key_rejected() -> None:
     with pytest.raises(ValueError):
         TuyaSim(key="short")
+
+
+async def test_protocol_34_session_status_control_countdown() -> None:
+    async with TuyaSim(key=KEY, version="3.4") as sim:
+        d = client(sim, version=3.4)
+        st = await run(d.status)
+        assert st["dps"] == {"1": False, "9": 0}, st
+        await run(d.turn_on)
+        assert sim.on is True
+        await run(d.set_value, 9, 1)
+        await asyncio.sleep(1.3)
+        assert sim.on is False
+        st = await run(d.status)
+        assert st["dps"]["1"] is False
+        d.close()
+
+
+async def test_protocol_34_wrong_key_gets_nothing() -> None:
+    async with TuyaSim(key=KEY, version="3.4") as sim:
+        d = tinytuya.OutletDevice(sim.device_id, sim.host, "WrongKeyWrongKey", version=3.4, port=sim.port, connection_timeout=1)
+        d.set_socketRetryLimit(1)
+        st = await run(d.status)
+        assert "Error" in st or "Err" in st, st
+        assert sim.on is False
+        d.close()

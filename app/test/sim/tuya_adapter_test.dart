@@ -64,6 +64,20 @@ void main() {
     );
   });
 
+  adapterContractTest('Tuya 3.4', () async {
+    final sim = await SimProcess.start('tuya:key=$key:version=3.4');
+    final s = sim['tuya'];
+    expect(s.protocol, 'tuya-3.4');
+    return ContractHarness(
+      adapter: await adapterFor(s),
+      device: tuyaDevice(s),
+      stopDevice: sim.stop,
+      tearDown: sim.stop,
+      expectedTimeout: timeout,
+      countdownSupported: true,
+    );
+  });
+
   group('Tuya adapter vs simulator', () {
     late SimProcess sim;
     late TuyaAdapter a;
@@ -96,6 +110,25 @@ void main() {
       expect(a.isDevice22(d), isTrue);
       expect(await a.setPower(d, true), isA<Ok<void>>());
       expect((await a.getState(d)).valueOrNull?.on, isTrue);
+    });
+
+    test('3.4: wrong key → auth error from the session handshake', () async {
+      sim = await SimProcess.start('tuya:key=$key:version=3.4');
+      a = await adapterFor(sim['tuya'], k: 'fedcba9876543210');
+      final r = await a.getState(tuyaDevice(sim['tuya']));
+      expect(r.errorOrNull?.kind, DeviceErrorKind.auth, reason: '$r');
+    });
+
+    test('3.4: STATUS pushes arrive over the session', () async {
+      sim = await SimProcess.start('tuya:key=$key:version=3.4');
+      a = await adapterFor(sim['tuya']);
+      final d = tuyaDevice(sim['tuya']);
+      final pushes = <bool?>[];
+      final sub = a.watch(d)!.listen((st) => pushes.add(st.on));
+      expect(await a.setPower(d, true), isA<Ok<void>>());
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await sub.cancel();
+      expect(pushes, contains(true));
     });
 
     test('protocol 3.1', () async {

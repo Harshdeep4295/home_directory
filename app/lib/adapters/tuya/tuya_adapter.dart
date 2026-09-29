@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import '../../core/log.dart';
@@ -26,8 +27,9 @@ abstract final class TuyaDp {
   }
 }
 
-/// Tuya LAN devices (Wipro, Syska, Smart Life …), protocol 3.1 / 3.3 over TCP 6668.
-/// Ported from tinytuya 1.20.0 (see tuya_codec.dart). 3.4/3.5 arrive in T7.1/T7.2.
+/// Tuya LAN devices (Wipro, Syska, Smart Life …), protocol 3.1 / 3.3 / 3.4 over TCP 6668.
+/// Ported from tinytuya 1.20.0 (see tuya_codec.dart). 3.4 negotiates a session key
+/// first (T7.1); 3.5 arrives in T7.2.
 class TuyaAdapter extends DeviceAdapter {
   TuyaAdapter(
     this._sockets,
@@ -88,27 +90,36 @@ class TuyaAdapter extends DeviceAdapter {
     if (existing != null && existing.isOpen) return Ok(existing);
     final key = await _secrets.get(d.id, SecretName.localKey);
     if (key == null) return Err(DeviceError.auth('no local key for ${d.id}'));
-    final TuyaCodec3x codec;
+    final version = versionOf(d);
+    final TuyaCodec codec;
     try {
-      codec = TuyaCodec3x(versionOf(d), key);
+      codec = TuyaCodec.forVersion(version, key);
     } on ArgumentError catch (e) {
       return Err(DeviceError.unsupported('tuya: ${e.message}'));
     }
     final s = await _sockets.tcp(d.ip, d.port ?? port, timeout: timeout);
-    return switch (s) {
-      Err(:final error) => Err(error),
-      Ok(value: final socket) => Ok(
-        _conns[d.id] = _TuyaConn(
-          socket,
-          codec,
-          TuyaPayloads(d.id, device22: d.meta['tuyaDevice22'] == true),
-          timeout: timeout,
-          heartbeatEvery: heartbeatEvery,
-          now: _now,
-          onStatus: (dps) => _emitStatus(d, dps),
-        ),
+    if (s case Err(:final error)) return Err(error);
+    final conn = _TuyaConn(
+      (s as Ok<Socket>).value,
+      codec,
+      TuyaPayloads(
+        d.id,
+        device22: d.meta['tuyaDevice22'] == true,
+        version: version,
       ),
-    };
+      timeout: timeout,
+      heartbeatEvery: heartbeatEvery,
+      now: _now,
+      onStatus: (dps) => _emitStatus(d, dps),
+    );
+    if (codec is TuyaCodec34) {
+      final n = await conn.negotiate();
+      if (n case Err(:final error)) {
+        conn.close();
+        return Err(error);
+      }
+    }
+    return Ok(_conns[d.id] = conn);
   }
 
   /// Queries all DPs, switching to device22 mode if the device asks for it.
@@ -276,14 +287,15 @@ class _TuyaConn {
   }
 
   final Socket _socket;
-  final TuyaCodec3x _codec;
+  final TuyaCodec _codec;
   TuyaPayloads payloads;
   final Duration timeout;
   final DateTime Function() now;
   final void Function(Map<String, Object?> dps) onStatus;
 
-  final _decoder = TuyaFrameDecoder();
+  late final _decoder = TuyaFrameDecoder(hmacKey: _codec.frameKey);
   final Map<int, Completer<TuyaFrame>> _pending = {};
+  Completer<TuyaFrame>? _negotiation;
   late final StreamSubscription<Uint8List> _sub;
   late final Timer _heartbeat;
   int _seq = 1;
@@ -301,6 +313,12 @@ class _TuyaConn {
       return;
     }
     for (final f in frames) {
+      final neg = _negotiation;
+      if (neg != null && f.cmd == TuyaCmd.sessKeyNegResp) {
+        _negotiation = null;
+        neg.complete(f); // checked (HMAC included) by negotiateFinish
+        continue;
+      }
       if (!f.crcOk) continue;
       final waiter = _pending.remove(f.seq);
       if (waiter != null && f.cmd != TuyaCmd.status) {
@@ -323,6 +341,41 @@ class _TuyaConn {
       }
     } on Object {
       // A garbled push is not worth dropping the session for.
+    }
+  }
+
+  /// Protocol 3.4 session key negotiation (tinytuya XenonDevice._negotiate_session_key).
+  /// A device that cannot prove it knows the local key → auth error.
+  Future<Result<void>> negotiate() async {
+    final codec = _codec as TuyaCodec34;
+    final rnd = Random.secure();
+    final nonce = Uint8List.fromList(
+      List.generate(16, (_) => rnd.nextInt(256)),
+    );
+    final waiter = _negotiation = Completer<TuyaFrame>();
+    try {
+      _socket.add(codec.negotiateStart(_seq++, nonce));
+      final resp = await waiter.future.timeout(timeout);
+      _socket.add(codec.negotiateFinish(_seq++, resp));
+      _decoder.hmacKey = codec.frameKey;
+      return const Ok(null);
+    } on TimeoutException {
+      return Err(DeviceError.timeout('tuya 3.4: no session key reply'));
+    } on TuyaDecodeException catch (e) {
+      return Err(DeviceError.auth('tuya 3.4: ${e.message}; wrong key?'));
+    } on SocketException catch (e) {
+      return Err(mapSocketError(e, 'tuya'));
+    } on StateError {
+      // The frame's HMAC is keyed with the local key, so a device with another key
+      // cannot verify step 1 and hangs up. VERIFY on hardware that it closes (rather
+      // than staying silent, which ends up as a timeout above).
+      return Err(
+        DeviceError.auth(
+          'tuya 3.4: device closed during key negotiation; wrong key?',
+        ),
+      );
+    } finally {
+      _negotiation = null;
     }
   }
 
@@ -362,7 +415,7 @@ class _TuyaConn {
   }
 
   Future<void> _beat() async {
-    if (!_open) return;
+    if (!_open || _negotiation != null) return;
     if (_missedBeats >= 2) {
       close();
       return;
@@ -388,5 +441,9 @@ class _TuyaConn {
       }
     }
     _pending.clear();
+    final neg = _negotiation;
+    if (neg != null && !neg.isCompleted) {
+      neg.completeError(StateError('closed'));
+    }
   }
 }

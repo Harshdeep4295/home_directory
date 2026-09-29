@@ -25,6 +25,7 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 9 | T5.9 | Android: star 2 devices on their detail screens; add the "Offline Home" widget; tap a favourite → toggles; tap mic → voice sheet; add the "Voice command" quick-settings tile → opens voice sheet (Android 14+ too) | Android, devices |
 | 10 | T6.1 | Run `python -m tinytuya wizard` on the Mac, AirDrop/share devices.json to each phone, Settings → Import Tuya keys → each Wipro/Syska shows "Key works" | Mac, both phones, Tuya devices |
 | 11 | T6.3 | Phone with internet: Settings → Import Tuya keys → Import from Tuya cloud → Access ID/Secret from iot.tuya.com, data centre India → keys import and each device shows "Key works" (if the token step fails, tell me the error text) | phone, Tuya IoT project |
+| 12 | T7.1 | Any Tuya device whose devices.json / beacon says version 3.4: toggle, state refresh, "On for 1 minute" (plug timer), and one wrong key (edit it on the device page) → "key rejected" | phone, 3.4 device if you have one |
 
 ## Device survey (T0.6)
 
