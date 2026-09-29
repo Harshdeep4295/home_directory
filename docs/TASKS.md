@@ -159,18 +159,21 @@ writes clear instructions, then stops.
   Accept: matrix tests with fake clock and fake adapters (native / no-native / max exceeded).
   Note: timers/timer_service.dart: tier selection (native if max ≥ d and canCountdownTo(end, currentOn), else phone), powerFor (combined adapter call when supported, else set now + countdown to the opposite), powerAfter, powerAt/powerUntil via untilNext, one active job per device, cancel per tier, reconcile (overdue native → done; overdue phone never run → failed, never executed late; countdown gone on device → cancelled; drift > 1 min → fireAt corrected), onAlarm for phone tier. PhoneAlarmScheduler interface. 19 matrix tests with fake clock and fake adapters.
 - [ ] **T3.4 Android phone-tier timers (Kotlin)** (L → split) — deps: T3.3, T1.4
-  - [ ] **T3.4a Alarm scheduling channel** (S): MethodChannel `scheduleExactAlarm(jobId, fireAtMs)`,
+  - [x] **T3.4a Alarm scheduling channel** (S): MethodChannel `scheduleExactAlarm(jobId, fireAtMs)`,
     `cancelAlarm(jobId)`, `canScheduleExactAlarms()`; AlarmManager `setExactAndAllowWhileIdle`;
     Dart side behind `PhoneAlarmScheduler` interface with a fake for tests.
+    Note: AlarmStore.kt (SharedPreferences jobId→fireAt, setExactAndAllowWhileIdle, inexact fallback when exact not allowed, distinct PendingIntent per job via data URI) + AlarmsPlugin.kt channel offline_home/alarms; Dart AndroidPhoneAlarmScheduler (reports inexact fallback, openExactAlarmSettings) with mocked-channel tests.
   - [ ] **T3.4b Background Dart entrypoint** (M): `@pragma('vm:entry-point') timerCallback(jobId)`
     that opens the DB, builds adapters + CommandEngine without Flutter UI, runs `onAlarm(jobId)`.
     Accept: Dart unit test runs the entrypoint against a fake adapter.
-  - [ ] **T3.4c AlarmReceiver + TimerForegroundService** (M): receiver starts the FGS, FGS starts a
+  - [x] **T3.4c AlarmReceiver + TimerForegroundService** (M): receiver starts the FGS, FGS starts a
     headless `FlutterEngine` on the entrypoint, passes jobId, stops itself when done (timeout 30 s);
     binds to Wi-Fi via LanBindingPlugin before running.
-  - [ ] **T3.4d Boot + re-arm** (S): `RECEIVE_BOOT_COMPLETED` receiver asks Dart for active phone
+    Note: AlarmReceiver.kt → startForegroundService; TimerForegroundService.kt starts a headless FlutterEngine on timerAlarmMain with LanBindingPlugin + AlarmsPlugin, serves next/finished/done over offline_home/alarm_runner, stops on done or 30 s. FGS type dataSync (VERIFY on Android 14/15). Manifest: SCHEDULE_EXACT_ALARM, FOREGROUND_SERVICE(_DATA_SYNC), RECEIVE_BOOT_COMPLETED, POST_NOTIFICATIONS, receivers, service.
+  - [x] **T3.4d Boot + re-arm** (S): `RECEIVE_BOOT_COMPLETED` receiver asks Dart for active phone
     jobs and re-arms them; exact-alarm permission prompt on Android 12+.
   Accept: 👤 1-minute WiZ timer fires with screen off (WiZ has no native countdown).
+    Note: BootReceiver.kt re-arms future alarms from AlarmStore after BOOT_COMPLETED / MY_PACKAGE_REPLACED; jobs that passed while off are dropped (not fired late), same rule as reconcile. Exact-alarm permission prompt via AndroidPhoneAlarmScheduler.openExactAlarmSettings (UI in T5.8).
 - [ ] **T3.5 iOS phone-tier behaviour** (S) — deps: T3.3
   Do: warning copy, foreground ticker, local notification at fire time.
 - [ ] **T3.6 👤 Hardware check #2** (S) — deps: T3.3, T2.6
