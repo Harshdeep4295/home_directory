@@ -92,9 +92,10 @@ writes clear instructions, then stops.
   Do: tables devices, rooms, aliases, timer_jobs, settings, device_state_cache; migrations v1.
   Accept: repository CRUD tests; migration test.
   Note: registry/: drift tables (rooms, devices, aliases, timer_jobs+meta_json, device_state_cache, settings; FKs with cascade/set-null, foreign_keys ON, dates as text), AppDatabase.open()/memory(), repositories (Device w/ alias sync, Room, Timer, StateCache, Settings). Schema dump drift_schemas/app/v1 + SchemaVerifier migration test. upsertFromCandidate/merge is T2.9.
-- [ ] **T1.8 SecretStore** (S) — deps: T1.1
+- [x] **T1.8 SecretStore** (S) — deps: T1.1
   Do: wrapper over flutter_secure_storage; keys `secret/<deviceId>/<name>`; in-memory fake for tests.
   Accept: tests; no secret columns in SQLite (schema test).
+  Note: registry/secret_store.dart: SecretStore over SecretBackend (SecureStorageBackend: Keychain first_unlock_this_device / Keystore; MemorySecretBackend for tests), keys secret/<deviceId>/<name>, SecretName enum; every value read/written registered with the log Redactor, warmUp() at startup. Tests incl. end-to-end 'secret never logged'; no-secret-columns schema test is in repositories_test.dart.
 
 ## M2 — Adapter framework, first adapters, discovery
 
