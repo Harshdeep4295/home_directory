@@ -264,7 +264,8 @@ writes clear instructions, then stops.
 - [x] **T6.1 tinytuya devices.json import** (S) — deps: T5.6, T1.8 — Ref: §Key import
   Accept: sample file imports; keys land in SecretStore; devices matched by id.
   Note: lib/onboarding/devices_json_import.dart (no network) + import screen; dpMap from mapping codes (switch_1/switch_led, countdown_1/countdown); sub-devices skipped; quick scan + status check per device. Hardware check #10 pending.
-- [ ] **T6.2 Manual key entry** (S) — deps: T6.1
+- [x] **T6.2 Manual key entry** (S) — deps: T6.1
+  Note: device detail → "Enter local key"; 16 printable chars; session reset + one status read; auth error rolls back to the previous key (lib/onboarding/manual_key.dart).
 - [ ] **T6.3 Tuya OpenAPI in-app import** (M) — deps: T6.1 — Ref: §Tuya cloud import
   Do: user enters access id/secret + region; signed requests; fetch device list with local_key.
   Accept: unit tests with recorded (sanitised) responses; VERIFY signing against Tuya docs.

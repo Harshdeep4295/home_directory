@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/intent.dart';
 import '../../core/models.dart';
 import '../../core/result.dart';
+import '../../onboarding/manual_key.dart';
 import '../../registry/secret_store.dart';
 import '../../timers/tier_copy.dart';
 import '../alias_suggestions.dart';
@@ -95,6 +96,27 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
     ))?.toLowerCase();
     if (alias == null || alias.isEmpty || d.aliases.contains(alias)) return;
     await _save(d.copyWith(aliases: [...d.aliases, alias]));
+  }
+
+  Future<void> _enterKey(Device d) async {
+    final key = await promptText(
+      context,
+      title: 'Enter local key',
+      message: 'Device ${d.id}',
+      hint: '16 characters from devices.json',
+      maxLength: 16,
+    );
+    if (key == null || key.isEmpty) return;
+    final s = ref.read(servicesProvider);
+    final r = await enterLocalKey(
+      d: d,
+      key: key,
+      secrets: s.secrets,
+      adapters: s.adapters,
+      engine: s.engine,
+    );
+    _say(r.message);
+    if (mounted) setState(() {}); // refresh "Local key: stored / missing"
   }
 
   Future<void> _rescan(Device d) async {
@@ -324,6 +346,12 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
           Wrap(
             spacing: 8,
             children: [
+              if (d.brand == Brand.tuya)
+                OutlinedButton.icon(
+                  onPressed: () => _enterKey(d),
+                  icon: const Icon(Icons.key),
+                  label: const Text('Enter local key'),
+                ),
               OutlinedButton.icon(
                 onPressed: () => _rescan(d),
                 icon: const Icon(Icons.radar),
