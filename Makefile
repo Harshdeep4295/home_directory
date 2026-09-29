@@ -31,7 +31,7 @@ codegen-check: codegen ## fail if committed generated code is stale (CI)
 	@out=$$(git status --porcelain -- $(APP)/lib $(APP)/test); if [ -n "$$out" ]; then echo "Generated code is stale or uncommitted:"; echo "$$out"; git diff --stat -- $(APP); exit 1; fi
 
 flutter-test: ## Flutter unit + widget tests
-	cd $(APP) && $(FLUTTER) test
+	cd $(APP) && OH_PYTHON=$$(command -v $(PYTHON)) $(FLUTTER) test
 
 sim-test: ## simulator self-tests
 	$(PYTHON) -m pytest -q sim

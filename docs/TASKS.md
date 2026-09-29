@@ -114,12 +114,13 @@ writes clear instructions, then stops.
 - [x] **T2.5 Tuya simulator 3.3** (M) — deps: T0.2, T2.4
   Do: plug with DPs {1: switch, 9: countdown} (configurable DP map), UDP beacon broadcaster.
   Note: sim/ohsim/devices/tuya.py: TuyaSim (3.3 + 3.1; DP_QUERY, CONTROL → ACK + STATUS push, HEART_BEAT, countdown DP flips switch, device22 mode answering 'data unvalid' + CONTROL_NEW queries, plug/bulb profiles, optional encrypted UDP beacons). Framing/crypto via tinytuya (now in sim/requirements-dev.txt). Verified with the real tinytuya OutletDevice client in sim/tests/test_tuya.py (7 tests).
-- [ ] **T2.6 Tuya adapter 3.1/3.3** (M) — deps: T2.4, T2.5 — Ref: §Tuya adapter
+- [x] **T2.6 Tuya adapter 3.1/3.3** (M) — deps: T2.4, T2.5 — Ref: §Tuya adapter
   Do: persistent TCP connection per device, heartbeat, status, set DP, countdown DP, DP-map
   profiles (plug, bulb, multi-gang switch) with per-device override.
   Also: "device22" mode (22-char ids query via CONTROL_NEW with explicit DP list) — see
   PSEUDOCODE §6.3; sim must support it as an option.
   Accept: contract suite green vs sim (normal + device22); reconnect after sim restart.
+  Note: adapters/tuya/tuya_adapter.dart: persistent TCP session per device (seq-matched replies, STATUS pushes → watch(), heartbeat 10 s, closes on error, lazy reconnect), key from SecretStore (missing → auth), device22 auto-switch on 'data unvalid' (isDevice22() for persisting to meta), 3.1/3.3, plug/bulb DP profiles + detect(), flip-based countdown (canCountdownTo, refuses when already in target state; max 86400 s VERIFY). Contract suite + 8 more sim tests green (normal, device22, 3.1, reconnect after restart, pushes, countdown get/cancel). Brightness/multi-gang in T7.3.
 - [ ] **T2.7 Candidate collectors** (M) — deps: T1.3, T1.4 — Ref: §Discovery
   Do: mDNS (bonsoir), UDP listeners (6666/6667), broadcast probes (38899, 9999, 20002, 1982),
   unicast fallback for iOS, TCP port scan /24 (concurrency 64, 300 ms).
