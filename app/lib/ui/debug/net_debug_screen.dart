@@ -9,6 +9,7 @@ import '../../net/android_platform_bridge.dart';
 import '../../net/ios_platform_bridge.dart';
 import '../../net/lan_socket_factory.dart';
 import '../../net/platform_bridge.dart';
+import '../widgets/net_banner.dart';
 
 PlatformBridge platformBridgeForHost() => Platform.isAndroid
     ? AndroidPlatformBridge()
@@ -103,6 +104,7 @@ class _NetDebugScreenState extends State<NetDebugScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          NetBannerView(net: _net),
           Text(
             'Wi-Fi: ${_net.wifi ? 'connected' : 'NOT connected'}\n'
             'Internet on Wi-Fi: ${switch (_net.internet) {

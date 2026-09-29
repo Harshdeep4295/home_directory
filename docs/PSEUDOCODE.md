@@ -161,7 +161,8 @@ Info.plist: NSLocalNetworkUsageDescription, NSBonjourServices [_hue._tcp,_shelly
 
 ### 3.4 NetworkMonitor
 ```
-stream NetState{wifi, internet, ssid, ip, prefix} from platform events + network_info_plus
+stream NetState{wifi, internet?, ssid, ip, prefix} from platform events (internet = null on iOS: unknowable
+  without contacting the internet)
 UI: internet == false && wifi == true → banner "Internet down · Local mode" (info only)
 wifi == false → blocking banner "Connect to home Wi-Fi"
 ```

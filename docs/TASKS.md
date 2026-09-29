@@ -84,9 +84,10 @@ writes clear instructions, then stops.
        expect `denied` + the guidance card. Turn it back on.
     3. With the WiZ sim running on the laptop (see T1.4), "Send WiZ getPilot" → `OK`.
     Log as test `lan-bind` in HARDWARE_LOG. If the build fails, paste the Xcode error.
-- [ ] **T1.6 NetworkMonitor** (S) — deps: T1.4, T1.5
+- [x] **T1.6 NetworkMonitor** (S) — deps: T1.4, T1.5
   Do: stream of `NetState{wifi, internet, ssid, ip, prefix}`; UI banner "Local mode" when no internet.
   Accept: unit tests with fake platform channel.
+  Note: net/network_monitor.dart: NetworkMonitor (seed + platform changes, dedup, wifiChanges ignores internet-only flips), bannerFor → none/localMode/noWifi (iOS unknown internet → no banner); ui/widgets/net_banner.dart shown on debug screen. network_info_plus removed (plugins provide the data). Riverpod provider wiring in T5.1.
 - [ ] **T1.7 Database (drift)** (M) — deps: T1.1 — Ref: §Registry
   Do: tables devices, rooms, aliases, timer_jobs, settings, device_state_cache; migrations v1.
   Accept: repository CRUD tests; migration test.
