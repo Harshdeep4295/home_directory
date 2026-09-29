@@ -21,9 +21,10 @@ writes clear instructions, then stops.
   127.0.0.1 with configurable ports; pytest config. Ref: §Simulators.
   Accept: `pytest sim` green; `python sim/run.py --devices wiz` answers a UDP getPilot.
   Note: ohsim package (UdpSimDevice/TcpSimDevice bases, registry, spec parser); run.py prints port map, exits on SIGTERM or stdin EOF; minimal WiZ sim (getPilot/setPilot) — rest of WiZ in T2.2. 9 pytest tests incl. run.py subprocess test.
-- [ ] **T0.3 Dev scripts** (S) — deps: T0.1
+- [x] **T0.3 Dev scripts** (S) — deps: T0.1
   Do: `Makefile` targets: `fmt`, `analyze`, `test`, `sim`, `run-android`, `run-ios`, `codegen`.
   Accept: `make test` runs analyze + flutter test + pytest.
+  Note: Makefile: help, deps, fmt, fmt-check, analyze, codegen, flutter-test, sim-test, test, sim, run-android, run-ios, clean. make test = analyze + flutter test + pytest sim.
 - [ ] **T0.4 HARDWARE_LOG template** (S) — deps: none
   Do: `docs/HARDWARE_LOG.md` table: date, device, brand, model, protocol, IP, test, result, notes.
 - [ ] **T0.5 CI** (S) — deps: T0.2, T0.3
