@@ -23,6 +23,8 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 7 | T4.1 | Each phone, Wi-Fi off: mic icon → hold and say "geyser on" → transcript appears; note the locales listed; if "offline speech model missing", download it (steps in TASKS T4.1) | both phones |
 | 8 | T4.9 | Real voice: 30 commands per language per phone from `test/voice/corpus/*.yaml` on the mic screen; note each transcript + result; send me the misses to add to the corpus | both phones, devices |
 | 9 | T5.9 | Android: star 2 devices on their detail screens; add the "Offline Home" widget; tap a favourite → toggles; tap mic → voice sheet; add the "Voice command" quick-settings tile → opens voice sheet (Android 14+ too) | Android, devices |
+| 10 | T6.1 | Run `python -m tinytuya wizard` on the Mac, AirDrop/share devices.json to each phone, Settings → Import Tuya keys → each Wipro/Syska shows "Key works" | Mac, both phones, Tuya devices |
+| 11 | T6.3 | Phone with internet: Settings → Import Tuya keys → Import from Tuya cloud → Access ID/Secret from iot.tuya.com, data centre India → keys import and each device shows "Key works" (if the token step fails, tell me the error text) | phone, Tuya IoT project |
 
 ## Device survey (T0.6)
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:offline_home/core/models.dart';
+import 'package:offline_home/onboarding/manual_key.dart';
+import 'package:offline_home/registry/secret_store.dart';
 import 'package:offline_home/ui/alias_suggestions.dart';
 import 'package:offline_home/ui/screens/device_detail_screen.dart';
 
@@ -106,5 +108,39 @@ void main() {
     expect(aliasSuggestions('Fan'), ['pankha']);
     expect(aliasSuggestions('Geyser'), ['garam pani']);
     expect(aliasSuggestions('Sofa'), isEmpty);
+  });
+
+  testWidgets('Tuya: enter local key → verified, shown as stored', (
+    tester,
+  ) async {
+    final t = await TestServices.inTester(
+      tester,
+      devices: [testDevice('plug', 'Plug')],
+    );
+    await tester.pumpWidget(
+      t.wrap(const MaterialApp(home: DeviceDetailScreen(deviceId: 'plug'))),
+    );
+    await TestServices.settle(tester);
+    await tester.scrollUntilVisible(
+      find.text('Enter local key'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('Enter local key'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'G00dKeyG00dKey!!');
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Save'));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    });
+    await TestServices.settle(tester);
+    expect(find.text(ManualKeyResult.ok.message), findsOneWidget);
+    expect(
+      await tester.runAsync(
+        () => t.services.secrets.get('plug', SecretName.localKey),
+      ),
+      'G00dKeyG00dKey!!',
+    );
+    await t.tearDown(tester);
   });
 }
