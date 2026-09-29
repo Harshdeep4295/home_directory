@@ -33,13 +33,15 @@ writes clear instructions, then stops.
   Python (pytest sim) jobs; pinned Flutter version.
   Accept: workflow green on the M0 PR.
   Note: GitHub Actions: flutter job (pinned 3.47.5; fmt-check, analyze, test) + sim job (Python 3.11, pytest). Verified on the M0 PR.
-- [ ] **T0.6 Device survey spike** (S) — deps: T0.2
+- [x] **T0.6 Device survey spike** (S) — deps: T0.2
   Do: `spike/survey.py` (Python, run by the human on the MacBook on home Wi-Fi): listens for
   Tuya beacons (tinytuya), probes WiZ on UDP 38899, Kasa on 9999, TCP-scans the /24 for the
   ports in PLAN §5, and — if `devices.json` is present — queries each Tuya device's DPs. Writes
   `spike/survey-<date>.json` (gitignored; keys redacted) + a readable summary.
   Accept: runs against `sim/run.py` locally; 👤 human runs it at home and pastes the summary
   into `docs/HARDWARE_LOG.md` (answers: which protocols, Tuya versions, DP maps).
+  Note: spike/survey.py + README (tinytuya wizard steps). Unicast WiZ/Kasa UDP + TCP port scan + HTTP (Shelly/Tasmota/Hue) + optional tinytuya beacons/zeroconf mDNS; --devices-json dumps Tuya version, device22 flag and named DPs; keys never output (checked). Tested vs WiZ sim in sim/tests/test_survey_spike.py.
+  - [ ] 👤 Run `spike/survey.py` at home (with `--devices-json` once you have it) and paste the summary into HARDWARE_LOG.
 
 ## M1 — Core, network, registry
 
