@@ -218,10 +218,13 @@ writes clear instructions, then stops.
   Do: ≥ 150 cases in `test/voice/corpus/*.yaml` (EN 60%, Hinglish 40%, incl. STT-style misspellings).
   Accept: ≥ 95% pass; failures listed in task note.
   Note: test/voice/corpus/{en,hi}.yaml: 159 cases (95 EN = 60 %, 64 Hinglish incl. Devanagari = 40 %, 17 STT-style misspellings), compact [utterance, expected] notation (corpus/README.md); golden_corpus_test.dart asserts ≥ 150 cases and ≥ 95 % exact. First run 92.5 %: fixed 'run'/'keep … on', 'in the morning'/'at night' after a time, 'stop … timer' as cancel, STT 'of'→'off'; one expectation of mine was wrong ('sab kuch' = everything). Now 159/159. CAVEAT: written alongside the parser, so this proves consistency, not real-world accuracy — add real transcripts from T4.9.
-- [ ] **T4.8 VoiceController + feedback** (S) — deps: T4.1, T4.6, T3.1, T3.3
+- [x] **T4.8 VoiceController + feedback** (S) — deps: T4.1, T4.6, T3.1, T3.3
   Do: orchestration, confirmation rules (PLAN §7), TTS + toast, undo for 5 s.
+  Note: voice/voice_controller.dart: listen (contextual hints = device names/aliases/rooms) → parse → resolve → confirm (ambiguous → chips; 'all' > 5 devices → question) → execute via CommandEngine/TimerService → message + TTS ('Geyser on. Off at 9:40 pm (plug timer).', 'X is not responding.', 'key rejected') → 5 s undo (restores prior power / cancels created timers). VoiceState stream for the UI. voice/tts.dart (flutter_tts en-IN, SilentTts). AppServices loads the lexicon and builds the controller. Voice debug screen (mic icon): hold to talk or type, chips, undo, locale list. 8 controller tests.
 - [ ] **T4.9 👤 Real-voice test** (S) — deps: T4.8
   Do: 30 spoken commands per language on each phone, results logged.
+  Note: use the mic screen (debug home → mic icon); it shows transcript → result. Paste misses
+  back so they become corpus cases.
 
 ## M5 — UI and onboarding
 

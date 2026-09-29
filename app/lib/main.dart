@@ -8,6 +8,7 @@ import 'net/platform_bridge.dart';
 import 'timers/alarm_runner.dart';
 import 'ui/debug/net_debug_screen.dart';
 import 'ui/debug/scan_debug_screen.dart';
+import 'ui/debug/voice_debug_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +46,16 @@ class OfflineHomeApp extends StatelessWidget {
       home: Builder(
         builder: (context) => NetDebugScreen(
           platform: platform,
+          onOpenVoice: services?.voice == null
+              ? null
+              : () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => VoiceDebugScreen(
+                      voice: services!.voice!,
+                      stt: services!.stt,
+                    ),
+                  ),
+                ),
           onOpenScan: services == null
               ? null
               : () => Navigator.of(context).push(

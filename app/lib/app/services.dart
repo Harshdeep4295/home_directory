@@ -21,6 +21,12 @@ import '../timers/android_alarm_scheduler.dart';
 import '../timers/ios_phone_timers.dart';
 import '../timers/phone_tier_ticker.dart';
 import '../timers/timer_service.dart';
+import '../voice/intent_parser.dart';
+import '../voice/lexicon.dart';
+import '../voice/stt_service.dart';
+import '../voice/target_resolver.dart';
+import '../voice/tts.dart';
+import '../voice/voice_controller.dart';
 
 /// Object graph of the app (PSEUDOCODE §1 bootstrap). Riverpod providers wrap it in T5.1.
 class AppServices {
@@ -67,6 +73,10 @@ class AppServices {
   /// Runs due phone-tier jobs while the app is open. Started on foreground on iOS
   /// (T3.5); Android relies on exact alarms instead.
   late final PhoneTierTicker phoneTicker;
+
+  /// Set by [create] once the lexicon assets are loaded (null in widget tests).
+  VoiceController? voice;
+  SttService? stt;
 
   /// Android: exact alarms (T3.4). iOS: notification at fire time + [phoneTicker] (T3.5).
   PhoneAlarmScheduler _phoneAlarmsForHost() {
@@ -119,10 +129,26 @@ class AppServices {
       network: network,
     );
     await services.engine.warmUp();
+    final lexicon = await Lexicon.loadAssets();
+    final stt = SttService(PlatformSpeechEngine());
+    services
+      ..stt = stt
+      ..voice = VoiceController(
+        stt: stt,
+        parser: IntentParser(lexicon),
+        resolver: TargetResolver(lexicon),
+        engine: services.engine,
+        timers: services.timerService,
+        devices: services.devices,
+        rooms: services.rooms,
+        tts: PlatformTts(),
+        isIOS: Platform.isIOS,
+      );
     return services;
   }
 
   Future<void> dispose() async {
+    await voice?.dispose();
     phoneTicker.stop();
     await poller.dispose();
     await engine.dispose();

@@ -18,11 +18,19 @@ const localNetworkDeniedHelp =
 /// Developer screen for the T1.4/T1.5 hardware checks: shows what the platform plugin
 /// reports and sends a WiZ getPilot to any IP:port over the bound Wi-Fi network.
 class NetDebugScreen extends StatefulWidget {
-  const NetDebugScreen({super.key, required this.platform, this.onOpenScan});
+  const NetDebugScreen({
+    super.key,
+    required this.platform,
+    this.onOpenScan,
+    this.onOpenVoice,
+  });
   final PlatformBridge platform;
 
   /// Opens the T2.10 scan + toggle screen (null in tests without services).
   final VoidCallback? onOpenScan;
+
+  /// Opens the T4.8 voice screen.
+  final VoidCallback? onOpenVoice;
 
   @override
   State<NetDebugScreen> createState() => _NetDebugScreenState();
@@ -93,6 +101,12 @@ class _NetDebugScreenState extends State<NetDebugScreen> {
       appBar: AppBar(
         title: const Text('Network debug'),
         actions: [
+          if (widget.onOpenVoice != null)
+            IconButton(
+              tooltip: 'Voice',
+              onPressed: widget.onOpenVoice,
+              icon: const Icon(Icons.mic),
+            ),
           if (widget.onOpenScan != null)
             IconButton(
               tooltip: 'Scan + toggle',

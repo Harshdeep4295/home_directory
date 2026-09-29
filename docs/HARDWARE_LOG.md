@@ -20,6 +20,8 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 4 | T2.10 | Scan + toggle: WiZ + Wipro/Syska found, Tuya key pasted, each toggles offline | both phones, devices |
 | 5 | T3.6 | Wipro/Syska plug: long-press → "On for 1 minute" shows (plug timer); airplane mode; plug turns off by itself | Android or iPhone, plug |
 | 6 | T3.4 | Android + WiZ: long-press → "On for 1 minute" shows (phone timer); lock the screen; WiZ turns off after 1 min (allow "Alarms & reminders" if asked) | Android, WiZ |
+| 7 | T4.1 | Each phone, Wi-Fi off: mic icon → hold and say "geyser on" → transcript appears; note the locales listed; if "offline speech model missing", download it (steps in TASKS T4.1) | both phones |
+| 8 | T4.9 | Real voice: 30 commands per language per phone from `test/voice/corpus/*.yaml` on the mic screen; note each transcript + result; send me the misses to add to the corpus | both phones, devices |
 
 ## Device survey (T0.6)
 
