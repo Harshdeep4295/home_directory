@@ -668,7 +668,8 @@ resolve(span):
   room = matchRoom(span.words)                        // "bedroom ki light" → room=bedroom, rest="light"
   scored = for d in (room ? devicesIn(room) : devices):
        names = [d.name] + d.aliases
-       score = max over names of 0.6*jaroWinkler(phrase, n) + 0.4*phoneticEq(doubleMetaphone(phrase), doubleMetaphone(n))
+       score = max over names of 0.6*jaroWinkler(phrase, n) + 0.4*phoneticEq(key(phrase), key(n))
+       // key = Hinglish phonetic key (fuzzy.dart), not Double Metaphone — see TASKS T4.6
   best = top(scored)
   if best.score < 0.6 → none ; if best.score < 0.8 or second within 0.05 → ambiguous(top 3)
   if noun is plural ("lights", "batiyan", "saari") and room → return all matches in room above 0.7

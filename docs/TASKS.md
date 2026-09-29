@@ -188,28 +188,43 @@ writes clear instructions, then stops.
 
 ## M4 — Voice
 
-- [ ] **T4.1 SttService** (M) — deps: T0.1 — Ref: §SttService
+- [x] **T4.1 SttService** (M) — deps: T0.1 — Ref: §SttService
   Do: speech_to_text on-device mode, contextual strings, partial results, 1.2 s silence stop;
   capability check (on-device available? locales?); Vosk fallback on Android behind interface.
   Accept: 👤 prints transcripts offline on both phones; task note lists available locales.
-- [ ] **T4.2 Normaliser** (S) — deps: T1.1 — Ref: §Normaliser
+  Note: voice/stt_service.dart: SttService over a SpeechEngine interface (partials → one final/error, 8 s max, 1.2 s silence stop, contextual phrases, capabilities = available + locale ids); PlatformSpeechEngine = speech_to_text 7.5 with onDevice: true always (rule 6, no cloud fallback) and error mapping to modelMissing/noMatch/permission (VERIFY strings on phones). Vosk fallback NOT added: vosk_flutter is abandoned (Dart 2); the engine interface allows adding one if T4.9 shows a phone lacks an on-device model. Android RECORD_AUDIO + RecognitionService query; iOS mic/speech usage strings. 4 tests.
+  - [ ] 👤 On each phone with Wi-Fi off: speak a few commands on the voice debug screen (T4.8) and
+    note the transcripts and the locales it lists (en_IN? hi_IN?). If a "language not
+    available" error appears, download the offline model: Android → Settings → Google →
+    Speech / "Offline speech recognition"; iPhone → Settings → General → Keyboard →
+    Dictation languages (on-device).
+- [x] **T4.2 Normaliser** (S) — deps: T1.1 — Ref: §Normaliser
   Do: lowercase, punctuation, Devanagari→Latin map, filler removal, spelling variants
   (bandh→band, chaalu→chalu), number words EN + HI (ek..sau, one..hundred, "dedh", "dhai", "sava", "paune").
-- [ ] **T4.3 Lexicons** (S) — deps: T4.2 — Ref: §Lexicon
+  Note: voice/normaliser.dart: lowercase, Devanagari→Latin (word table + letter fallback with schwa deletion, Devanagari digits), punctuation (keeps 11:30, a.c.→ac), word + phrase variants (bandh→band, kar do→karo, geezer→geyser, half an hour→0.5 hour …), verb+'do' merging (jala do→jalao) with 'do'=2 only before a unit, 'saath'=60 only before a unit, a/an+unit→1, fillers, EN (incl. twenty five) + HI (1–100 common) number words, fractions aadha/dedh/dhai and sava/saadhe/paune X. 37 tests.
+- [x] **T4.3 Lexicons** (S) — deps: T4.2 — Ref: §Lexicon
   Do: `assets/voice/lexicon_en.yaml`, `lexicon_hi.yaml`: actions, time words, room/device nouns.
-- [ ] **T4.4 Duration + time parser** (M) — deps: T4.2 — Ref: §Time parsing
+  Note: assets/voice/lexicon_en.yaml + lexicon_hi.yaml (normalised forms): actions on/off/toggle/cancel/status, relations for/until/after/at, dayparts (subah/raat/…→am/pm), nouns with Hinglish seeds (batti→light, pankha→fan …), quantifiers all/except, units (ghanta→hour), particles. voice/lexicon.dart loads + merges (longest phrase first), nounAt/unitOf/matchAt helpers; registered as Flutter assets. 4 tests.
+- [x] **T4.4 Duration + time parser** (M) — deps: T4.2 — Ref: §Time parsing
   Accept: tests: "20 minutes", "adha ghanta", "dedh ghante", "for 1 hour 15", "11 pm", "raat 11 baje",
   "subah 6 baje", "11:30", "in 5 min", "5 minute baad".
-- [ ] **T4.5 IntentParser** (M) — deps: T4.3, T4.4 — Ref: §IntentParser
-- [ ] **T4.6 TargetResolver** (M) — deps: T1.7, T4.5 — Ref: §TargetResolver
+  Note: voice/time_parser.dart: parseDuration (n unit, h hour m [minute], fractions from dedh/dhai/adha, seconds) and parseClock (HH:MM, H am/pm, H baje, at H, daypart before/after, saadhe/sava/paune via .5/.25/.75, raat 1–4 → early morning, raat 12 → 00:00, subah 12 → null/ask, bare 12-hour → next occurrence from now), both return token spans. 38 tests covering the task's list.
+- [x] **T4.5 IntentParser** (M) — deps: T4.3, T4.4 — Ref: §IntentParser
+  Note: voice/intent_parser.dart: normalise → cancel (phrase or 'timer' + cancel verb anywhere) → status (question forms, trailing on/off dropped) → action (longest phrase; on/off beat toggle) → duration/clock spans with ADJACENT relation words only (for/after vs until/at) → target span (all quantifiers, plural nouns imply all, nouns canonicalised batti→light, English 'except X' vs Hindi 'X ke alawa', particles/verb residue dropped). No target → Unknown('which device?'). All 9 §11.5 examples + 15 more pass. 'switch' removed from plug nouns (verb ambiguity).
+- [x] **T4.6 TargetResolver** (M) — deps: T1.7, T4.5 — Ref: §TargetResolver
   Do: Jaro-Winkler + Double Metaphone, aliases, rooms, "all", "except", Hinglish plurals ("lights", "batiyan").
-- [ ] **T4.7 Golden corpus** (M) — deps: T4.5, T4.6
+  Note: voice/target_resolver.dart + voice/fuzzy.dart: exact whole-phrase name wins; room matching (token or JW ≥ 0.85); room + only nouns / room alone / all → pool filtered by noun (name/alias/brightness-capable for 'light') minus except (room or device); otherwise score = max over name+aliases of containment (0.95) or 0.6·JaroWinkler + 0.4·phonetic; < 0.6 none, < 0.8 or tie within 0.05 → ambiguous chips (top 3). Generic alias == generic word scores as category (0.95), not a name. DEVIATION: Hinglish-tuned phonetic key instead of Double Metaphone (English rules mangle aspirates/vowels). 14 end-to-end utterance→device tests + ambiguity + fuzzy tests.
+- [x] **T4.7 Golden corpus** (M) — deps: T4.5, T4.6
   Do: ≥ 150 cases in `test/voice/corpus/*.yaml` (EN 60%, Hinglish 40%, incl. STT-style misspellings).
   Accept: ≥ 95% pass; failures listed in task note.
-- [ ] **T4.8 VoiceController + feedback** (S) — deps: T4.1, T4.6, T3.1, T3.3
+  Note: test/voice/corpus/{en,hi}.yaml: 159 cases (95 EN = 60 %, 64 Hinglish incl. Devanagari = 40 %, 17 STT-style misspellings), compact [utterance, expected] notation (corpus/README.md); golden_corpus_test.dart asserts ≥ 150 cases and ≥ 95 % exact. First run 92.5 %: fixed 'run'/'keep … on', 'in the morning'/'at night' after a time, 'stop … timer' as cancel, STT 'of'→'off'; one expectation of mine was wrong ('sab kuch' = everything). Now 159/159. CAVEAT: written alongside the parser, so this proves consistency, not real-world accuracy — add real transcripts from T4.9.
+- [x] **T4.8 VoiceController + feedback** (S) — deps: T4.1, T4.6, T3.1, T3.3
   Do: orchestration, confirmation rules (PLAN §7), TTS + toast, undo for 5 s.
+  Note: voice/voice_controller.dart: listen (contextual hints = device names/aliases/rooms) → parse → resolve → confirm (ambiguous → chips; 'all' > 5 devices → question) → execute via CommandEngine/TimerService → message + TTS ('Geyser on. Off at 9:40 pm (plug timer).', 'X is not responding.', 'key rejected') → 5 s undo (restores prior power / cancels created timers). VoiceState stream for the UI. voice/tts.dart (flutter_tts en-IN, SilentTts). AppServices loads the lexicon and builds the controller. Voice debug screen (mic icon): hold to talk or type, chips, undo, locale list. 8 controller tests.
 - [ ] **T4.9 👤 Real-voice test** (S) — deps: T4.8
   Do: 30 spoken commands per language on each phone, results logged.
+  Note: use the mic screen (debug home → mic icon); it shows transcript → result. Paste misses
+  back so they become corpus cases.
 
 ## M5 — UI and onboarding
 
