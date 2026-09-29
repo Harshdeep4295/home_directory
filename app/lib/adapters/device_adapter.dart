@@ -78,6 +78,27 @@ abstract class DeviceAdapter {
     Duration after,
   ) async => Err(DeviceError.unsupported('combined power-for'));
 
+  /// Called once right after the user adds [d]; returns the device(s) to store (a strip
+  /// can become one device per outlet). Default: learn brightness / colour temperature
+  /// from the first state read. Never throws; on any error [d] is kept as is.
+  Future<List<Device>> onboard(Device d) async {
+    try {
+      final s = (await getState(d)).valueOrNull;
+      if (s == null) return [d];
+      return [
+        d.copyWith(
+          capabilities: {
+            ...d.capabilities,
+            if (s.brightness != null) Capability.brightness,
+            if (s.colorTemp != null) Capability.colorTemp,
+          },
+        ),
+      ];
+    } on Object {
+      return [d];
+    }
+  }
+
   /// Push updates, if the protocol has them; null → caller polls [getState].
   Stream<DeviceState>? watch(Device d) => null;
 

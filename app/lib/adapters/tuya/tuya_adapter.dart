@@ -249,6 +249,23 @@ class TuyaAdapter extends DeviceAdapter {
         return Err(DeviceError.protocol('tuya: no DPs after device22 switch'));
       });
 
+  /// Stores the detected DP profile (bulb type A/B/C or plug) and its capabilities, so a
+  /// bulb added from a scan (no devices.json mapping) gets working sliders.
+  @override
+  Future<List<Device>> onboard(Device d) async {
+    final r = await queryDps(d);
+    final dps = r.valueOrNull;
+    if (dps == null) return [d];
+    final map = d.dpMap ?? (gangOf(d) > 1 ? dpMapOf(d) : TuyaDp.detect(dps));
+    return [
+      d.copyWith(
+        dpMap: map,
+        capabilities: TuyaDp.capabilities(map),
+        meta: {...d.meta, if (isDevice22(d)) 'tuyaDevice22': true},
+      ),
+    ];
+  }
+
   /// True once the adapter learned the device needs device22 queries (persist in meta).
   bool isDevice22(Device d) => _conns[tuyaIdOf(d)]?.payloads.device22 ?? false;
 

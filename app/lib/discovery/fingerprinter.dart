@@ -148,7 +148,11 @@ abstract final class Fingerprinter {
   static Candidate? _sonoff(HostEvidence e, KnownSecrets known) {
     final rec = e.mdnsOf('_ewelink._tcp');
     if (rec == null) return null;
-    final id = rec.attributes['id'];
+    // SonoffLAN local.py _handler2: deviceid = name[8:18] ("eWeLink_<deviceid>"); the TXT
+    // "id" is the sub-device id.
+    final id = rec.name.startsWith('eWeLink_') && rec.name.length >= 18
+        ? rec.name.substring(8, 18)
+        : rec.attributes['id'];
     final encrypted = rec.attributes['encrypt'] == 'true';
     return Candidate(
       ip: e.ip,

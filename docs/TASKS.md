@@ -304,7 +304,8 @@ writes clear instructions, then stops.
   Note: TasmotaAdapter (/cm Power<n>, Dimmer, CT, web password); native timer only for "on for d" via PulseTime, cleared on every other power command, on cancel and when getState sees the pulse finished; other timers → phone tier. Contract harness gained `combinedPowerForOnly`. VERIFY: PulseTime behaviour on hardware. Hardware check #21.
 - [x] **T7.11 ESPHome (web server REST)** (S) — deps: T2.1 — Ref: §ESPHome
   Note: EspHomeAdapter (GET /<domain>/<id>, POST turn_on/turn_off, light ?brightness=, optional Basic auth); entity entered when adding (meta.espEntity); phone-tier timers. EspHomeSim per the web_server REST docs. VERIFY: entity listing (/events) to avoid typing the id. Hardware check #22.
-- [ ] **T7.12 Fingerprinter rules for all of the above** (S) — deps: T7.1–T7.11
+- [x] **T7.12 Fingerprinter rules for all of the above** (S) — deps: T7.1–T7.11
+  Note: test asserts every fingerprinted protocol has a production adapter (AppServices.productionAdapters); Sonoff id from the mDNS name (SonoffLAN); new DeviceAdapter.onboard hook run after adding: learns brightness/colour-temp, Tuya stores the detected DP profile, Kasa strips become one device per outlet, Kasa bulbs get light caps. Known gap: TP-Link AES/HTTPS (Tapo cameras/hubs) → "Not supported yet".
 
 ## M8 — Hardening and release to own phones
 

@@ -193,7 +193,10 @@ class DiscoveryService {
 
   /// Until an adapter refines them, assume power; Tuya plugs have a countdown DP.
   static Set<Capability> defaultCapabilities(Brand b) => switch (b) {
-    Brand.tuya => {Capability.power, Capability.nativeCountdown},
+    Brand.tuya ||
+    Brand.shelly ||
+    Brand.kasa ||
+    Brand.hue => {Capability.power, Capability.nativeCountdown},
     _ => {Capability.power},
   };
 }

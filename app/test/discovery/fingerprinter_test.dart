@@ -4,10 +4,15 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:offline_home/adapters/kasa/kasa_xor.dart';
+import 'package:offline_home/app/services.dart';
+import 'package:offline_home/core/log.dart';
 import 'package:offline_home/core/models.dart';
 import 'package:offline_home/discovery/evidence.dart';
 import 'package:offline_home/discovery/fingerprinter.dart';
 import 'package:offline_home/net/lan_socket_factory.dart';
+import 'package:offline_home/registry/secret_store.dart';
+
+import '../support/fake_platform.dart';
 
 Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
 Uint8List hex(String s) => Uint8List.fromList([
@@ -268,6 +273,32 @@ void main() {
       expect(cand.evidence, isNotEmpty);
     });
   }
+
+  test('every discovered protocol has a production adapter (T7.12)', () {
+    final registry = AppServices.productionAdapters(
+      LanSocketFactory(FakePlatformBridge()),
+      SecretStore(MemorySecretBackend(), Redactor()),
+    );
+    // Known gaps shown as "Not supported yet": TP-Link AES / HTTPS and unknown hosts.
+    bool expected(String p) => !p.startsWith('tplink-') && p != 'unknown';
+    for (final c in cases) {
+      final p = Fingerprinter.identify(c.evidence())!.protocol;
+      expect(
+        registry.supportsProtocol(p),
+        expected(p),
+        reason: '${c.name}: $p',
+      );
+    }
+    for (final p in [
+      'tuya-3.1',
+      'tuya-3.4',
+      'tuya-3.5',
+      'shelly-gen1',
+      'klap-iot',
+    ]) {
+      expect(registry.supportsProtocol(p), isTrue, reason: p);
+    }
+  });
 
   test('nothing interesting → null', () {
     expect(

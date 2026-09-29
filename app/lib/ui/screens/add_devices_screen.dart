@@ -297,8 +297,13 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
       aliases: result.aliases,
       meta: meta,
     );
+    // Let the adapter learn capabilities / split strips into outlets.
+    final onboarded = await s.adapters.adapterFor(d)?.onboard(d) ?? [d];
+    for (final x in onboarded) {
+      await s.devices.upsert(x);
+    }
     // Verify we can actually talk to it (wrong Tuya key → auth error).
-    final r = await s.engine.status([d]);
+    final r = await s.engine.status([onboarded.first]);
     if (!mounted) return;
     setState(() => _added.add(_key(c)));
     final err = r.single.result.errorOrNull;

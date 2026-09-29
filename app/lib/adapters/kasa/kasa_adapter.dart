@@ -292,6 +292,40 @@ class KasaAdapter extends DeviceAdapter {
         return _light(d, {'on_off': 1, 'color_temp': kelvin});
       });
 
+  /// Bulbs get their light capabilities; strips (iot/iotstrip.py sysinfo "children")
+  /// become the strip itself plus one device per outlet (`<id>#<child id>`,
+  /// meta.childId → context child_ids).
+  @override
+  Future<List<Device>> onboard(Device d) async {
+    final r = await sysinfo(d);
+    final info = r.valueOrNull;
+    if (info == null) return [d];
+    if (isBulb(info)) {
+      return [
+        d.copyWith(
+          capabilities: {
+            ...d.capabilities,
+            Capability.brightness,
+            if (info['is_variable_color_temp'] == 1) Capability.colorTemp,
+          },
+        ),
+      ];
+    }
+    final kids = info['children'];
+    if (childOf(d) != null || kids is! List || kids.isEmpty) return [d];
+    return [
+      d,
+      for (final c in kids.whereType<Map<Object?, Object?>>())
+        if (c['id'] case final String id)
+          d.copyWith(
+            id: '${d.id}#$id',
+            name: (c['alias'] as String?) ?? '${d.name} $id',
+            aliases: const [],
+            meta: {...d.meta, 'childId': id},
+          ),
+    ];
+  }
+
   // ------------------------------------------------------------------ countdown
 
   @override
