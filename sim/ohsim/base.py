@@ -153,3 +153,46 @@ class TcpSimDevice(SimDevice):
             await self._server.wait_closed()
             self._server = None
         self._port = None
+
+
+class HttpSimDevice(TcpSimDevice):
+    """Minimal HTTP/1.1 server (one request per connection, ``Connection: close``).
+
+    Subclasses implement ``handle_http(method, path, query, headers, body)`` and return
+    ``(status, headers, body_bytes)``. Enough for REST-style device APIs; not a general
+    web server.
+    """
+
+    @abc.abstractmethod
+    def handle_http(
+        self, method: str, path: str, query: dict[str, str], headers: dict[str, str], body: bytes
+    ) -> tuple[int, dict[str, str], bytes]: ...
+
+    async def handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        from urllib.parse import parse_qsl, urlsplit
+
+        head = await reader.readuntil(b"\r\n\r\n")
+        lines = head.decode("latin-1").split("\r\n")
+        method, target, _ = lines[0].split(" ", 2)
+        headers: dict[str, str] = {}
+        for line in lines[1:]:
+            if ":" in line:
+                k, v = line.split(":", 1)
+                headers[k.strip().lower()] = v.strip()
+        body = b""
+        if n := int(headers.get("content-length", "0") or 0):
+            body = await reader.readexactly(n)
+        url = urlsplit(target)
+        query = dict(parse_qsl(url.query, keep_blank_values=True))
+        try:
+            status, out_headers, payload = self.handle_http(method.upper(), url.path, query, headers, body)
+        except Exception:
+            log.exception("%s: error handling %s %s", self.name, method, target)
+            status, out_headers, payload = 500, {}, b"internal error"
+        reason = {200: "OK", 400: "Bad Request", 401: "Unauthorized", 404: "Not Found"}.get(status, "Error")
+        hdrs = {"Content-Type": "application/json", **out_headers, "Content-Length": str(len(payload)), "Connection": "close"}
+        writer.write(
+            (f"HTTP/1.1 {status} {reason}\r\n" + "".join(f"{k}: {v}\r\n" for k, v in hdrs.items()) + "\r\n").encode()
+            + payload
+        )
+        await writer.drain()

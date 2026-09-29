@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../adapters/device_adapter.dart';
+import '../adapters/shelly/shelly_adapter.dart';
 import '../adapters/tuya/tuya_adapter.dart';
 import '../adapters/wiz/wiz_adapter.dart';
 import '../core/log.dart';
@@ -142,6 +143,7 @@ class AppServices {
     final adapters = AdapterRegistry([
       WizAdapter(sockets),
       TuyaAdapter(sockets, secrets),
+      ShellyAdapter(sockets, secrets),
     ]);
     final network = NetworkMonitor(platform);
     await network.start();

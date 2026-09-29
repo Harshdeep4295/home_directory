@@ -55,6 +55,9 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
         if (c.brand == Brand.tuya) {
           final ok = await _pasteTuyaKey(c);
           if (ok) await _nameAndAdd(c.copyWith(needsKey: false));
+        } else if (c.brand == Brand.shelly) {
+          final ok = await _shellyPassword(c);
+          if (ok) await _nameAndAdd(c.copyWith(needsKey: false));
         } else {
           _info(
             '${c.brand.name} credentials',
@@ -101,6 +104,22 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
     final cb = widget.onImportDevicesJson;
     if (cb != null) return cb();
     openDevicesJsonImport(context);
+  }
+
+  /// Shelly with auth enabled: the device password (user "admin"), kept in SecretStore.
+  Future<bool> _shellyPassword(Candidate c) async {
+    final pw = await promptText(
+      context,
+      title: 'Shelly password',
+      message: 'The password set in the Shelly app / web UI (user admin).',
+      action: 'Save',
+    );
+    if (pw == null || pw.isEmpty) return false;
+    await ref
+        .read(servicesProvider)
+        .secrets
+        .set(_key(c), SecretName.password, pw);
+    return true;
   }
 
   /// Tuya: paste the 16-character local key; verified against the device before adding.

@@ -4,12 +4,13 @@ Each simulator is a fake LAN device bound to 127.0.0.1 so adapters (Dart) and te
 can exercise real sockets without hardware. See docs/PSEUDOCODE.md §14.
 """
 
-from .base import SimDevice, TcpSimDevice, UdpSimDevice
+from .base import HttpSimDevice, SimDevice, TcpSimDevice, UdpSimDevice
 from .registry import SIM_TYPES, DeviceSpec, parse_specs, start_all
 
 __all__ = [
     "SIM_TYPES",
     "DeviceSpec",
+    "HttpSimDevice",
     "SimDevice",
     "TcpSimDevice",
     "UdpSimDevice",

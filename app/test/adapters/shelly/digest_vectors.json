@@ -1,0 +1,68 @@
+{
+  "source": "aioshelly 13.34.0",
+  "randomBytes": "000102030405060708090a0b0c0d0e0f",
+  "cases": [
+    {
+      "realm": "shellyplus1-a8032ab12345",
+      "password": "pw",
+      "challenge": {
+        "auth_type": "digest",
+        "nonce": 1790000001,
+        "nc": 1,
+        "realm": "shellyplus1-a8032ab12345",
+        "algorithm": "SHA-256"
+      },
+      "auth": [
+        {
+          "realm": "shellyplus1-a8032ab12345",
+          "username": "admin",
+          "nonce": 1790000001,
+          "nc": 1,
+          "cnonce": "AAECAwQFBgcICQoLDA0ODw==",
+          "response": "1d65c0b561b71579258e15d43dca7e6dfe0567519fccb60c58d31788fde5f992",
+          "algorithm": "SHA-256"
+        },
+        {
+          "realm": "shellyplus1-a8032ab12345",
+          "username": "admin",
+          "nonce": 1790000001,
+          "nc": 2,
+          "cnonce": "AAECAwQFBgcICQoLDA0ODw==",
+          "response": "3890094536f5f010f6d29c06ebf838c86c7bb5810b9080e7fe0e8615a8dc8217",
+          "algorithm": "SHA-256"
+        }
+      ]
+    },
+    {
+      "realm": "shellypro4pm-ec62608a0000",
+      "password": "s3cr3t!",
+      "challenge": {
+        "auth_type": "digest",
+        "nonce": 1625038762,
+        "nc": "2",
+        "realm": "shellypro4pm-ec62608a0000",
+        "algorithm": "SHA-256"
+      },
+      "auth": [
+        {
+          "realm": "shellypro4pm-ec62608a0000",
+          "username": "admin",
+          "nonce": 1625038762,
+          "nc": 2,
+          "cnonce": "AAECAwQFBgcICQoLDA0ODw==",
+          "response": "7cf150e624a6a41c52a59f29df014ff5c0093afdc9881f11c2b013aa8094ad67",
+          "algorithm": "SHA-256"
+        },
+        {
+          "realm": "shellypro4pm-ec62608a0000",
+          "username": "admin",
+          "nonce": 1625038762,
+          "nc": 3,
+          "cnonce": "AAECAwQFBgcICQoLDA0ODw==",
+          "response": "43043b7de3db7b29cc8556b1e1a1db4ecb62acc0f4aeab9a44c2172ae931bbbf",
+          "algorithm": "SHA-256"
+        }
+      ]
+    }
+  ]
+}
