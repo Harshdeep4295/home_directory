@@ -8,6 +8,7 @@ import '../file_access.dart';
 import '../providers.dart';
 import 'import_results.dart';
 import 'tuya_cloud_import_screen.dart';
+import 'tuya_guide_screen.dart';
 
 Future<void> openDevicesJsonImport(BuildContext context) =>
     Navigator.of(context).push(
@@ -83,6 +84,11 @@ class _DevicesJsonImportScreenState
             onPressed: () => _push(const TuyaCloudImportScreen()),
             icon: const Icon(Icons.cloud_download_outlined),
             label: const Text('Import from Tuya cloud instead'),
+          ),
+          TextButton.icon(
+            onPressed: () => _push(const TuyaGuideScreen()),
+            icon: const Icon(Icons.help_outline),
+            label: const Text('How do I get keys?'),
           ),
           if (_busy) const LinearProgressIndicator(),
           if (_error != null)

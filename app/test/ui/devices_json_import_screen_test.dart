@@ -68,4 +68,21 @@ void main() {
     expect(find.textContaining('Not valid JSON'), findsOneWidget);
     await t.tearDown(tester);
   });
+
+  testWidgets('guide opens from the import screen', (tester) async {
+    final t = await TestServices.inTester(tester);
+    await tester.pumpWidget(
+      t.wrap(const MaterialApp(home: DevicesJsonImportScreen())),
+    );
+    await tester.tap(find.text('How do I get keys?'));
+    await tester.pumpAndSettle();
+    expect(find.text('Getting Tuya keys'), findsOneWidget);
+    expect(find.text('1. Create a Tuya IoT project'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('6. Re-link Alexa (optional)'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await t.tearDown(tester);
+  });
 }

@@ -270,9 +270,10 @@ writes clear instructions, then stops.
   Do: user enters access id/secret + region; signed requests; fetch device list with local_key.
   Accept: unit tests with recorded (sanitised) responses; VERIFY signing against Tuya docs.
   Note: lib/onboarding/cloud_import/tuya_cloud.dart ported from tinytuya 1.20.0 Cloud.py; signing checked byte-for-byte against vectors from sim/tools/gen_tuya_cloud_vectors.py; recorded-response flow tests; guard test keeps HTTP out of the rest of lib/. VERIFY open: token call without tinytuya's `secret` header, auth error codes 1004/1010/1011. Hardware check #11.
-- [ ] **T6.4 Guide screen: re-pair Tuya device to own account** (S) — deps: T6.1
+- [x] **T6.4 Guide screen: re-pair Tuya device to own account** (S) — deps: T6.1
   Do: step-by-step copy: reset device, add in Smart Life, link to Tuya IoT project, run wizard,
   re-link in Alexa.
+  Note: lib/ui/screens/tuya_guide_screen.dart, linked from the key import screen ("How do I get keys?").
 
 ## M7 — Remaining adapters (each: simulator → adapter → contract suite → probe rule)
 
