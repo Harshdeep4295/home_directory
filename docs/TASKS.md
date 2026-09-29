@@ -127,9 +127,10 @@ writes clear instructions, then stops.
   Accept: with sims running, collector returns expected candidates; iOS path unit-tested with
   broadcast disabled flag.
   Note: discovery/: HostEvidence/MdnsRecord/UdpProbe/ScanPort, BonsoirMdnsBrowser (bonsoir 7, resolves services → IPv4), CandidateCollector running in parallel: mDNS, Tuya beacon listeners (6666/6667 + MulticastLock), WiZ registration broadcast bound to 38899 (pywizlight), Kasa XOR 9999 + KLAP 20002 static query (python-kasa 0.10.2), Yeelight SSDP (Android only), TCP scan (64 conc., 300 ms), HTTP probes on port-80 hosts; iOS = unicast to every host. adapters/kasa/kasa_xor.dart with python-kasa vectors. All ports overridable; sim test + iOS-path test green. VERIFY on hardware: WiZ reply port, KLAP static query answered, Tuya beacons on iOS.
-- [ ] **T2.8 Fingerprinter** (M) — deps: T2.7 — Ref: §Fingerprinter
+- [x] **T2.8 Fingerprinter** (M) — deps: T2.7 — Ref: §Fingerprinter
   Accept: table-driven tests using recorded replies for every brand in PLAN §6 (use sim replies
   where no real recording exists; mark them).
+  Note: discovery/fingerprinter.dart: pure, first-match rules per §7.2 (Tuya beacon → WiZ → Hue → Shelly gen1/2 → Sonoff → ESPHome → Kasa XOR → KLAP/Tapo → Yeelight SSDP/55443 → Tasmota → Tuya port → unknown), KnownSecrets turns needsKey off. 16 table-driven tests with fixtures from pywizlight/python-kasa/python-yeelight/tinytuya and vendor-doc samples; SIM-marked ones to be replaced by real recordings from HARDWARE_LOG. Collector now also GETs /api/config for Hue.
 - [ ] **T2.9 Discovery service + merge** (S) — deps: T2.8, T1.7
   Do: merge candidates with registry by deviceId → mac → ip; mark moved IPs (DHCP change).
   Accept: test: device changes IP, registry updates, user settings preserved.

@@ -268,8 +268,14 @@ class CandidateCollector {
     });
   }
 
-  /// PSEUDOCODE §5: GET /shelly, /cm?cmnd=Status 0, / on hosts with port 80 open.
-  static const httpPaths = ['/shelly', '/cm?cmnd=Status%200', '/'];
+  /// PSEUDOCODE §5: GET /shelly, /cm?cmnd=Status 0, / on hosts with port 80 open, plus
+  /// the unauthenticated Hue bridge /api/config (Hue API v1).
+  static const httpPaths = [
+    '/shelly',
+    '/cm?cmnd=Status%200',
+    '/api/config',
+    '/',
+  ];
 
   Future<void> _httpProbes(Iterable<HostEvidence> hosts) =>
       pooled(hosts.toList(), 16, (e) async {
