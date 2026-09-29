@@ -228,26 +228,36 @@ writes clear instructions, then stops.
 
 ## M5 — UI and onboarding
 
-- [ ] **T5.1 App shell + theme + navigation** (S) — deps: T0.1
-- [ ] **T5.2 Home screen** (M) — deps: T5.1, T3.2
+- [x] **T5.1 App shell + theme + navigation** (S) — deps: T0.1
+  Note: ui/providers.dart (services, devices, rooms, deviceStates from engine cache + stateChanges, netState, active timers with 1 s tick, voiceState, clock), ui/theme.dart (Material 3 teal seed, light/dark), ui/app.dart (lifecycle: resume → poller.onForeground + iOS ticker + reconcile; pause → poller.onBackground; devices change → re-arm poller), ui/screens/shell.dart (Home/Timers/Settings NavigationBar + network banner), debug screens moved behind ui/screens/debug_menu.dart. main() runs the shell in a ProviderScope. test/support/test_services.dart builds AppServices on fakes; tearDown() pumps before closing drift (else close() hangs on fake-zone stream queries).
+- [x] **T5.2 Home screen** (M) — deps: T5.1, T3.2
   Do: rooms → device tiles (state, tap toggle, long-press detail), "Local mode" banner, mic FAB.
-- [ ] **T5.3 Device detail** (M) — deps: T5.2, T3.3
+  Note: ui/screens/home_screen.dart: devices grouped by room (sort order) + 'Other', responsive tile grid, tap → engine toggle, long-press → onOpenDevice, empty state → Add devices, large mic FAB; ui/widgets/device_tile.dart: icon by name/capability, On/Off/Offline (greyed), timer chip 'off in 18m · Plug' (tier named). Banner comes from the shell. Wired as the Home tab. 3 widget tests.
+- [x] **T5.3 Device detail** (M) — deps: T5.2, T3.3
   Do: power, sliders by capability, timer presets (15/30/60/custom), default auto-off, name, room,
   aliases, protocol info, "re-scan IP".
-- [ ] **T5.4 Timers screen** (S) — deps: T3.3
+  Note: ui/screens/device_detail_screen.dart: power switch (offline-aware), brightness / colour-temperature sliders only with those capabilities, current timer with tier + cancel, presets on for 15/30/60 min + custom (iOS phone-tier warning), default auto-off dropdown (TimerService.applyAutoOff now runs after app/voice power-on), rename, room, aliases with Hinglish suggestions (ui/alias_suggestions.dart), connection info (brand/protocol/IP/MAC/id, Tuya key stored?), Re-scan IP, remove device (cancels timers, deletes key). Feedback via SnackBar. Long-press on Home opens it. 5 widget tests + auto-off test.
+- [x] **T5.4 Timers screen** (S) — deps: T3.3
   Do: list with remaining time, tier badge (Plug / Phone), cancel, reconcile on open.
-- [ ] **T5.5 Voice sheet** (S) — deps: T4.8
+  Note: ui/screens/timers_screen.dart: reconcile on open, active timers sorted by fire time with live countdown ('Geyser off in 18m', 'at 9:40 PM'), tier chip (Plug/Bridge/Phone), cancel per row, iOS warning card when any phone-tier timer exists, empty state with a voice hint. Wired as the Timers tab. 2 widget tests.
+- [x] **T5.5 Voice sheet** (S) — deps: T4.8
   Do: listening animation, live transcript, disambiguation chips, result.
-- [ ] **T5.6 Add-devices flow** (M) — deps: T2.9 — Ref: §Onboarding
+  Note: ui/screens/voice_sheet.dart: bottom sheet opened by the Home mic FAB (starts listening), pulsing mic + live transcript + Stop, confirmation chips (device / 'All of these' / Cancel), result with icon, Undo (5 s) and 'Speak again', idle 'Tap to speak', plus a typed-command field (works without speech). Widget test drives typed commands through VoiceController: result, TTS, undo, ambiguity chips.
+- [x] **T5.6 Add-devices flow** (M) — deps: T2.9 — Ref: §Onboarding
   Do: scan, badges, per-badge resolve screens, naming + rooms + alias suggestions.
-- [ ] **T5.7 Settings** (S) — deps: T5.1
+  Note: ui/screens/add_devices_screen.dart + onboarding/badges.dart: scans on open, new devices with badge Ready / Needs key / Needs pairing / Cloud-only / Not supported yet (no adapter for the protocol — honest until M7) / Unknown, already-added summary incl. moved IPs; per-badge resolve: Tuya key paste (verified against the device after add; missing id → points to devices.json), explanations for the rest; name sheet with room chips + New room…, alias suggestions. AdapterRegistry.supportsProtocol. Shared ui/widgets/prompt.dart (dialog owns its controller — fixes dispose-during-animation crash) now used by device detail too. Opened from the Home empty state.
+- [x] **T5.7 Settings** (S) — deps: T5.1
   Do: language, TTS on/off, poll interval, export/import config (encrypted JSON with passphrase,
   secrets included only if user opts in), diagnostics (logs, network state).
-- [ ] **T5.8 Permissions + first-run** (S) — deps: T1.5, T4.1
+  Note: ui/screens/settings_screen.dart: voice language (English (India) / Hinglish → en_IN, Hindi → hi_IN) + spoken feedback, applied live to VoiceController; poll interval (3/5/10/30 s → StatePoller); Add devices; export/import configuration (registry/config_export.dart: PBKDF2-HMAC-SHA256 150k → AES-256-GCM envelope; secrets only when opted in; wrong passphrase → clear error) via ui/file_access.dart (file_picker); diagnostics: network state, recent redacted logs (AppServices.logSink), developer tools; About with 'not affiliated'. app/app_settings.dart typed settings; AppServices.applySettings() at startup. Tests: config round trip (with/without secrets, wrong pass, junk) + settings apply.
+- [x] **T5.8 Permissions + first-run** (S) — deps: T1.5, T4.1
   Do: permission walkthrough, offline speech model download instructions per platform.
-- [ ] **T5.9 Android widget + quick-settings tile** (M) — deps: T4.8
+  Note: ui/screens/first_run.dart shown until settings.onboarded: welcome (local-only, not affiliated) → permissions (onboarding/permissions.dart PlatformPermissions: iOS Local Network probe, mic+speech via speech_to_text init, notifications via flutter_local_notifications, Android exact alarms → system settings; status per row with Allow / Try again) → offline speech model (lists en/hi locales, per-platform download steps) → add devices → Done. App root gated by onboardedProvider. Widget test walks the whole flow with fake permissions.
+- [x] **T5.9 Android widget + quick-settings tile** (M) — deps: T4.8
   Do: widget with mic button + 4 favourite devices; tile opens voice sheet directly.
+  Note: plain AppWidgetProvider (no Glance) + TileService open the app with `offlinehome://voice|toggle/<id>` via home_widget's launch action; star on device detail marks favourites; hardware check #9 pending.
 - [ ] **T5.10 iOS widget / Shortcuts** (S) — deps: T4.8 — optional, can defer.
+  Note: deferred — needs a WidgetKit extension target + App Group, which requires Xcode signing on the Mac.
 
 ## M6 — Key import (onboarding/cloud_import — the only internet code)
 

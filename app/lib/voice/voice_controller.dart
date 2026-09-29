@@ -213,7 +213,11 @@ class VoiceController {
     switch (intent) {
       case PowerIntent(:final action):
         final res = Aggregate(await engine.power(targets, action));
-        _armUndo(() => _restore(targets, before));
+        if (action == PowerAction.on) await timers.applyAutoOff(res.ok);
+        _armUndo(() async {
+          await timers.cancel(targets);
+          await _restore(targets, before);
+        });
         return _finish(
           text,
           _powerMessage(targets, res, action),

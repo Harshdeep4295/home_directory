@@ -93,6 +93,18 @@ class TimerService {
     ClockTime at,
   ) => powerFor(targets, action, untilNext(at, _now()));
 
+  /// PLAN D6: devices with a default auto-off get an off-timer whenever they are
+  /// switched on and have no timer yet. Returns the jobs created.
+  Future<List<TimerOutcome>> applyAutoOff(List<Device> turnedOn) async {
+    final out = <TimerOutcome>[];
+    for (final d in turnedOn) {
+      final auto = d.defaultAutoOff;
+      if (auto == null || await _timers.activeFor(d.id) != null) continue;
+      out.addAll(await powerAfter([d], PowerAction.off, auto));
+    }
+    return out;
+  }
+
   /// Where a timer ending in [endState] after [d] would run.
   TimerTier chooseTier(
     Device dev,

@@ -14,6 +14,7 @@ import '../net/ios_platform_bridge.dart';
 import '../net/lan_socket_factory.dart';
 import '../net/network_monitor.dart';
 import '../net/platform_bridge.dart';
+import '../registry/config_export.dart';
 import '../registry/database.dart';
 import '../registry/repositories.dart';
 import '../registry/secret_store.dart';
@@ -27,6 +28,7 @@ import '../voice/stt_service.dart';
 import '../voice/target_resolver.dart';
 import '../voice/tts.dart';
 import '../voice/voice_controller.dart';
+import 'app_settings.dart';
 
 /// Object graph of the app (PSEUDOCODE §1 bootstrap). Riverpod providers wrap it in T5.1.
 class AppServices {
@@ -38,7 +40,8 @@ class AppServices {
     required this.discovery,
     required this.network,
     PhoneAlarmScheduler? phoneAlarms,
-  }) : devices = DeviceRepository(db),
+  }) : phoneAlarms = phoneAlarms,
+       devices = DeviceRepository(db),
        rooms = RoomRepository(db),
        timers = TimerRepository(db),
        stateCache = StateCacheRepository(db),
@@ -50,7 +53,7 @@ class AppServices {
       adapters,
       devices,
       timers,
-      phoneAlarms ?? _phoneAlarmsForHost(),
+      phoneAlarms ?? (this.phoneAlarms = _phoneAlarmsForHost()),
     );
     phoneTicker = PhoneTierTicker(timers, timerService);
   }
@@ -70,6 +73,9 @@ class AppServices {
   late final StatePoller poller;
   late final TimerService timerService;
 
+  /// Phone-tier backend (exact alarms / notifications); null until built.
+  PhoneAlarmScheduler? phoneAlarms;
+
   /// Runs due phone-tier jobs while the app is open. Started on foreground on iOS
   /// (T3.5); Android relies on exact alarms instead.
   late final PhoneTierTicker phoneTicker;
@@ -77,6 +83,28 @@ class AppServices {
   /// Set by [create] once the lexicon assets are loaded (null in widget tests).
   VoiceController? voice;
   SttService? stt;
+
+  /// Recent log lines for Settings → Diagnostics (redacted).
+  MemorySink logSink = MemorySink();
+
+  late final AppSettings appSettings = AppSettings(settings);
+  late final ConfigExporter configExporter = ConfigExporter(
+    devices,
+    rooms,
+    settings,
+    secrets,
+  );
+
+  /// Pushes stored settings into the running services.
+  Future<void> applySettings() async {
+    poller.interval = Duration(seconds: await appSettings.pollSeconds());
+    final v = voice;
+    if (v != null) {
+      v
+        ..localeId = (await appSettings.language()).localeId
+        ..speakFeedback = await appSettings.tts();
+    }
+  }
 
   /// Android: exact alarms (T3.4). iOS: notification at fire time + [phoneTicker] (T3.5).
   PhoneAlarmScheduler _phoneAlarmsForHost() {
@@ -103,7 +131,8 @@ class AppServices {
   /// Production wiring.
   static Future<AppServices> create() async {
     final redactor = Redactor();
-    log = Logger(redactor: redactor, sinks: [ConsoleSink(), MemorySink()]);
+    final logSink = MemorySink();
+    log = Logger(redactor: redactor, sinks: [ConsoleSink(), logSink]);
     final platform = platformForHost();
     await platform.init();
     final secrets = SecretStore(SecureStorageBackend(), redactor);
@@ -128,6 +157,7 @@ class AppServices {
       ),
       network: network,
     );
+    services.logSink = logSink;
     await services.engine.warmUp();
     final lexicon = await Lexicon.loadAssets();
     final stt = SttService(PlatformSpeechEngine());
@@ -144,6 +174,7 @@ class AppServices {
         tts: PlatformTts(),
         isIOS: Platform.isIOS,
       );
+    await services.applySettings();
     return services;
   }
 

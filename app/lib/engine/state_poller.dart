@@ -20,7 +20,9 @@ class StatePoller {
 
   final CommandEngine _engine;
   final AdapterRegistry _adapters;
-  final Duration interval;
+
+  /// Poll period; changes apply to devices subscribed after the change.
+  Duration interval;
 
   /// How long push sockets stay open after the app goes to the background.
   final Duration pushGrace;

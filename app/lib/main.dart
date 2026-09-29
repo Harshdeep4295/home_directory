@@ -1,23 +1,20 @@
-import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/services.dart';
-import 'net/platform_bridge.dart';
 import 'timers/alarm_runner.dart';
-import 'ui/debug/net_debug_screen.dart';
-import 'ui/debug/scan_debug_screen.dart';
-import 'ui/debug/voice_debug_screen.dart';
+import 'ui/app.dart';
+import 'ui/providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final services = await AppServices.create();
-  unawaited(services.timerService.reconcile());
-  if (Platform.isIOS) {
-    services.phoneTicker.start(); // lifecycle handling in T5.1
-  }
-  runApp(OfflineHomeApp(platform: services.platform, services: services));
+  runApp(
+    ProviderScope(
+      overrides: [servicesProvider.overrideWithValue(services)],
+      child: const OfflineHomeApp(),
+    ),
+  );
 }
 
 /// Background entry point started by TimerForegroundService.kt when a phone-tier timer
@@ -30,41 +27,5 @@ Future<void> timerAlarmMain() async {
     await drainAlarms(MethodChannelAlarmRunnerHost(), services.timerService);
   } finally {
     await services.dispose();
-  }
-}
-
-/// Placeholder shell with the debug screens; the real shell arrives in T5.1.
-class OfflineHomeApp extends StatelessWidget {
-  const OfflineHomeApp({super.key, required this.platform, this.services});
-  final PlatformBridge platform;
-  final AppServices? services;
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Offline Home',
-      home: Builder(
-        builder: (context) => NetDebugScreen(
-          platform: platform,
-          onOpenVoice: services?.voice == null
-              ? null
-              : () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => VoiceDebugScreen(
-                      voice: services!.voice!,
-                      stt: services!.stt,
-                    ),
-                  ),
-                ),
-          onOpenScan: services == null
-              ? null
-              : () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ScanDebugScreen(services: services!),
-                  ),
-                ),
-        ),
-      ),
-    );
   }
 }
