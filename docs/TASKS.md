@@ -99,8 +99,9 @@ writes clear instructions, then stops.
 
 ## M2 — Adapter framework, first adapters, discovery
 
-- [ ] **T2.1 DeviceAdapter interface + AdapterRegistry** (S) — deps: T1.1, T1.3 — Ref: §Adapter interface
+- [x] **T2.1 DeviceAdapter interface + AdapterRegistry** (S) — deps: T1.1, T1.3 — Ref: §Adapter interface
   Accept: a `FakeAdapter` passes a shared `adapterContractTest()` suite (reusable by all adapters).
+  Note: adapters/device_adapter.dart: DeviceAdapter (defaults = Err(unsupported); countdown handle, canCountdownTo, combined powerFor, watch, dispose), guarded() wrapper, AdapterRegistry (protocol exact or '<id>-' prefix), ProbeContext. FakeAdapter (flip-based countdown, offline set, failNext) passes shared adapterContractTest (test/support/adapter_contract.dart).
 - [ ] **T2.2 WiZ simulator** (S) — deps: T0.2
 - [ ] **T2.3 WiZ adapter** (M) — deps: T2.1, T2.2 — Ref: §WiZ
   Accept: contract suite green vs sim; power, brightness, colorTemp; probe() identifies WiZ.
