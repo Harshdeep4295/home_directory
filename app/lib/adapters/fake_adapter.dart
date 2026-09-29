@@ -10,6 +10,7 @@ class FakeAdapter extends DeviceAdapter {
   FakeAdapter({
     this.latency = Duration.zero,
     this.countdownMax = const Duration(hours: 24),
+    this.protocols = const {'fake'},
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
@@ -31,8 +32,9 @@ class FakeAdapter extends DeviceAdapter {
   @override
   Brand get brand => Brand.unknown;
 
+  /// Protocols this fake answers for (tests can impersonate e.g. `wiz`).
   @override
-  Set<String> get protocols => {'fake'};
+  final Set<String> protocols;
 
   Future<Result<T>> _run<T>(
     Device d,

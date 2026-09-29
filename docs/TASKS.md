@@ -135,8 +135,13 @@ writes clear instructions, then stops.
   Do: merge candidates with registry by deviceId → mac → ip; mark moved IPs (DHCP change).
   Accept: test: device changes IP, registry updates, user settings preserved.
   Note: discovery/discovery_service.dart: scan() = collect → fingerprint (KnownSecrets from SecretStore.deviceIdsWithSecrets) → merge; merge matches deviceId → MAC → IP (IP only for same brand), updates ip/mac/port/lastSeen, keeps known protocol version and all user settings, reports movedFrom; new candidates are reported (add() inserts with '<Brand> <last4>' name + default caps); notSeen list. CandidateCollector implements EvidenceSource. 6 tests incl. the IP-change case.
-- [ ] **T2.10 👤 Hardware check #1** (S) — deps: T2.3, T2.6, T2.9
+- [x] **T2.10 👤 Hardware check #1** (S) — deps: T2.3, T2.6, T2.9
   Do: debug screen "Scan + toggle"; human tests WiZ + Wipro with WAN unplugged; logs results.
+  Note: Debug 'Scan + toggle' screen (radar icon on the network debug screen): scan → badges (Ready / Needs key / Needs pairing / Unknown) → Add → paste Tuya local key → tap to toggle with timing. AppServices wires db, SecretStore, sockets, WiZ + Tuya adapters, discovery. Widget test with fakes.
+  - [ ] 👤 With WAN unplugged: open app → radar icon → Scan. Expect the Philips (WiZ) and Wipro/Syska
+    (Tuya) devices listed. Add them; for Tuya tap the key icon and paste the local key from
+    `devices.json`. Tap each device → it toggles; note the ms shown. Log each in HARDWARE_LOG
+    (test `scan+toggle`).
 
 ## M3 — Engine, state, timers
 
