@@ -1,4 +1,4 @@
-# Handoff — Offline Home (state as of 2026-09-29)
+# Handoff — Offline Home (state as of 2026-09-29, updated during M7)
 
 Read `CLAUDE.md` first (rules are non-negotiable), then this file, then `docs/TASKS.md`.
 This note says where the work stands, how to run things, and what is left.
@@ -8,13 +8,13 @@ This note says where the work stands, how to run things, and what is left.
 | Milestone | State |
 |---|---|
 | M0–M6 | **Merged into `main`** (M5 = PR #6 App UI, M6 = PR #7 Key import). |
-| M7 Remaining adapters | **In progress** on branch `claude/sweet-thompson-fba2km` (pushed, **no PR yet**). T7.1 Tuya 3.4 and T7.2 Tuya 3.5 are committed; T7.3 onwards not started. |
+| M7 Remaining adapters | **In progress** on branch `claude/sweet-thompson-fba2km` (pushed, **no PR yet**). Done: T7.1 Tuya 3.4, T7.2 Tuya 3.5, T7.3 Tuya bulbs + multi-gang, T7.4 Shelly, T7.5 Kasa legacy, T7.6a–c KLAP / Tapo. Next: T7.7 Hue. |
 | M8 Hardening | Not started. |
 
-- Working branch: `claude/sweet-thompson-fba2km`, currently `main` (e1bf4f9) + `T7.1` (6820a3d) + `T7.2` (afe7ea8).
+- Working branch: `claude/sweet-thompson-fba2km` = `main` (e1bf4f9) + one commit per finished M7 task (see `git log origin/main..`).
 - Working tree is clean; nothing uncommitted.
 - No open PRs, no scheduled check-ins, no PR subscriptions.
-- Latest full local run: 390 Flutter tests + 24 simulator (pytest) tests green, `flutter analyze --fatal-infos` clean, codegen up to date.
+- Latest full local run: 458 Flutter tests + 37 simulator (pytest) tests green, `flutter analyze --fatal-infos` clean, codegen up to date.
 
 ## 2. Workflow the owner agreed to
 
@@ -35,12 +35,13 @@ This note says where the work stands, how to run things, and what is left.
 - Python for simulators: a venv with `pytest pytest-asyncio tinytuya==1.20.0` (`sim/requirements-dev.txt`). The previous session's venv lived in its scratchpad and is **gone** in a new container — recreate:
   ```
   python3 -m venv /tmp/venv && /tmp/venv/bin/pip install -r sim/requirements-dev.txt
+  # requirements-dev now also pins aioshelly, python-kasa and tzdata (reference clients)
   ```
 - Full check (same as CI): `make fmt-check codegen-check test PYTHON=/tmp/venv/bin/python`
   - `codegen-check` fails if anything under `app/lib`/`app/test` is **uncommitted** (it uses `git status`), so run it after committing.
   - Simulator-backed Dart tests (`app/test/sim`, tag `sim`) need `OH_PYTHON=/tmp/venv/bin/python` when run directly with `flutter test`.
 - Kotlin was only type-checked (kotlinc + android-all API 35 + Flutter embedding jar, script lived in the old scratchpad); Swift was never compiled. Neither is built in CI.
-- Byte-exact protocol vectors are generated from the reference libraries: `python sim/tools/gen_tuya_vectors.py` (3.x/3.4/3.5), `sim/tools/gen_tuya_cloud_vectors.py` (OpenAPI signing). Re-running must leave existing vector files unchanged.
+- Byte-exact protocol vectors are generated from the reference libraries: `python sim/tools/gen_tuya_vectors.py` (3.x/3.4/3.5), `gen_tuya_cloud_vectors.py` (OpenAPI signing), `gen_shelly_vectors.py` (Gen2 digest), `gen_klap_vectors.py` (KLAP v1/v2). Re-running must leave existing vector files unchanged.
 - `.gitignore` ignores any file named `devices.json` (real keys). Test fixtures must use another name (`test/onboarding/fixtures/sample_devices.json`) — this bit CI once.
 
 ## 4. Architecture cheat-sheet (what exists)
@@ -56,20 +57,17 @@ This note says where the work stands, how to run things, and what is left.
 ## 5. What is left
 
 ### M7 — Remaining adapters (each: simulator → adapter → contract suite → probe rule)
-- **T7.3 Tuya bulb + multi-gang profiles — next up.** Research done, no code yet:
-  - Bulb DP sets must come from tinytuya `BulbDevice.DEFAULT_DPSET` (cite it): Type A switch 1 / mode 2 / brightness 3 / colourtemp 4, range 25–255; **Type B** switch 20 / mode 21 / brightness 22 / colourtemp 23 / timer(countdown) 26, range 10–1000; Type C switch 1 / brightness 2 / colourtemp 3, range 25–255. Detection: `BulbDevice.detect_bulb` (keys 20+ → B, 1–9 → A, only 1–2 → C). Percent → value: `int(value_max * pct // 100)`.
-  - Today `TuyaDp` only has roles `switch` / `countdown` with profiles plug {1, 9} and bulb {20, 26}. Add `brightness` / `colorTemp` roles (+ value range) so `setBrightness`/`setColorTemp` work, and set `Capability.brightness/colorTemp` when the profile has them. `dpMapFromMapping` (devices.json import) should also map `bright_value(_v2)` / `temp_value(_v2)` codes.
-  - Multi-gang: PSEUDOCODE says switch_n = n (1..4), countdown_n = 7..10 (**VERIFY** — prefer the per-device mapping from devices.json / cloud import: codes `switch_1..switch_N`, `countdown_1..countdown_N`). Needs a design for one Tuya id → several app devices (e.g. device id `<tuyaId>#<n>` sharing IP + the key of `<tuyaId>`); SecretStore lookups must resolve the base id.
-  - Extend `TuyaSim` profiles (bulb type A/B, `gang=N`) and add sim/contract tests.
-- T7.4 Shelly Gen1 + Gen2 (PSEUDOCODE §6.5; aioshelly / Shelly API docs; combined `powerFor` via `turn=..&timer=` / `toggle_after`; digest auth VERIFY).
-- T7.5 Kasa legacy (python-kasa XOR transport, port 9999; XOR key 171 already ported in `kasa_xor.dart`).
-- T7.6 KLAP transport + Tapo/Kasa new (split into sub-tasks in TASKS.md first; python-kasa `klaptransport.py`; credentials via SecretStore pseudo-id `tplink`).
-- T7.7 Hue bridge + link-button pairing (username in SecretStore).
+Done (see TASKS.md notes for VERIFYs): T7.1–T7.6 (Tuya 3.4/3.5/bulbs/multi-gang, Shelly Gen1/2, Kasa XOR, KLAP + Tapo).
+Adapters live in `app/lib/adapters/{tuya,shelly,kasa}`; sims in `sim/ohsim/devices/{tuya,shelly,kasa,klap}.py`
+(HTTP sims use `HttpSimDevice` in `sim/ohsim/base.py`). Each sim is checked in `sim/tests` against the reference
+Python client (tinytuya / aioshelly AuthData / python-kasa).
+Left:
+- T7.7 Hue bridge + link-button pairing (username in SecretStore; Hue API docs).
 - T7.8 Yeelight (python-yeelight; SSDP discovery on 1982 already in the collector).
-- T7.9 Sonoff LAN (DIY + encrypted, eWeLink devicekey in SecretStore).
+- T7.9 Sonoff LAN (DIY + encrypted, eWeLink devicekey in SecretStore; AlexxIT SonoffLAN).
 - T7.10 Tasmota, T7.11 ESPHome web-server REST.
-- T7.12 Fingerprinter rules for all of the above.
-- Then push, open the **M7 PR** (branch already contains T7.1/T7.2), watch CI, merge when green.
+- T7.12 Fingerprinter rules for all of the above (+ auto-create Kasa strip outlets / Tuya-scan bulb caps).
+- Then push, open the **M7 PR**, watch CI, merge when green.
 
 ### M8 — Hardening
 T8.1 error UX, T8.2 performance (tap→device p95 < 500 ms), T8.3 👤 offline validation checklist (hardware → log it), T8.4 README/install docs, T8.5 `make apk` / `make ios-device` scripts.
