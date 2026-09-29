@@ -37,6 +37,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 200));
     });
     await TestServices.settle(tester);
+    await TestServices.settle(tester, ms: 200); // ImportResults: scan + status
     return t;
   }
 

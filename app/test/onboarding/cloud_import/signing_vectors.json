@@ -1,0 +1,53 @@
+{
+  "host": "openapi.tuyain.com",
+  "access_id": "testaccessid0000000a",
+  "access_secret": "testaccesssecret00000000000000bb",
+  "t": 1790000000123,
+  "vectors": [
+    {
+      "name": "token",
+      "method": "GET",
+      "url": "https://openapi.tuyain.com/v1.0/token?grant_type=1",
+      "token": null,
+      "t": "1790000000123",
+      "sign": "CF88F0C1323CF8739247062AC11044C346FBFC04AA944F4B19EA2BAC7B3A0F36",
+      "body": null
+    },
+    {
+      "name": "associated-users",
+      "method": "GET",
+      "url": "https://openapi.tuyain.com/v1.0/iot-01/associated-users/devices?size=50",
+      "token": "testtoken0000000000000000000000cc",
+      "t": "1790000000123",
+      "sign": "DB0FAFAB977EA6109954D36D0C8225219B3CE9D718ECC7A5254A6E73B437561A",
+      "body": null
+    },
+    {
+      "name": "by-uid",
+      "method": "GET",
+      "url": "https://openapi.tuyain.com/v1.3/iot-03/devices?last_row_key=row1&page_size=75&source_id=ay0000000000000uid&source_type=tuyaUser",
+      "token": "testtoken0000000000000000000000cc",
+      "t": "1790000000123",
+      "sign": "E050522B19FE8D1EB88119CF8D074A253A9A2CEFA304FF7C8F316AD734B046CA",
+      "body": null
+    },
+    {
+      "name": "specifications",
+      "method": "GET",
+      "url": "https://openapi.tuyain.com/v1.1/devices/bfdev/specifications",
+      "token": "testtoken0000000000000000000000cc",
+      "t": "1790000000123",
+      "sign": "12C1C385BF67AC647502BB9D16243EC1065C6F0E9DBEA9ACB284B4B1B611CB9F",
+      "body": null
+    },
+    {
+      "name": "post",
+      "method": "POST",
+      "url": "https://openapi.tuyain.com/v1.0/devices/bfdev/commands",
+      "token": "testtoken0000000000000000000000cc",
+      "t": "1790000000123",
+      "sign": "B6CE2813EC9082C1CD4046EFB95508148B212B33DAAC0D3B46DC4894855947DE",
+      "body": "{\"commands\": []}"
+    }
+  ]
+}

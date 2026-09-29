@@ -3,26 +3,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/result.dart';
 import '../../onboarding/devices_json_import.dart';
 import '../file_access.dart';
 import '../providers.dart';
+import 'import_results.dart';
+import 'tuya_cloud_import_screen.dart';
 
 Future<void> openDevicesJsonImport(BuildContext context) =>
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const DevicesJsonImportScreen()),
     );
-
-/// Result of the post-import check for one device.
-enum KeyCheck {
-  pending('Checking…'),
-  ok('Key works'),
-  rejected('Key rejected'),
-  notFound('Not found on this Wi-Fi yet');
-
-  const KeyCheck(this.label);
-  final String label;
-}
 
 /// T6.1: pick tinytuya's devices.json → keys to SecretStore → quick scan → verify.
 /// The file's bytes live only in memory for the duration of [_import].
@@ -37,7 +27,6 @@ class DevicesJsonImportScreen extends ConsumerStatefulWidget {
 class _DevicesJsonImportScreenState
     extends ConsumerState<DevicesJsonImportScreen> {
   List<ImportOutcome>? _outcomes;
-  final Map<String, KeyCheck> _checks = {};
   String? _error;
   bool _busy = false;
 
@@ -50,6 +39,7 @@ class _DevicesJsonImportScreenState
     setState(() {
       _busy = true;
       _error = null;
+      _outcomes = null;
     });
     try {
       final text = utf8.decode(picked.$2, allowMalformed: true);
@@ -57,42 +47,16 @@ class _DevicesJsonImportScreenState
         s.devices,
         s.secrets,
       ).importText(text);
-      setState(() {
-        _outcomes = out;
-        for (final o in out.where((o) => o.status.stored)) {
-          _checks[o.entry.id] = KeyCheck.pending;
-        }
-      });
-      await _verify(out);
+      if (mounted) setState(() => _outcomes = out);
     } on DevicesJsonFormatException catch (e) {
-      setState(() => _error = e.message);
+      if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  /// Quick scan fills current IPs / versions, then one status call per device.
-  Future<void> _verify(List<ImportOutcome> out) async {
-    final s = ref.read(servicesProvider);
-    await s.discovery.scan(window: const Duration(seconds: 3));
-    for (final o in out.where((o) => o.status.stored)) {
-      final d = await s.devices.byId(o.entry.id);
-      final KeyCheck check;
-      if (d == null || d.ip.isEmpty) {
-        check = KeyCheck.notFound;
-      } else {
-        final r = (await s.engine.status([d])).single.result;
-        check = switch (r) {
-          Ok() => KeyCheck.ok,
-          Err(:final error) when error.kind == DeviceErrorKind.auth =>
-            KeyCheck.rejected,
-          Err() => KeyCheck.notFound,
-        };
-      }
-      if (!mounted) return;
-      setState(() => _checks[o.entry.id] = check);
-    }
-  }
+  void _push(Widget w) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => w));
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +78,12 @@ class _DevicesJsonImportScreenState
             icon: const Icon(Icons.upload_file),
             label: const Text('Choose devices.json'),
           ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => _push(const TuyaCloudImportScreen()),
+            icon: const Icon(Icons.cloud_download_outlined),
+            label: const Text('Import from Tuya cloud instead'),
+          ),
           if (_busy) const LinearProgressIndicator(),
           if (_error != null)
             Padding(
@@ -125,26 +95,7 @@ class _DevicesJsonImportScreenState
             ),
           if (out != null) ...[
             const SizedBox(height: 16),
-            Text(
-              '${out.where((o) => o.status.stored).length} of ${out.length} keys imported',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            for (final o in out)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: Icon(
-                  o.status.stored ? Icons.key : Icons.block,
-                  color: o.status.stored
-                      ? null
-                      : Theme.of(context).disabledColor,
-                ),
-                title: Text(o.device?.name ?? o.entry.name),
-                subtitle: Text(
-                  o.status.stored
-                      ? '${o.status.label} · ${(_checks[o.entry.id] ?? KeyCheck.pending).label}'
-                      : o.status.label,
-                ),
-              ),
+            ImportResults(key: ObjectKey(out), outcomes: out),
           ],
         ],
       ),

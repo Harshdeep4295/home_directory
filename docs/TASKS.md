@@ -266,9 +266,10 @@ writes clear instructions, then stops.
   Note: lib/onboarding/devices_json_import.dart (no network) + import screen; dpMap from mapping codes (switch_1/switch_led, countdown_1/countdown); sub-devices skipped; quick scan + status check per device. Hardware check #10 pending.
 - [x] **T6.2 Manual key entry** (S) — deps: T6.1
   Note: device detail → "Enter local key"; 16 printable chars; session reset + one status read; auth error rolls back to the previous key (lib/onboarding/manual_key.dart).
-- [ ] **T6.3 Tuya OpenAPI in-app import** (M) — deps: T6.1 — Ref: §Tuya cloud import
+- [x] **T6.3 Tuya OpenAPI in-app import** (M) — deps: T6.1 — Ref: §Tuya cloud import
   Do: user enters access id/secret + region; signed requests; fetch device list with local_key.
   Accept: unit tests with recorded (sanitised) responses; VERIFY signing against Tuya docs.
+  Note: lib/onboarding/cloud_import/tuya_cloud.dart ported from tinytuya 1.20.0 Cloud.py; signing checked byte-for-byte against vectors from sim/tools/gen_tuya_cloud_vectors.py; recorded-response flow tests; guard test keeps HTTP out of the rest of lib/. VERIFY open: token call without tinytuya's `secret` header, auth error codes 1004/1010/1011. Hardware check #11.
 - [ ] **T6.4 Guide screen: re-pair Tuya device to own account** (S) — deps: T6.1
   Do: step-by-step copy: reset device, add in Smart Life, link to Tuya IoT project, run wizard,
   re-link in Alexa.

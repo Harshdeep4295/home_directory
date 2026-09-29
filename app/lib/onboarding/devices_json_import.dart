@@ -159,9 +159,15 @@ class DevicesJsonImporter {
   /// Parses [text] and stores every usable key. Existing devices (matched by id) keep
   /// their name, room and aliases; unknown ids become placeholders that the next scan
   /// fills with the current IP.
-  Future<List<ImportOutcome>> importText(String text) async {
+  Future<List<ImportOutcome>> importText(String text) =>
+      importEntries(parseDevicesJson(text));
+
+  /// Same as [importText] for entries from another source (Tuya cloud import).
+  Future<List<ImportOutcome>> importEntries(
+    List<DevicesJsonEntry> entries,
+  ) async {
     final out = <ImportOutcome>[];
-    for (final e in parseDevicesJson(text)) {
+    for (final e in entries) {
       out.add(await _importOne(e));
     }
     log.i(

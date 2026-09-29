@@ -710,7 +710,8 @@ inputs: accessId, accessSecret, region endpoint, (linked app account uid discove
 token = GET /v1.0/token?grant_type=1  (signed)
 devices = GET /v1.0/users/<uid>/devices  or /v1.0/iot-01/associated-users/devices (VERIFY)
 each device has local_key → same as 12.1
-sign = HMAC-SHA256(secret, clientId + [accessToken] + t + nonce + stringToSign).upper()   // VERIFY exact format
+sign = HMAC-SHA256(secret, clientId + [accessToken] + t + METHOD\n + sha256(body)\n + signedHeaders\n + path?sortedQuery).upper()
+   // ported from tinytuya 1.20.0 Cloud._tuyaplatform; vectors: sim/tools/gen_tuya_cloud_vectors.py
 ```
 
 ### 12.4 Tapo / KLAP credentials
