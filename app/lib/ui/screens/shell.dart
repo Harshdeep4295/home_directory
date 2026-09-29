@@ -6,15 +6,15 @@ import '../widgets/net_banner.dart';
 import 'add_devices_screen.dart';
 import 'device_detail_screen.dart';
 import 'home_screen.dart';
+import 'settings_screen.dart';
 import 'timers_screen.dart';
 import 'voice_sheet.dart';
 
-/// Bottom navigation: Home · Timers · Settings. Screens arrive in T5.2–T5.7; the
-/// network banner sits above all of them.
+/// Bottom navigation: Home · Timers · Settings, with the network banner above.
 class Shell extends ConsumerStatefulWidget {
   const Shell({super.key, this.pages});
 
-  /// Injected by later tasks / tests; defaults to placeholders.
+  /// Injected by tests; defaults to Home, Timers and Settings.
   final List<ShellPage>? pages;
 
   @override
@@ -61,7 +61,7 @@ class _ShellState extends ConsumerState<Shell> {
       'Settings',
       Icons.settings_outlined,
       Icons.settings,
-      (_) => const _Placeholder('Settings'),
+      (_) => const SettingsScreen(),
     ),
   ];
 
@@ -92,11 +92,4 @@ class _ShellState extends ConsumerState<Shell> {
       ),
     );
   }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder(this.title);
-  final String title;
-  @override
-  Widget build(BuildContext context) => Center(child: Text(title));
 }

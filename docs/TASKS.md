@@ -246,9 +246,10 @@ writes clear instructions, then stops.
 - [x] **T5.6 Add-devices flow** (M) — deps: T2.9 — Ref: §Onboarding
   Do: scan, badges, per-badge resolve screens, naming + rooms + alias suggestions.
   Note: ui/screens/add_devices_screen.dart + onboarding/badges.dart: scans on open, new devices with badge Ready / Needs key / Needs pairing / Cloud-only / Not supported yet (no adapter for the protocol — honest until M7) / Unknown, already-added summary incl. moved IPs; per-badge resolve: Tuya key paste (verified against the device after add; missing id → points to devices.json), explanations for the rest; name sheet with room chips + New room…, alias suggestions. AdapterRegistry.supportsProtocol. Shared ui/widgets/prompt.dart (dialog owns its controller — fixes dispose-during-animation crash) now used by device detail too. Opened from the Home empty state.
-- [ ] **T5.7 Settings** (S) — deps: T5.1
+- [x] **T5.7 Settings** (S) — deps: T5.1
   Do: language, TTS on/off, poll interval, export/import config (encrypted JSON with passphrase,
   secrets included only if user opts in), diagnostics (logs, network state).
+  Note: ui/screens/settings_screen.dart: voice language (English (India) / Hinglish → en_IN, Hindi → hi_IN) + spoken feedback, applied live to VoiceController; poll interval (3/5/10/30 s → StatePoller); Add devices; export/import configuration (registry/config_export.dart: PBKDF2-HMAC-SHA256 150k → AES-256-GCM envelope; secrets only when opted in; wrong passphrase → clear error) via ui/file_access.dart (file_picker); diagnostics: network state, recent redacted logs (AppServices.logSink), developer tools; About with 'not affiliated'. app/app_settings.dart typed settings; AppServices.applySettings() at startup. Tests: config round trip (with/without secrets, wrong pass, junk) + settings apply.
 - [ ] **T5.8 Permissions + first-run** (S) — deps: T1.5, T4.1
   Do: permission walkthrough, offline speech model download instructions per platform.
 - [ ] **T5.9 Android widget + quick-settings tile** (M) — deps: T4.8
