@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
 import '../widgets/net_banner.dart';
+import 'home_screen.dart';
 
 /// Bottom navigation: Home · Timers · Settings. Screens arrive in T5.2–T5.7; the
 /// network banner sits above all of them.
@@ -32,7 +33,7 @@ class _ShellState extends ConsumerState<Shell> {
       'Home',
       Icons.home_outlined,
       Icons.home,
-      (_) => const _Placeholder('Home'),
+      (_) => const HomeScreen(),
     ),
     ShellPage(
       'Timers',
