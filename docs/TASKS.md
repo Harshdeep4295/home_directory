@@ -25,8 +25,9 @@ writes clear instructions, then stops.
   Do: `Makefile` targets: `fmt`, `analyze`, `test`, `sim`, `run-android`, `run-ios`, `codegen`.
   Accept: `make test` runs analyze + flutter test + pytest.
   Note: Makefile: help, deps, fmt, fmt-check, analyze, codegen, flutter-test, sim-test, test, sim, run-android, run-ios, clean. make test = analyze + flutter test + pytest sim.
-- [ ] **T0.4 HARDWARE_LOG template** (S) — deps: none
+- [x] **T0.4 HARDWARE_LOG template** (S) — deps: none
   Do: `docs/HARDWARE_LOG.md` table: date, device, brand, model, protocol, IP, test, result, notes.
+  Note: Table existed; added test-name vocabulary, result conventions and a survey section for T0.6 output.
 - [ ] **T0.5 CI** (S) — deps: T0.2, T0.3
   Do: `.github/workflows/ci.yml` on push + PR: Flutter (format check, analyze, test) and
   Python (pytest sim) jobs; pinned Flutter version.
