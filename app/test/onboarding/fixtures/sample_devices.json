@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Geyser Plug",
+    "id": "bf0123456789abcdefgh",
+    "key": "k3yK3YkeyKEY0001",
+    "mac": "a4:cf:12:00:00:01",
+    "uuid": "uuid000000000001",
+    "category": "cz",
+    "product_name": "Wipro Smart Plug",
+    "product_id": "aaaaaaaaaaaaaaaa",
+    "biz_type": 18,
+    "model": "",
+    "sub": false,
+    "icon": "https://images.tuyain.com/smart/icon/plug.png",
+    "mapping": {
+      "1": {"code": "switch_1", "type": "Boolean", "values": {}},
+      "9": {"code": "countdown_1", "type": "Integer", "values": {"unit": "s", "min": 0, "max": 86400, "scale": 0, "step": 1}},
+      "18": {"code": "cur_current", "type": "Integer", "values": {"unit": "mA", "min": 0, "max": 30000, "scale": 0, "step": 1}}
+    },
+    "ip": "192.168.1.40",
+    "version": "3.3"
+  },
+  {
+    "name": "Syska Bulb",
+    "id": "bf9876543210zyxwvuts",
+    "key": "k3yK3YkeyKEY0002",
+    "mac": "a4:cf:12:00:00:02",
+    "category": "dj",
+    "sub": false,
+    "mapping": {
+      "20": {"code": "switch_led", "type": "Boolean", "values": {}},
+      "22": {"code": "bright_value_v2", "type": "Integer", "values": {"min": 10, "max": 1000, "scale": 0, "step": 1}},
+      "26": {"code": "countdown", "type": "Integer", "values": {"unit": "s", "min": 0, "max": 86400, "scale": 0, "step": 1}}
+    }
+  },
+  {
+    "name": "Zigbee Sensor",
+    "id": "bfsub0000000000000aa",
+    "key": "0000000000000000",
+    "sub": true,
+    "gateway_id": "bfgateway00000000000"
+  },
+  {"name": "Old Plug", "id": "bfnokey0000000000000", "key": ""}
+]

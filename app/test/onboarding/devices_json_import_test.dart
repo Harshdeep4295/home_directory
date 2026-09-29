@@ -10,7 +10,7 @@ import 'package:offline_home/registry/repositories.dart';
 import 'package:offline_home/registry/secret_store.dart';
 
 void main() {
-  final sample = File('test/onboarding/fixtures/devices.json')
+  final sample = File('test/onboarding/fixtures/sample_devices.json')
       .readAsStringSync();
   late AppDatabase db;
   late DeviceRepository devices;

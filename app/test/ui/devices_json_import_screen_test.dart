@@ -46,7 +46,7 @@ void main() {
   ) async {
     final t = await pump(
       tester,
-      File('test/onboarding/fixtures/devices.json').readAsBytesSync(),
+      File('test/onboarding/fixtures/sample_devices.json').readAsBytesSync(),
     );
     expect(find.text('2 of 4 keys imported'), findsOneWidget);
     expect(find.text('Added · Key works'), findsOneWidget); // has an IP
