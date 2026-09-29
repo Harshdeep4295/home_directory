@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers.dart';
+import 'screens/first_run.dart';
 import 'screens/shell.dart';
 import 'theme.dart';
 
@@ -61,7 +62,11 @@ class _OfflineHomeAppState extends ConsumerState<OfflineHomeApp> {
       title: 'Offline Home',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      home: const Shell(),
+      home: switch (ref.watch(onboardedProvider)) {
+        AsyncData(value: true) => const Shell(),
+        AsyncData() => const FirstRunFlow(),
+        _ => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      },
     );
   }
 }

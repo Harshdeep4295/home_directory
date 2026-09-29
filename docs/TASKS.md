@@ -250,8 +250,9 @@ writes clear instructions, then stops.
   Do: language, TTS on/off, poll interval, export/import config (encrypted JSON with passphrase,
   secrets included only if user opts in), diagnostics (logs, network state).
   Note: ui/screens/settings_screen.dart: voice language (English (India) / Hinglish → en_IN, Hindi → hi_IN) + spoken feedback, applied live to VoiceController; poll interval (3/5/10/30 s → StatePoller); Add devices; export/import configuration (registry/config_export.dart: PBKDF2-HMAC-SHA256 150k → AES-256-GCM envelope; secrets only when opted in; wrong passphrase → clear error) via ui/file_access.dart (file_picker); diagnostics: network state, recent redacted logs (AppServices.logSink), developer tools; About with 'not affiliated'. app/app_settings.dart typed settings; AppServices.applySettings() at startup. Tests: config round trip (with/without secrets, wrong pass, junk) + settings apply.
-- [ ] **T5.8 Permissions + first-run** (S) — deps: T1.5, T4.1
+- [x] **T5.8 Permissions + first-run** (S) — deps: T1.5, T4.1
   Do: permission walkthrough, offline speech model download instructions per platform.
+  Note: ui/screens/first_run.dart shown until settings.onboarded: welcome (local-only, not affiliated) → permissions (onboarding/permissions.dart PlatformPermissions: iOS Local Network probe, mic+speech via speech_to_text init, notifications via flutter_local_notifications, Android exact alarms → system settings; status per row with Allow / Try again) → offline speech model (lists en/hi locales, per-platform download steps) → add devices → Done. App root gated by onboardedProvider. Widget test walks the whole flow with fake permissions.
 - [ ] **T5.9 Android widget + quick-settings tile** (M) — deps: T4.8
   Do: widget with mic button + 4 favourite devices; tile opens voice sheet directly.
 - [ ] **T5.10 iOS widget / Shortcuts** (S) — deps: T4.8 — optional, can defer.

@@ -78,6 +78,7 @@ class TestServices {
       ip: '192.168.1.5',
       prefix: 24,
     ),
+    bool onboarded = true,
   }) async {
     final platform = FakePlatformBridge(info: net);
     final db = AppDatabase.memory();
@@ -95,6 +96,7 @@ class TestServices {
       network: network,
       phoneAlarms: NoopPhoneAlarms(),
     );
+    await s.appSettings.setOnboarded(onboarded);
     for (final r in rooms) {
       await s.rooms.upsert(r);
     }
@@ -146,8 +148,10 @@ class TestServices {
       ip: '192.168.1.5',
       prefix: 24,
     ),
+    bool onboarded = true,
   }) async => (await tester.runAsync(
-    () => create(devices: devices, rooms: rooms, net: net),
+    () =>
+        create(devices: devices, rooms: rooms, net: net, onboarded: onboarded),
   ))!;
 
   /// Lets real async work (DB queries) finish, then rebuilds.

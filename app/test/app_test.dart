@@ -18,7 +18,8 @@ void main() {
       ),
     );
     await tester.pumpWidget(t.wrap(const OfflineHomeApp()));
-    await TestServices.settle(tester);
+    await TestServices.settle(tester); // onboarded check → shell
+    await TestServices.settle(tester); // network state → banner
     expect(find.byType(NavigationBar), findsOneWidget);
     for (final label in ['Home', 'Timers', 'Settings']) {
       expect(find.text(label), findsWidgets);

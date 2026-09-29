@@ -40,7 +40,8 @@ class AppServices {
     required this.discovery,
     required this.network,
     PhoneAlarmScheduler? phoneAlarms,
-  }) : devices = DeviceRepository(db),
+  }) : phoneAlarms = phoneAlarms,
+       devices = DeviceRepository(db),
        rooms = RoomRepository(db),
        timers = TimerRepository(db),
        stateCache = StateCacheRepository(db),
@@ -52,7 +53,7 @@ class AppServices {
       adapters,
       devices,
       timers,
-      phoneAlarms ?? _phoneAlarmsForHost(),
+      phoneAlarms ?? (this.phoneAlarms = _phoneAlarmsForHost()),
     );
     phoneTicker = PhoneTierTicker(timers, timerService);
   }
@@ -71,6 +72,9 @@ class AppServices {
   late final CommandEngine engine;
   late final StatePoller poller;
   late final TimerService timerService;
+
+  /// Phone-tier backend (exact alarms / notifications); null until built.
+  PhoneAlarmScheduler? phoneAlarms;
 
   /// Runs due phone-tier jobs while the app is open. Started on foreground on iOS
   /// (T3.5); Android relies on exact alarms instead.
