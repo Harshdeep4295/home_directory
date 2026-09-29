@@ -1,15 +1,17 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as hash;
 import 'package:pointycastle/export.dart';
 
-/// Tuya LAN protocol 3.1 / 3.3 framing and crypto.
+/// Tuya LAN protocol 3.1 / 3.3 / 3.4 / 3.5 framing and crypto.
 /// Ported from tinytuya 1.20.0: core/header.py, core/command_types.py,
 /// core/message_helper.py (pack_message / unpack_message), core/XenonDevice.py
 /// (_encode_message, _decode_payload, generate_payload, payload_dict),
 /// core/crypto_helper.py, core/udp_helper.py.
-/// Byte-exact vectors: test/adapters/tuya/vectors_3x.json (sim/tools/gen_tuya_vectors.py).
+/// Byte-exact vectors: test/adapters/tuya/vectors_3x.json, vectors_34.json, vectors_35.json
+/// (sim/tools/gen_tuya_vectors.py).
 
 /// tinytuya core/command_types.py
 abstract final class TuyaCmd {
@@ -25,6 +27,8 @@ abstract final class TuyaCmd {
   static const updateDps = 0x12;
   static const udpNew = 0x13;
   static const lanExtStream = 0x40;
+  static const reqDevInfo =
+      0x25; // broadcast to port 7000 so 3.5 devices announce
 }
 
 /// tinytuya core/header.py
@@ -34,6 +38,16 @@ abstract final class TuyaHeader {
   static const headerLen = 16; // ">4I": prefix, seqno, cmd, length
   static const retcodeLen = 4;
   static const endLen = 8; // ">2I": crc, suffix
+  static const endLenHmac =
+      36; // MESSAGE_END_FMT_HMAC ">32sI": hmac-sha256, suffix
+
+  /// 3.5: MESSAGE_HEADER_FMT_6699 ">IHIII" (prefix, reserved, seqno, cmd, length),
+  /// body = iv(12) + AES-GCM ciphertext + tag(16), then the 6699 suffix.
+  static const prefix6699 = 0x00006699;
+  static const suffix6699 = 0x00009966;
+  static const headerLen6699 = 18;
+  static const ivLen = 12;
+  static const tagLen = 16;
 
   /// PROTOCOL_3x_HEADER = 12 * b"\x00", prefixed by the version bytes.
   static Uint8List versionHeader(String version) =>
@@ -80,35 +94,115 @@ class TuyaDecodeException implements Exception {
   String toString() => 'TuyaDecodeException: $message';
 }
 
-/// pack_message() for 55AA frames without HMAC (3.1–3.3). Client→device frames carry no
-/// return code; device→client frames put one before the payload ([retcode]).
-Uint8List encodeFrame55aa(int seq, int cmd, List<int> payload, {int? retcode}) {
+/// pack_message() for 55AA frames: CRC32 trailer (3.1–3.3) or, with [hmacKey], an
+/// HMAC-SHA256 trailer (3.4). Client→device frames carry no return code; device→client
+/// frames put one before the payload ([retcode]).
+Uint8List encodeFrame55aa(
+  int seq,
+  int cmd,
+  List<int> payload, {
+  int? retcode,
+  Uint8List? hmacKey,
+}) {
   final body = BytesBuilder(copy: false);
   final rc = retcode == null ? 0 : TuyaHeader.retcodeLen;
+  final endLen = hmacKey == null ? TuyaHeader.endLen : TuyaHeader.endLenHmac;
   final head = ByteData(TuyaHeader.headerLen)
     ..setUint32(0, TuyaHeader.prefix55aa)
     ..setUint32(4, seq)
     ..setUint32(8, cmd)
-    ..setUint32(12, rc + payload.length + TuyaHeader.endLen);
+    ..setUint32(12, rc + payload.length + endLen);
   body.add(head.buffer.asUint8List());
   if (retcode != null) {
     body.add((ByteData(4)..setUint32(0, retcode)).buffer.asUint8List());
   }
   body.add(payload);
   final sofar = body.toBytes();
-  final end = ByteData(TuyaHeader.endLen)
-    ..setUint32(0, crc32(sofar))
-    ..setUint32(4, TuyaHeader.suffix55aa);
-  return Uint8List.fromList([...sofar, ...end.buffer.asUint8List()]);
+  final check = hmacKey == null
+      ? (ByteData(4)..setUint32(0, crc32(sofar))).buffer.asUint8List()
+      : hmacSha256(hmacKey, sofar);
+  final suffix = ByteData(4)..setUint32(0, TuyaHeader.suffix55aa);
+  return Uint8List.fromList([
+    ...sofar,
+    ...check,
+    ...suffix.buffer.asUint8List(),
+  ]);
 }
+
+/// pack_message() for 6699 frames: GCM(key, iv, aad = header[4:]) over
+/// [retcode] + payload.
+Uint8List encodeFrame6699(
+  int seq,
+  int cmd,
+  List<int> payload, {
+  required Uint8List key,
+  required Uint8List iv,
+  int? retcode,
+}) {
+  final raw = BytesBuilder(copy: false);
+  if (retcode != null) {
+    raw.add((ByteData(4)..setUint32(0, retcode)).buffer.asUint8List());
+  }
+  raw.add(payload);
+  final plain = raw.toBytes();
+  final head = ByteData(TuyaHeader.headerLen6699)
+    ..setUint32(0, TuyaHeader.prefix6699)
+    ..setUint16(4, 0)
+    ..setUint32(6, seq)
+    ..setUint32(10, cmd)
+    ..setUint32(14, TuyaHeader.ivLen + plain.length + TuyaHeader.tagLen);
+  final header = head.buffer.asUint8List();
+  final sealed = aesGcm(
+    key,
+    iv,
+    plain,
+    aad: Uint8List.sublistView(header, 4),
+    encrypt: true,
+  );
+  final suffix = ByteData(4)..setUint32(0, TuyaHeader.suffix6699);
+  return Uint8List.fromList([
+    ...header,
+    ...iv,
+    ...sealed,
+    ...suffix.buffer.asUint8List(),
+  ]);
+}
+
+/// AES-GCM with a 16-byte tag appended to the ciphertext (encrypt) or expected at the
+/// end of [data] (decrypt; throws [TuyaDecodeException] if the tag does not verify).
+Uint8List aesGcm(
+  Uint8List key,
+  Uint8List iv,
+  Uint8List data, {
+  Uint8List? aad,
+  required bool encrypt,
+}) {
+  final c = GCMBlockCipher(AESEngine())
+    ..init(
+      encrypt,
+      AEADParameters(KeyParameter(key), 128, iv, aad ?? Uint8List(0)),
+    );
+  try {
+    return c.process(data);
+  } on InvalidCipherTextException {
+    throw TuyaDecodeException('GCM tag mismatch');
+  }
+}
+
+Uint8List hmacSha256(List<int> key, List<int> data) =>
+    Uint8List.fromList(hash.Hmac(hash.sha256, key).convert(data).bytes);
 
 /// Incremental 55AA frame parser for a TCP stream. Feed bytes with [add]; complete frames
 /// are returned. [hasRetcode]: true on the client side (device replies carry a return
 /// code, tinytuya unpack_message no_retcode=False), false when parsing client frames.
 class TuyaFrameDecoder {
-  TuyaFrameDecoder({this.hasRetcode = true});
+  TuyaFrameDecoder({this.hasRetcode = true, this.hmacKey});
 
   final bool hasRetcode;
+
+  /// 3.4: frames end in HMAC-SHA256 with this key; 3.5 (6699 frames): the AES-GCM key.
+  /// The local key during session negotiation, then the session key. Null: CRC32.
+  Uint8List? hmacKey;
 
   /// tinytuya message_helper MAX_PAYLOAD_LENGTH guards against desynced streams.
   static const maxPayload = 64 * 1024;
@@ -127,15 +221,22 @@ class TuyaFrameDecoder {
         break;
       }
       if (start > 0) data = data.sublist(start);
-      if (data.length < TuyaHeader.headerLen) break;
+      final is6699 = data.length >= 4 && data[2] == 0x66 && data[3] == 0x99;
+      final hLen = is6699 ? TuyaHeader.headerLen6699 : TuyaHeader.headerLen;
+      if (data.length < hLen) break;
       final h = ByteData.sublistView(data);
-      final len = h.getUint32(12);
+      final len = h.getUint32(is6699 ? 14 : 12);
       if (len > maxPayload) {
         data = data.sublist(4); // corrupt: drop this prefix and resync
         continue;
       }
-      final total = TuyaHeader.headerLen + len;
+      final total = hLen + len + (is6699 ? 4 : 0);
       if (data.length < total) break;
+      if (is6699) {
+        out.add(_parse6699(Uint8List.sublistView(data, 0, total)));
+        data = data.sublist(total);
+        continue;
+      }
       out.add(_parse(Uint8List.sublistView(data, 0, total)));
       data = data.sublist(total);
     }
@@ -148,25 +249,89 @@ class TuyaFrameDecoder {
     final seq = h.getUint32(4);
     final cmd = h.getUint32(8);
     final len = h.getUint32(12);
+    final key = hmacKey;
+    final endLen = key == null ? TuyaHeader.endLen : TuyaHeader.endLenHmac;
     final rcLen = hasRetcode ? TuyaHeader.retcodeLen : 0;
-    if (len < rcLen + TuyaHeader.endLen) {
+    if (len < rcLen + endLen) {
       throw TuyaDecodeException('frame too short ($len)');
     }
-    final end = f.length - TuyaHeader.endLen;
-    final crc = h.getUint32(end);
+    final end = f.length - endLen;
+    final bool ok;
+    if (key == null) {
+      ok = h.getUint32(end) == crc32(f.sublist(0, end));
+    } else {
+      final want = hmacSha256(key, f.sublist(0, end));
+      final got = f.sublist(end, end + 32);
+      var same = true;
+      for (var i = 0; i < 32; i++) {
+        if (want[i] != got[i]) same = false;
+      }
+      ok = same;
+    }
     final retcode = hasRetcode ? h.getUint32(TuyaHeader.headerLen) : null;
     return TuyaFrame(
       seq: seq,
       cmd: cmd,
       retcode: retcode,
       payload: Uint8List.fromList(f.sublist(TuyaHeader.headerLen + rcLen, end)),
-      crcOk: crc == crc32(f.sublist(0, end)),
+      crcOk: ok,
+    );
+  }
+
+  /// unpack_message() for 6699 frames: decrypts with [hmacKey]; the return code sits
+  /// inside the plaintext. tinytuya's no_retcode=None heuristic (beacons) is used when
+  /// [hasRetcode] is false: strip 4 bytes only if the JSON starts after them.
+  TuyaFrame _parse6699(Uint8List f) {
+    final h = ByteData.sublistView(f);
+    final seq = h.getUint32(6);
+    final cmd = h.getUint32(10);
+    final key = hmacKey;
+    final body = Uint8List.sublistView(
+      f,
+      TuyaHeader.headerLen6699,
+      f.length - 4,
+    );
+    if (key == null || body.length < TuyaHeader.ivLen + TuyaHeader.tagLen) {
+      return TuyaFrame(seq: seq, cmd: cmd, payload: Uint8List(0), crcOk: false);
+    }
+    Uint8List plain;
+    try {
+      plain = aesGcm(
+        key,
+        Uint8List.sublistView(body, 0, TuyaHeader.ivLen),
+        Uint8List.sublistView(body, TuyaHeader.ivLen),
+        aad: Uint8List.sublistView(f, 4, TuyaHeader.headerLen6699),
+        encrypt: false,
+      );
+    } on TuyaDecodeException {
+      return TuyaFrame(seq: seq, cmd: cmd, payload: Uint8List(0), crcOk: false);
+    }
+    int? retcode;
+    final strip =
+        plain.length >= 4 &&
+        (hasRetcode ||
+            (plain.isNotEmpty &&
+                plain[0] != 0x7B &&
+                plain.length > 4 &&
+                plain[4] == 0x7B));
+    if (strip) {
+      retcode = ByteData.sublistView(plain).getUint32(0);
+      plain = Uint8List.sublistView(plain, 4);
+    }
+    return TuyaFrame(
+      seq: seq,
+      cmd: cmd,
+      retcode: retcode,
+      payload: Uint8List.fromList(plain),
     );
   }
 
   static int _indexOfPrefix(Uint8List d) {
     for (var i = 0; i + 3 < d.length; i++) {
-      if (d[i] == 0 && d[i + 1] == 0 && d[i + 2] == 0x55 && d[i + 3] == 0xAA) {
+      if (d[i] == 0 &&
+          d[i + 1] == 0 &&
+          ((d[i + 2] == 0x55 && d[i + 3] == 0xAA) ||
+              (d[i + 2] == 0x66 && d[i + 3] == 0x99))) {
         return i;
       }
     }
@@ -204,6 +369,10 @@ Uint8List pkcs7Unpad(Uint8List data) {
 Uint8List aesEcbEncrypt(Uint8List key, List<int> plain) =>
     _ecb(key, pkcs7Pad(plain), true);
 
+/// AES-ECB without padding (input must be a multiple of 16 bytes).
+Uint8List aesEcbEncryptRaw(Uint8List key, List<int> plain) =>
+    _ecb(key, Uint8List.fromList(plain), true);
+
 Uint8List aesEcbDecrypt(Uint8List key, List<int> cipherText) {
   if (cipherText.length % 16 != 0) {
     throw TuyaDecodeException('invalid length: ${cipherText.length}');
@@ -229,47 +398,58 @@ final List<int> _crcTable = List<int>.generate(256, (n) {
 
 // ---------------------------------------------------------------- payloads
 
-/// Builds the JSON bodies tinytuya's generate_payload() sends ("default" and
-/// "device22" payload_dict entries; versions < 3.4 send `t` as a string).
+/// Builds the JSON bodies tinytuya's generate_payload() sends ("default", "device22" and
+/// "v3.4" payload_dict entries). Versions < 3.4 send `t` as a string; 3.4 as an int.
 class TuyaPayloads {
-  TuyaPayloads(this.devId, {this.device22 = false});
+  TuyaPayloads(this.devId, {this.device22 = false, this.version = '3.3'});
 
   final String devId;
   final bool device22;
+  final String version;
+
+  bool get _v34 => version == '3.4' || version == '3.5';
 
   String _t(DateTime now) => '${now.millisecondsSinceEpoch ~/ 1000}';
 
-  /// DP_QUERY; device22 devices are queried with CONTROL_NEW and an explicit DP list.
-  (int, String) dpQuery(DateTime now, {Iterable<int> dps = const [1]}) =>
-      device22
-      ? (
-          TuyaCmd.controlNew,
-          jsonEncode({
-            'devId': devId,
-            'uid': devId,
-            't': _t(now),
-            'dps': {for (final dp in dps) '$dp': null},
-          }),
-        )
-      : (
-          TuyaCmd.dpQuery,
-          jsonEncode({
-            'gwId': devId,
-            'devId': devId,
-            'uid': devId,
-            't': _t(now),
-          }),
-        );
+  /// DP_QUERY; device22 devices are queried with CONTROL_NEW and an explicit DP list;
+  /// 3.4 uses DP_QUERY_NEW with an empty object.
+  (int, String) dpQuery(DateTime now, {Iterable<int> dps = const [1]}) {
+    if (device22) {
+      return (
+        TuyaCmd.controlNew,
+        jsonEncode({
+          'devId': devId,
+          'uid': devId,
+          't': _t(now),
+          'dps': {for (final dp in dps) '$dp': null},
+        }),
+      );
+    }
+    if (_v34) return (TuyaCmd.dpQueryNew, '{}');
+    return (
+      TuyaCmd.dpQuery,
+      jsonEncode({'gwId': devId, 'devId': devId, 'uid': devId, 't': _t(now)}),
+    );
+  }
 
-  (int, String) control(DateTime now, Map<int, Object?> dps) => (
-    TuyaCmd.control,
-    jsonEncode({
-      'devId': devId,
-      'uid': devId,
-      't': _t(now),
-      'dps': {for (final e in dps.entries) '${e.key}': e.value},
-    }),
-  );
+  /// CONTROL; 3.4: CONTROL_NEW `{"protocol":5,"t":int,"data":{"dps":{...}}}`.
+  (int, String) control(DateTime now, Map<int, Object?> dps) {
+    final d = {for (final e in dps.entries) '${e.key}': e.value};
+    if (_v34) {
+      return (
+        TuyaCmd.controlNew,
+        jsonEncode({
+          'protocol': 5,
+          't': now.millisecondsSinceEpoch ~/ 1000,
+          'data': {'dps': d},
+        }),
+      );
+    }
+    return (
+      TuyaCmd.control,
+      jsonEncode({'devId': devId, 'uid': devId, 't': _t(now), 'dps': d}),
+    );
+  }
 
   (int, String) heartBeat() =>
       (TuyaCmd.heartBeat, jsonEncode({'gwId': devId, 'devId': devId}));
@@ -304,8 +484,24 @@ final class TuyaText extends TuyaDecoded {
   final String text;
 }
 
+/// Per-device payload crypto. [frameKey] is the HMAC key frames are checked with (3.4),
+/// null for CRC32 framing.
+abstract interface class TuyaCodec {
+  String get version;
+  Uint8List? get frameKey;
+  Uint8List encode(int seq, int cmd, String json);
+  TuyaDecoded decode(Uint8List payload, {bool device22 = false});
+
+  factory TuyaCodec.forVersion(String version, String localKey) =>
+      switch (version) {
+        '3.4' => TuyaCodec34(localKey),
+        '3.5' => TuyaCodec35(localKey),
+        _ => TuyaCodec3x(version, localKey),
+      };
+}
+
 /// Encrypts/decrypts payloads for one device (protocol 3.1 or 3.3).
-class TuyaCodec3x {
+class TuyaCodec3x implements TuyaCodec {
   TuyaCodec3x(this.version, String localKey)
     : key = Uint8List.fromList(utf8.encode(localKey)) {
     if (key.length != 16) {
@@ -316,10 +512,15 @@ class TuyaCodec3x {
     }
   }
 
+  @override
   final String version;
   final Uint8List key;
 
+  @override
+  Uint8List? get frameKey => null;
+
   /// XenonDevice._encode_message for version < 3.4.
+  @override
   Uint8List encode(int seq, int cmd, String json) {
     var payload = Uint8List.fromList(utf8.encode(json));
     if (version == '3.3') {
@@ -352,6 +553,7 @@ class TuyaCodec3x {
   }
 
   /// XenonDevice._decode_payload for version < 3.4.
+  @override
   TuyaDecoded decode(Uint8List payload, {bool device22 = false}) {
     if (payload.isEmpty) return const TuyaEmpty();
     Uint8List plain;
@@ -396,6 +598,268 @@ class TuyaCodec3x {
   }
 }
 
+/// Protocol 3.4: session key negotiation, then AES-ECB(session key) over the whole
+/// payload (version header inside), HMAC-SHA256(session key) frame trailer.
+/// Ported from tinytuya 1.20.0 core/XenonDevice.py (_negotiate_session_key_generate_step_1,
+/// _step_3, _finalize, _encode_message, _decode_payload) and message_helper.py.
+/// 3.4 / 3.5 codecs negotiate a session key before any other command.
+abstract interface class TuyaSessionCodec implements TuyaCodec {
+  Uint8List get realKey;
+  Uint8List? get sessionKey;
+  Uint8List negotiateStart(int seq, Uint8List localNonce);
+  Uint8List negotiateFinish(int seq, TuyaFrame resp);
+}
+
+class TuyaCodec34 implements TuyaSessionCodec {
+  TuyaCodec34(String localKey)
+    : realKey = Uint8List.fromList(utf8.encode(localKey)) {
+    if (realKey.length != 16) {
+      throw ArgumentError('Tuya local key must be 16 bytes');
+    }
+  }
+
+  @override
+  final Uint8List realKey;
+  Uint8List? _session;
+  Uint8List? _localNonce;
+
+  @override
+  String get version => '3.4';
+
+  bool get hasSession => _session != null;
+
+  /// Frames are HMAC'd with the local key until the session key exists.
+  @override
+  Uint8List get frameKey => _session ?? realKey;
+
+  /// Step 1: SESS_KEY_NEG_START carrying our 16-byte nonce (fresh random per session,
+  /// as tinytuya does).
+  @override
+  Uint8List negotiateStart(int seq, Uint8List localNonce) {
+    _session = null;
+    _localNonce = localNonce;
+    return encodeFrame55aa(
+      seq,
+      TuyaCmd.sessKeyNegStart,
+      aesEcbEncrypt(realKey, localNonce),
+      hmacKey: realKey,
+    );
+  }
+
+  /// Steps 2+3: checks the device's SESS_KEY_NEG_RESP (remote nonce + HMAC of our nonce),
+  /// derives the session key and returns the SESS_KEY_NEG_FINISH frame. Throws
+  /// [TuyaDecodeException] if the device does not prove it knows the local key.
+  @override
+  Uint8List negotiateFinish(int seq, TuyaFrame resp) {
+    final local = _localNonce;
+    if (local == null) throw StateError('negotiateStart first');
+    if (resp.cmd != TuyaCmd.sessKeyNegResp) {
+      throw TuyaDecodeException('negotiation: unexpected cmd ${resp.cmd}');
+    }
+    if (!resp.crcOk) throw TuyaDecodeException('negotiation: bad HMAC');
+    final plain = aesEcbDecrypt(realKey, resp.payload);
+    if (plain.length < 48) throw TuyaDecodeException('negotiation: too short');
+    final remote = Uint8List.sublistView(plain, 0, 16);
+    final check = hmacSha256(realKey, local);
+    for (var i = 0; i < 32; i++) {
+      if (plain[16 + i] != check[i]) {
+        throw TuyaDecodeException('negotiation: HMAC check failed');
+      }
+    }
+    final finish = encodeFrame55aa(
+      seq,
+      TuyaCmd.sessKeyNegFinish,
+      aesEcbEncrypt(realKey, hmacSha256(realKey, remote)),
+      hmacKey: realKey,
+    );
+    // _finalize: session = AES-ECB(localKey, localNonce XOR remoteNonce), no padding.
+    _session = aesEcbEncryptRaw(realKey, [
+      for (var i = 0; i < 16; i++) local[i] ^ remote[i],
+    ]);
+    return finish;
+  }
+
+  /// The negotiated key (vectors compare it with tinytuya's).
+  @override
+  Uint8List? get sessionKey => _session;
+
+  @override
+  Uint8List encode(int seq, int cmd, String json) {
+    final key = _session;
+    if (key == null) throw StateError('tuya 3.4: no session key yet');
+    var payload = Uint8List.fromList(utf8.encode(json));
+    if (!TuyaHeader.noVersionHeaderCmds.contains(cmd)) {
+      payload = Uint8List.fromList([
+        ...TuyaHeader.versionHeader('3.4'),
+        ...payload,
+      ]);
+    }
+    return encodeFrame55aa(seq, cmd, aesEcbEncrypt(key, payload), hmacKey: key);
+  }
+
+  @override
+  TuyaDecoded decode(Uint8List payload, {bool device22 = false}) {
+    if (payload.isEmpty) return const TuyaEmpty();
+    final key = _session;
+    if (key == null) throw StateError('tuya 3.4: no session key yet');
+    var plain = aesEcbDecrypt(key, payload);
+    final header = ascii.encode('3.4');
+    var hasHeader = plain.length >= 15;
+    for (var i = 0; hasHeader && i < 3; i++) {
+      if (plain[i] != header[i]) hasHeader = false;
+    }
+    if (hasHeader || (device22 && (plain.length & 0x0F) != 0)) {
+      plain = Uint8List.sublistView(plain, 15);
+    }
+    return _decodeJson(utf8.decode(plain, allowMalformed: true), v34: true);
+  }
+}
+
+/// Protocol 3.5: like 3.4, but every frame is a 6699 AES-GCM frame (no ECB, no HMAC) and
+/// the session key is the GCM ciphertext of the nonce XOR with iv = localNonce[:12].
+/// Ported from tinytuya 1.20.0 XenonDevice (_negotiate_session_key_generate_*,
+/// _encode_message) and message_helper.pack_message / unpack_message.
+class TuyaCodec35 implements TuyaSessionCodec {
+  TuyaCodec35(String localKey, {Uint8List Function()? iv})
+    : realKey = Uint8List.fromList(utf8.encode(localKey)),
+      _iv = iv ?? _randomIv {
+    if (realKey.length != 16) {
+      throw ArgumentError('Tuya local key must be 16 bytes');
+    }
+  }
+
+  @override
+  final Uint8List realKey;
+  final Uint8List Function() _iv;
+  Uint8List? _session;
+  Uint8List? _localNonce;
+
+  /// crypto_helper.get_encryption_iv(True): 12 random bytes per frame.
+  static Uint8List _randomIv() {
+    final r = Random.secure();
+    return Uint8List.fromList(List.generate(12, (_) => r.nextInt(256)));
+  }
+
+  @override
+  String get version => '3.5';
+
+  @override
+  Uint8List get frameKey => _session ?? realKey;
+
+  @override
+  Uint8List? get sessionKey => _session;
+
+  @override
+  Uint8List negotiateStart(int seq, Uint8List localNonce) {
+    _session = null;
+    _localNonce = localNonce;
+    return encodeFrame6699(
+      seq,
+      TuyaCmd.sessKeyNegStart,
+      localNonce,
+      key: realKey,
+      iv: _iv(),
+    );
+  }
+
+  @override
+  Uint8List negotiateFinish(int seq, TuyaFrame resp) {
+    final local = _localNonce;
+    if (local == null) throw StateError('negotiateStart first');
+    if (resp.cmd != TuyaCmd.sessKeyNegResp) {
+      throw TuyaDecodeException('negotiation: unexpected cmd ${resp.cmd}');
+    }
+    if (!resp.crcOk) throw TuyaDecodeException('negotiation: bad GCM tag');
+    final plain = resp.payload;
+    if (plain.length < 48) throw TuyaDecodeException('negotiation: too short');
+    final remote = Uint8List.sublistView(plain, 0, 16);
+    final check = hmacSha256(realKey, local);
+    for (var i = 0; i < 32; i++) {
+      if (plain[16 + i] != check[i]) {
+        throw TuyaDecodeException('negotiation: HMAC check failed');
+      }
+    }
+    final finish = encodeFrame6699(
+      seq,
+      TuyaCmd.sessKeyNegFinish,
+      hmacSha256(realKey, remote),
+      key: realKey,
+      iv: _iv(),
+    );
+    // _finalize: encrypt(xor, iv=localNonce[:12]) → iv + ct + tag; [12:28] = ct.
+    final sealed = aesGcm(
+      realKey,
+      Uint8List.sublistView(local, 0, 12),
+      Uint8List.fromList([for (var i = 0; i < 16; i++) local[i] ^ remote[i]]),
+      encrypt: true,
+    );
+    _session = Uint8List.fromList(sealed.sublist(0, 16));
+    return finish;
+  }
+
+  @override
+  Uint8List encode(int seq, int cmd, String json) {
+    final key = _session;
+    if (key == null) throw StateError('tuya 3.5: no session key yet');
+    var payload = Uint8List.fromList(utf8.encode(json));
+    if (!TuyaHeader.noVersionHeaderCmds.contains(cmd)) {
+      payload = Uint8List.fromList([
+        ...TuyaHeader.versionHeader('3.5'),
+        ...payload,
+      ]);
+    }
+    return encodeFrame6699(seq, cmd, payload, key: key, iv: _iv());
+  }
+
+  /// Payloads arrive already decrypted by the frame decoder (GCM).
+  @override
+  TuyaDecoded decode(Uint8List payload, {bool device22 = false}) {
+    if (payload.isEmpty) return const TuyaEmpty();
+    var plain = payload;
+    final header = ascii.encode('3.5');
+    var hasHeader = plain.length >= 15;
+    for (var i = 0; hasHeader && i < 3; i++) {
+      if (plain[i] != header[i]) hasHeader = false;
+    }
+    if (hasHeader || (device22 && (plain.length & 0x0F) != 0)) {
+      plain = Uint8List.sublistView(plain, 15);
+    }
+    return _decodeJson(utf8.decode(plain, allowMalformed: true), v34: true);
+  }
+}
+
+/// udp_helper.decrypt_udp 6699 branch / scanner REQ_DEVINFO: the app's broadcast to
+/// port 7000 asking 3.5 devices to announce themselves.
+Uint8List tuyaDevInfoRequest(String ownIp, {Uint8List? iv}) => encodeFrame6699(
+  0,
+  TuyaCmd.reqDevInfo,
+  // scanner.py: json.dumps({...}) with Python's default ", " / ": " separators.
+  utf8.encode('{"from": "app", "ip": "$ownIp"}'),
+  key: tuyaUdpKey,
+  iv: iv ?? TuyaCodec35._randomIv(),
+);
+
+/// Shared tail of _decode_payload: device22 detection, JSON parse, and the 3.4
+/// `{"data":{"dps":...}}` → `dps` hoist.
+TuyaDecoded _decodeJson(String text, {required bool v34}) {
+  if (text.contains('data unvalid')) return const TuyaDevice22();
+  if (text.isEmpty) return const TuyaEmpty();
+  try {
+    final json = jsonDecode(text);
+    if (json is Map<String, Object?>) {
+      if (v34 && !json.containsKey('dps')) {
+        if (json['data'] case {'dps': final Object dps}) {
+          return TuyaJson({...json, 'dps': dps});
+        }
+      }
+      return TuyaJson(json);
+    }
+  } on FormatException {
+    // fall through
+  }
+  return TuyaText(text);
+}
+
 // ---------------------------------------------------------------- UDP beacons
 
 /// udp_helper.udpkey = md5(b"yGAdlopoPVldABfn").digest()
@@ -403,17 +867,29 @@ final Uint8List tuyaUdpKey = Uint8List.fromList(
   hash.md5.convert(ascii.encode('yGAdlopoPVldABfn')).bytes,
 );
 
-/// Tuya UDP discovery ports (tinytuya scanner: 6666 plaintext, 6667 encrypted; 7000 is
-/// the 3.5 port, handled with 3.5 support).
-const tuyaBeaconPorts = [6666, 6667];
+/// Tuya UDP discovery ports (tinytuya const.py: UDPPORT 6666 plaintext, UDPPORTS 6667
+/// encrypted, UDPPORTAPP 7000 for 3.5 devices).
+const tuyaBeaconPorts = [6666, 6667, 7000];
+const tuyaAppPort = 7000;
 
-/// udp_helper.decrypt_udp for 55AA and raw beacons (6699 beacons need 3.5 support).
+/// udp_helper.decrypt_udp for 55AA, 6699 and raw beacons.
 /// Returns the beacon JSON (ip, gwId, version, productKey, ...) or null.
 Map<String, Object?>? decodeTuyaBeacon(Uint8List msg) {
   try {
     Uint8List payload = msg;
-    if (msg.length >= 4 &&
-        ByteData.sublistView(msg).getUint32(0) == TuyaHeader.prefix55aa) {
+    final prefix = msg.length >= 4 ? ByteData.sublistView(msg).getUint32(0) : 0;
+    if (prefix == TuyaHeader.prefix6699) {
+      final f = TuyaFrameDecoder(
+        hasRetcode: false,
+        hmacKey: tuyaUdpKey,
+      ).add(msg).firstOrNull;
+      if (f == null || !f.crcOk) return null;
+      // "app sometimes has extra NUL bytes at the end"
+      final text = utf8.decode(f.payload).replaceAll(RegExp(r'\x00+$'), '');
+      final json = jsonDecode(text);
+      return json is Map<String, Object?> ? json : null;
+    }
+    if (prefix == TuyaHeader.prefix55aa) {
       final frames = TuyaFrameDecoder().add(msg);
       if (frames.isEmpty) return null;
       payload = frames.first.payload;

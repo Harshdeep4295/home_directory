@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../adapters/tuya/tuya_adapter.dart';
 import '../../core/intent.dart';
 import '../../core/models.dart';
 import '../../core/result.dart';
@@ -154,7 +155,13 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
     final s = ref.read(servicesProvider);
     await s.timerService.cancel([d]);
     await s.adapters.adapterFor(d)?.dispose(d);
-    await s.secrets.deleteDevice(d.id);
+    // Other gangs of the same multi-gang switch still need the shared key.
+    final tuyaId = TuyaAdapter.tuyaIdOf(d);
+    final siblings = (await s.devices.all()).where(
+      (x) => x.id != d.id && TuyaAdapter.tuyaIdOf(x) == tuyaId,
+    );
+    if (siblings.isEmpty) await s.secrets.deleteDevice(tuyaId);
+    if (tuyaId != d.id) await s.secrets.deleteDevice(d.id);
     await s.devices.delete(d.id);
     if (mounted) await Navigator.of(context).maybePop();
   }
@@ -338,7 +345,10 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
           _info('Device id', d.id),
           if (d.brand == Brand.tuya)
             FutureBuilder<bool>(
-              future: s.secrets.has(d.id, SecretName.localKey),
+              future: s.secrets.has(
+                TuyaAdapter.tuyaIdOf(d),
+                SecretName.localKey,
+              ),
               builder: (_, snap) =>
                   _info('Local key', snap.data == true ? 'stored' : 'missing'),
             ),

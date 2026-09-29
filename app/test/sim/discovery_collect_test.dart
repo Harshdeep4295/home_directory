@@ -74,6 +74,7 @@ void main() {
           klap: closedPort,
           yeelight: closedPort,
           tuyaBeacons: [beaconPort],
+          tuyaApp: closedPort,
           tcp: {
             ScanPort.tuya: sim['tuya'].port,
             ScanPort.http: shelly.port,

@@ -122,4 +122,47 @@ void main() {
       await t.tearDown(tester);
     },
   );
+
+  testWidgets('Tapo (KLAP): asks for the TP-Link account once, then adds', (
+    tester,
+  ) async {
+    final t = await TestServices.inTester(tester);
+    t.evidence.next = {
+      '192.168.1.38': HostEvidence('192.168.1.38')
+        ..addUdp(
+          UdpProbe.klap,
+          Uint8List.fromList([
+            ...List.filled(16, 0),
+            ...b(
+              '{"result":{"device_id":"abc123","device_type":"SMART.TAPOPLUG","device_model":"P100(EU)","mac":"AA-BB-CC-DD-EE-FF","mgt_encrypt_schm":{"is_support_https":false,"encrypt_type":"KLAP","http_port":80}},"error_code":0}',
+            ),
+          ]),
+        ),
+    };
+    await tester.pumpWidget(
+      t.wrap(const MaterialApp(home: AddDevicesScreen())),
+    );
+    await TestServices.settle(tester, ms: 100);
+    expect(find.text('Needs key'), findsOneWidget);
+
+    await tester.tap(find.text('P100(EU)'));
+    await tester.pumpAndSettle();
+    expect(find.text('TP-Link account e-mail'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'me@example.com');
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Secret1');
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Save'));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await TestServices.settle(tester);
+    expect(
+      await tester.runAsync(
+        () => t.services.secrets.get('tplink', SecretName.email),
+      ),
+      'me@example.com',
+    );
+    await t.tearDown(tester);
+  });
 }

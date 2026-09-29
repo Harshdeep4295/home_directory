@@ -1,6 +1,6 @@
 # CLAUDE.md — Offline Home (working name)
 
-Read this first, every session. Then read `docs/PLAN.md` (what and why), `docs/TASKS.md`
+Read this first, every session. If `docs/HANDOFF.md` exists, read it next (current state + what is left). Then read `docs/PLAN.md` (what and why), `docs/TASKS.md`
 (what to do next) and `docs/PSEUDOCODE.md` (how each module should behave).
 
 ## What we are building

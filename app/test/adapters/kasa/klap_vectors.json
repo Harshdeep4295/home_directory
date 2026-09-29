@@ -1,0 +1,85 @@
+{
+  "source": "python-kasa 0.10.2",
+  "localSeed": "101112131415161718191a1b1c1d1e1f",
+  "remoteSeed": "a0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+  "versions": {
+    "v1": {
+      "username": "user@example.com",
+      "password": "hunter2",
+      "authHash": "c365c2d8159d185d19139d3d3ef3d6db",
+      "blankAuthHash": "5873dd45edd01f09c1ef2e7819369e8e",
+      "defaultAuthHashes": {
+        "KASA": "74b751bdd208bc155ae2a6d4167cc44d",
+        "KASACAMERA": "1a96f0ae7f6afebd5581d4b3bbc779c6",
+        "TAPO": "a7317ea07dd83e3393fb702d9bf309a7",
+        "TAPOCAMERA": "8a8a1be8f0812b28de1e5f93e56b1ab2"
+      },
+      "handshake1": "896a5d90b80b90f109801e2744a67c5da313fb7e1b124cf991dab8406fe4b960",
+      "handshake2": "819aed88d0de31b2ceaf6e6e68f4e60959893cf4d50d59b0c593b67bf5545dd2",
+      "sessionKey": "f433fff90fe4b2e974c1a73fab9c0018",
+      "iv": "3582bbdc073728dfc52bfb45",
+      "initialSeq": -1818722444,
+      "sig": "6dcee9f7429eaf680e45753df836289a37d918a1f71b7b6fdc74f182",
+      "messages": [
+        {
+          "plain": "{\"method\":\"get_device_info\"}",
+          "seq": -1818722443,
+          "payload": "930be3675a9580ff8f830837e23f67be498f2801eee77f7a81eabe357208f824b199fe571759935a444b9509fea3b0891b5ab6e858f6f0d6fec940aee68aded8"
+        },
+        {
+          "plain": "{\"method\":\"set_device_info\",\"params\":{\"device_on\":true}}",
+          "seq": -1818722442,
+          "payload": "e3162921870953de1fbc5676efc519605ec83a4549b34c5682b34f907c32ae651db95f026778bb22f91edba483fe569e8641f5a1ba866f0a7bc12273fe440c66e845dfcc08c74e51457521f250e108536b26837ae871cd8a2f4772762f5126e2"
+        }
+      ]
+    },
+    "v2": {
+      "username": "user@example.com",
+      "password": "hunter2",
+      "authHash": "b49b2da16ee8155335c944a908c08fb4d18ea952ca0f73b60c8f77d08642e781",
+      "blankAuthHash": "b8628ab91c74f531603f6d5b45e730e54c123a7247b8978272c03f1e13560cea",
+      "defaultAuthHashes": {
+        "KASA": "49fc4839a2733ffbf464337648f65dc411778d4c03ec82c5e4cccc682163fa64",
+        "KASACAMERA": "38a683df4da56f99ad4dc5d1bf1d034073874bfa3111a2496db63cb4aff921d6",
+        "TAPO": "7d5ae9ac18f5bb37843a4577867dd4348d8dff26c4b261ebff1b74d88adc063b",
+        "TAPOCAMERA": "0582c1b461af01ecc2529c83601a6782bc265d07b8b6a82ab5bf17659203642c"
+      },
+      "handshake1": "46ca77a89a58104180d849b8406ce647c6d4ca07cbfef9a874832a224b1c0e7d",
+      "handshake2": "ac742e919903736ae44ac528ffc2a885497b1e25e5e7c2f9ca76792ced88ea8d",
+      "sessionKey": "cf2a618f8738b544db81a901ad7da7d9",
+      "iv": "6a87e85db31f1607e0dc4869",
+      "initialSeq": 847255998,
+      "sig": "2fceceb06052493190e8801026589b062b198e03d833a1cc1b8f10a3",
+      "messages": [
+        {
+          "plain": "{\"method\":\"get_device_info\"}",
+          "seq": 847255999,
+          "payload": "03887a43ee594285d79712b262e3c98fb768cf05f4f34591ef4adab1627ca2718997afbb8ad501704d6095d45b502c16e3c28cc138831faafc4ac36b6d2a14e1"
+        },
+        {
+          "plain": "{\"method\":\"set_device_info\",\"params\":{\"device_on\":true}}",
+          "seq": 847256000,
+          "payload": "9a527364dee8bee54dcb97cd23dfe2adcddc681b868e300de81d2aa83b90213cd3d1b321ea418f8e6526951d72e628c9821c5d1fb8290fc312d06e4a62ba27198d743776b1d72c05975e6953a3abae861ff1914eb49244349ef0eec084d31097"
+        }
+      ]
+    }
+  },
+  "defaultCredentials": {
+    "KASA": [
+      "a2FzYUB0cC1saW5rLm5ldA==",
+      "a2FzYVNldHVw"
+    ],
+    "KASACAMERA": [
+      "YWRtaW4=",
+      "MjEyMzJmMjk3YTU3YTVhNzQzODk0YTBlNGE4MDFmYzM="
+    ],
+    "TAPO": [
+      "dGVzdEB0cC1saW5rLm5ldA==",
+      "dGVzdA=="
+    ],
+    "TAPOCAMERA": [
+      "YWRtaW4=",
+      "YWRtaW4="
+    ]
+  }
+}

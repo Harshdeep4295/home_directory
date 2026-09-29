@@ -277,18 +277,35 @@ writes clear instructions, then stops.
 
 ## M7 — Remaining adapters (each: simulator → adapter → contract suite → probe rule)
 
-- [ ] **T7.1 Tuya 3.4** (M) — deps: T2.6 — Ref: §Tuya 3.4
-- [ ] **T7.2 Tuya 3.5** (M) — deps: T7.1 — Ref: §Tuya 3.5
-- [ ] **T7.3 Tuya bulb + multi-gang profiles** (S) — deps: T2.6
-- [ ] **T7.4 Shelly Gen1 + Gen2** (M) — deps: T2.1 — Ref: §Shelly
-- [ ] **T7.5 Kasa legacy** (M) — deps: T2.1 — Ref: §Kasa legacy
-- [ ] **T7.6 KLAP transport + Tapo/Kasa new** (L → split) — deps: T7.5 — Ref: §KLAP
-- [ ] **T7.7 Hue bridge + link-button pairing** (M) — deps: T2.1 — Ref: §Hue
-- [ ] **T7.8 Yeelight** (S) — deps: T2.1 — Ref: §Yeelight
-- [ ] **T7.9 Sonoff LAN (DIY + encrypted)** (M) — deps: T2.1 — Ref: §Sonoff
-- [ ] **T7.10 Tasmota** (S) — deps: T2.1 — Ref: §Tasmota
-- [ ] **T7.11 ESPHome (web server REST)** (S) — deps: T2.1 — Ref: §ESPHome
-- [ ] **T7.12 Fingerprinter rules for all of the above** (S) — deps: T7.1–T7.11
+- [x] **T7.1 Tuya 3.4** (M) — deps: T2.6 — Ref: §Tuya 3.4
+  Note: session negotiation + HMAC framing + CONTROL_NEW/DP_QUERY_NEW payloads, byte-exact vs tinytuya (vectors_34.json); TuyaSim version=3.4 verified with tinytuya's client; contract suite green. VERIFY: 3.4 STATUS push shape, device behaviour on a wrong key (we map hang-up → auth). Hardware check #12.
+- [x] **T7.2 Tuya 3.5** (M) — deps: T7.1 — Ref: §Tuya 3.5
+  Note: 6699 AES-GCM frames, GCM session negotiation, replies matched by command (3.5 seqno is the device's), port-7000 beacons + REQ_DEVINFO broadcast; byte-exact vs tinytuya (vectors_35.json); TuyaSim version=3.5 verified with tinytuya; contract suite green. Hardware check #13.
+- [x] **T7.3 Tuya bulb + multi-gang profiles** (S) — deps: T2.6
+  Note: bulb types A/B/C + detection + value ranges ported from tinytuya BulbDevice (set_white semantics); import derives bulb roles/ranges and one app device per gang (`<id>#n`, shared key/session); sim profile=bulba, gang=N. VERIFY: gang countdown default 6+n, Kelvin↔Tuya temp mapping; bulbs added by scan only (no devices.json) get power caps until a mapping is imported. Hardware check #14.
+- [x] **T7.4 Shelly Gen1 + Gen2** (M) — deps: T2.1 — Ref: §Shelly
+  Note: ShellyAdapter (Gen1 REST relay/turn/timer + Basic auth; Gen2 JSON-RPC POST /rpc Switch.GetStatus/Set/toggle_after + aioshelly AuthData digest, byte-checked vs aioshelly vectors); flip-based countdown + combined powerFor; ShellySim gen=1|2 password=; contract suite green for 4 variants; add-flow asks for the Shelly password. VERIFY: in-frame digest over HTTP POST, countdown max, cancel by re-sending state, Gen2 timer vs phone clock. Hardware check #15.
+- [x] **T7.5 Kasa legacy** (M) — deps: T2.1 — Ref: §Kasa legacy
+  Note: KasaAdapter (TCP 9999 XOR per python-kasa; plugs, strip outlets via context child_ids, bulbs via lightingservice); absolute countdown rules (count_down → countdown fallback); KasaSim verified with python-kasa's IotPlug/IotStrip/IotBulb; contract suite green (plug, plug w/ `countdown` module, bulb). VERIFY: countdown module/add_rule/remain on real plugs; strip outlets and bulb caps are not auto-created on add yet (T7.12). Hardware check #16.
+- [x] **T7.6 KLAP transport + Tapo/Kasa new** (L → split) — deps: T7.5 — Ref: §KLAP
+  - [x] **T7.6a KLAP transport** — handshake1/2 (v1 md5 / v2 sha256 hashes, default + blank credential fallback), TP_SESSIONID cookie, AES-CBC session with signed seq; byte-exact vs python-kasa `klaptransport.py`; KlapSim.
+    Note: lib/adapters/kasa/klap.dart byte-exact vs python-kasa (klap_vectors.json, v1+v2); KlapSim (device side built from python-kasa's own session/hash helpers) verified with python-kasa's KlapTransport(V2)+Smart/IotProtocol; Dart transport green incl. default creds, wrong account, 403 re-handshake.
+  - [x] **T7.6b Devices over KLAP** — IOT.KLAP (legacy JSON, reuse KasaAdapter) and SMART.KLAP (Tapo: get_device_info / set_device_info device_on, brightness, color_temp). python-kasa 0.10.2 has no SMART countdown-rule API → phone-tier timers.
+    Note: KasaAdapter speaks `klap-iot` (KLAP v1) with the same IOT JSON; new TapoAdapter for `klap-smart` (get/set_device_info, brightness, color_temp; SmartErrorCode auth set). Contract suites green for both. No native countdown for Tapo (phone tier).
+  - [x] **T7.6c TP-Link account + discovery** — account e-mail/password in SecretStore (`tplink`), add-flow prompt, fingerprinter maps 20002 device_type → `klap-iot` / `klap-smart` (AES → not supported yet).
+    Note: fingerprinter maps 20002 device_type/encrypt_type like kasa/device_factory.py → `klap-iot` / `klap-smart` (AES / HTTPS → `tplink-*` = not supported yet); add flow asks for the TP-Link account once (SecretStore `tplink`). VERIFY: the static 20002 query is answered at home. Hardware check #17.
+- [x] **T7.7 Hue bridge + link-button pairing** (M) — deps: T2.1 — Ref: §Hue
+  Note: HueAdapter (v1 REST per aiohue: pairing, lights on/bri/ct, errors 1/101, bridge-id normalisation); one app device per light (`<bridge>-<light>`), username in SecretStore; timers = bridge schedules `PT hh:mm:ss` found again via GET /schedules; add-flow pairing dialog with 30 s countdown; discovery moves lights with the bridge IP. HueSim verified with aiohue. VERIFY: schedule API/limits and starttime clock on a real bridge. Hardware check #18.
+- [x] **T7.8 Yeelight** (S) — deps: T2.1 — Ref: §Yeelight
+  Note: YeelightAdapter (TCP 55443 JSON lines per python-yeelight: get_prop, set_power/bright/ct_abx + smooth 300 ms, props notifications skipped); native timer = cron off-timer in whole minutes (so ON-ending timers use the phone tier); YeelightSim verified with python-yeelight's Bulb. VERIFY: cron_get reply shape and max delay; LAN control must be enabled in the Yeelight app. Hardware check #19.
+- [x] **T7.9 Sonoff LAN (DIY + encrypted)** (M) — deps: T2.1 — Ref: §Sonoff
+  Note: SonoffAdapter per AlexxIT/SonoffLAN local.py (POST /zeroconf/<cmd>, AES-CBC md5(devicekey) crypto byte-exact vs vectors from its own encrypt()); switch + multi-channel switches; state via DIY `info`; add-flow asks for the devicekey. SonoffSim (DIY / encrypted / outlets=N). VERIFY: `info` on eWeLink firmware (state may only be in mDNS TXT); no native countdown (phone tier). Hardware check #20.
+- [x] **T7.10 Tasmota** (S) — deps: T2.1 — Ref: §Tasmota
+  Note: TasmotaAdapter (/cm Power<n>, Dimmer, CT, web password); native timer only for "on for d" via PulseTime, cleared on every other power command, on cancel and when getState sees the pulse finished; other timers → phone tier. Contract harness gained `combinedPowerForOnly`. VERIFY: PulseTime behaviour on hardware. Hardware check #21.
+- [x] **T7.11 ESPHome (web server REST)** (S) — deps: T2.1 — Ref: §ESPHome
+  Note: EspHomeAdapter (GET /<domain>/<id>, POST turn_on/turn_off, light ?brightness=, optional Basic auth); entity entered when adding (meta.espEntity); phone-tier timers. EspHomeSim per the web_server REST docs. VERIFY: entity listing (/events) to avoid typing the id. Hardware check #22.
+- [x] **T7.12 Fingerprinter rules for all of the above** (S) — deps: T7.1–T7.11
+  Note: test asserts every fingerprinted protocol has a production adapter (AppServices.productionAdapters); Sonoff id from the mDNS name (SonoffLAN); new DeviceAdapter.onboard hook run after adding: learns brightness/colour-temp, Tuya stores the detected DP profile, Kasa strips become one device per outlet, Kasa bulbs get light caps. Known gap: TP-Link AES/HTTPS (Tapo cameras/hubs) → "Not supported yet".
 
 ## M8 — Hardening and release to own phones
 

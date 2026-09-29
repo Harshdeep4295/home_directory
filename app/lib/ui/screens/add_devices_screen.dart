@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../adapters/esphome/esphome_adapter.dart';
+import '../../adapters/hue/hue_adapter.dart';
+import '../../adapters/kasa/kasa_adapter.dart';
 import '../../core/models.dart';
 import '../../core/result.dart';
 import '../../discovery/discovery_service.dart';
 import '../../onboarding/badges.dart';
+import '../../onboarding/hue_pairing.dart';
 import '../../registry/secret_store.dart';
 import '../alias_suggestions.dart';
 import '../providers.dart';
@@ -49,11 +53,45 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
 
   Future<void> _resolve(Candidate c, OnboardingBadge badge) async {
     switch (badge) {
+      case OnboardingBadge.ready when c.brand == Brand.esphome:
+        // ESPHome: the web_server entity to control (PSEUDOCODE §6.12).
+        final entity = await promptText(
+          context,
+          title: 'ESPHome entity',
+          message: 'As in the web UI URL, e.g. switch/relay or light/lamp.',
+          initial: EspHomeAdapter.defaultEntity,
+          action: 'Next',
+        );
+        if (entity != null && entity.contains('/')) {
+          await _nameAndAdd(c, meta: {'espEntity': entity.trim()});
+        }
       case OnboardingBadge.ready:
         await _nameAndAdd(c);
       case OnboardingBadge.needsKey:
         if (c.brand == Brand.tuya) {
           final ok = await _pasteTuyaKey(c);
+          if (ok) await _nameAndAdd(c.copyWith(needsKey: false));
+        } else if (c.brand == Brand.shelly) {
+          final ok = await _shellyPassword(c);
+          if (ok) await _nameAndAdd(c.copyWith(needsKey: false));
+        } else if (c.brand == Brand.sonoff) {
+          final key = await promptText(
+            context,
+            title: 'eWeLink devicekey',
+            message:
+                'Encrypted LAN mode needs the device key (from the eWeLink cloud export). '
+                'Or switch the device to DIY mode.',
+            action: 'Save',
+          );
+          if (key != null && key.isNotEmpty) {
+            await ref
+                .read(servicesProvider)
+                .secrets
+                .set(_key(c), SecretName.deviceKey, key.trim());
+            await _nameAndAdd(c.copyWith(needsKey: false));
+          }
+        } else if (c.protocol.startsWith('klap-')) {
+          final ok = await _tplinkAccount();
           if (ok) await _nameAndAdd(c.copyWith(needsKey: false));
         } else {
           _info(
@@ -62,7 +100,7 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
           );
         }
       case OnboardingBadge.needsPairing:
-        _info('Pair the bridge', 'Hue pairing arrives with the Hue adapter.');
+        await _pairHue(c);
       case OnboardingBadge.cloudOnly:
         _info(
           'Cloud-only',
@@ -103,6 +141,100 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
     openDevicesJsonImport(context);
   }
 
+  /// Hue: press the bridge's link button within 30 s; its lights are then added.
+  Future<void> _pairHue(Candidate c) async {
+    final s = ref.read(servicesProvider);
+    final hue = s.adapters.adapters.whereType<HueAdapter>().firstOrNull;
+    if (hue == null) return;
+    final left = ValueNotifier<int>(30);
+    var cancelled = false;
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Press the round button on the Hue bridge'),
+          content: ValueListenableBuilder<int>(
+            valueListenable: left,
+            builder: (_, v, _) => Text('Waiting for the bridge… $v s'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                cancelled = true;
+                Navigator.pop(ctx);
+              },
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final r = await HuePairing(hue, s.secrets, s.devices).pairAndImport(
+      c,
+      onTick: (v) => left.value = v,
+      cancelled: () => cancelled,
+    );
+    if (!mounted) return;
+    if (!cancelled) Navigator.of(context).pop();
+    left.dispose();
+    switch (r) {
+      case Ok(:final value):
+        setState(() => _added.add(_key(c)));
+        _info('Hue bridge paired', 'Added ${value.length} lights.');
+      case Err(:final error) when !cancelled:
+        _info(
+          'Pairing failed',
+          error.kind == DeviceErrorKind.auth
+              ? 'The button was not pressed in time. Try again.'
+              : error.message,
+        );
+      case Err():
+        break;
+    }
+  }
+
+  /// Tapo / new Kasa (KLAP): the TP-Link (Kasa/Tapo app) account, stored once for all
+  /// devices under the pseudo id `tplink`. It is only used to derive the local
+  /// handshake hash; nothing is sent to TP-Link.
+  Future<bool> _tplinkAccount() async {
+    final email = await promptText(
+      context,
+      title: 'TP-Link account e-mail',
+      message: 'The account used in the Tapo / Kasa app. Stays on this phone.',
+      keyboardType: TextInputType.emailAddress,
+      action: 'Next',
+    );
+    if (email == null || email.isEmpty || !mounted) return false;
+    final pw = await promptText(
+      context,
+      title: 'TP-Link account password',
+      message: 'Case-sensitive.',
+      action: 'Save',
+    );
+    if (pw == null || pw.isEmpty) return false;
+    final secrets = ref.read(servicesProvider).secrets;
+    await secrets.set(KasaAdapter.accountId, SecretName.email, email.trim());
+    await secrets.set(KasaAdapter.accountId, SecretName.password, pw);
+    return true;
+  }
+
+  /// Shelly with auth enabled: the device password (user "admin"), kept in SecretStore.
+  Future<bool> _shellyPassword(Candidate c) async {
+    final pw = await promptText(
+      context,
+      title: 'Shelly password',
+      message: 'The password set in the Shelly app / web UI (user admin).',
+      action: 'Save',
+    );
+    if (pw == null || pw.isEmpty) return false;
+    await ref
+        .read(servicesProvider)
+        .secrets
+        .set(_key(c), SecretName.password, pw);
+    return true;
+  }
+
   /// Tuya: paste the 16-character local key; verified against the device before adding.
   Future<bool> _pasteTuyaKey(Candidate c) async {
     final id = c.deviceId;
@@ -137,7 +269,10 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
     return true;
   }
 
-  Future<void> _nameAndAdd(Candidate c) async {
+  Future<void> _nameAndAdd(
+    Candidate c, {
+    Map<String, Object?> meta = const {},
+  }) async {
     final s = ref.read(servicesProvider);
     final rooms = await s.rooms.all();
     if (!mounted) return;
@@ -160,9 +295,15 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
       name: result.name,
       roomId: roomId,
       aliases: result.aliases,
+      meta: meta,
     );
+    // Let the adapter learn capabilities / split strips into outlets.
+    final onboarded = await s.adapters.adapterFor(d)?.onboard(d) ?? [d];
+    for (final x in onboarded) {
+      await s.devices.upsert(x);
+    }
     // Verify we can actually talk to it (wrong Tuya key → auth error).
-    final r = await s.engine.status([d]);
+    final r = await s.engine.status([onboarded.first]);
     if (!mounted) return;
     setState(() => _added.add(_key(c)));
     final err = r.single.result.errorOrNull;

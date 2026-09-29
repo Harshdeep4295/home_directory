@@ -4,10 +4,15 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:offline_home/adapters/kasa/kasa_xor.dart';
+import 'package:offline_home/app/services.dart';
+import 'package:offline_home/core/log.dart';
 import 'package:offline_home/core/models.dart';
 import 'package:offline_home/discovery/evidence.dart';
 import 'package:offline_home/discovery/fingerprinter.dart';
 import 'package:offline_home/net/lan_socket_factory.dart';
+import 'package:offline_home/registry/secret_store.dart';
+
+import '../support/fake_platform.dart';
 
 Uint8List b(String s) => Uint8List.fromList(utf8.encode(s));
 Uint8List hex(String s) => Uint8List.fromList([
@@ -77,7 +82,7 @@ void main() {
         ),
       brand: Brand.hue,
       protocol: 'hue',
-      deviceId: '001788fffe1a2b3c',
+      deviceId: '0017881a2b3c', // aiohue normalize_bridge_id
       needsKey: true,
     ),
     (
@@ -173,8 +178,42 @@ void main() {
           ]),
         ),
       brand: Brand.tapo,
-      protocol: 'kasa-klap',
+      protocol: 'klap-smart',
       deviceId: 'abc123',
+      needsKey: true,
+    ),
+    (
+      name: 'Kasa KP125M IOT.KLAP 20002 (python-kasa DiscoveryResult fields; SIM)',
+      evidence: () => HostEvidence('192.168.1.39')
+        ..addUdp(
+          UdpProbe.klap,
+          Uint8List.fromList([
+            ...List.filled(16, 0),
+            ...b(
+              '{"result":{"device_id":"iot456","device_type":"IOT.SMARTPLUGSWITCH","device_model":"KP125M(US)","ip":"192.168.1.39","mac":"AA-BB-CC-DD-EE-00","mgt_encrypt_schm":{"is_support_https":false,"encrypt_type":"KLAP","http_port":80}},"error_code":0}',
+            ),
+          ]),
+        ),
+      brand: Brand.kasa,
+      protocol: 'klap-iot',
+      deviceId: 'iot456',
+      needsKey: true,
+    ),
+    (
+      name: 'Tapo hub SMART.AES over HTTPS → not supported (SIM)',
+      evidence: () => HostEvidence('192.168.1.40')
+        ..addUdp(
+          UdpProbe.klap,
+          Uint8List.fromList([
+            ...List.filled(16, 0),
+            ...b(
+              '{"result":{"device_id":"hub1","device_type":"SMART.TAPOHUB","device_model":"H200","ip":"192.168.1.40","mac":"AA-BB-CC-DD-EE-01","mgt_encrypt_schm":{"is_support_https":true,"encrypt_type":"AES","http_port":443}},"error_code":0}',
+            ),
+          ]),
+        ),
+      brand: Brand.tapo,
+      protocol: 'tplink-smart-aes-https',
+      deviceId: 'hub1',
       needsKey: true,
     ),
     (
@@ -234,6 +273,32 @@ void main() {
       expect(cand.evidence, isNotEmpty);
     });
   }
+
+  test('every discovered protocol has a production adapter (T7.12)', () {
+    final registry = AppServices.productionAdapters(
+      LanSocketFactory(FakePlatformBridge()),
+      SecretStore(MemorySecretBackend(), Redactor()),
+    );
+    // Known gaps shown as "Not supported yet": TP-Link AES / HTTPS and unknown hosts.
+    bool expected(String p) => !p.startsWith('tplink-') && p != 'unknown';
+    for (final c in cases) {
+      final p = Fingerprinter.identify(c.evidence())!.protocol;
+      expect(
+        registry.supportsProtocol(p),
+        expected(p),
+        reason: '${c.name}: $p',
+      );
+    }
+    for (final p in [
+      'tuya-3.1',
+      'tuya-3.4',
+      'tuya-3.5',
+      'shelly-gen1',
+      'klap-iot',
+    ]) {
+      expect(registry.supportsProtocol(p), isTrue, reason: p);
+    }
+  });
 
   test('nothing interesting → null', () {
     expect(

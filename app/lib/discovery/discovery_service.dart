@@ -84,6 +84,25 @@ class DiscoveryService {
   /// brand, so a DHCP shuffle cannot swap two devices). Updates IP / lastSeen /
   /// protocol version of a match and keeps every user setting.
   Future<ScanResult> merge(Candidate c) async {
+    // A Hue bridge is not a device itself; its lights are (meta.hueBridge).
+    if (c.brand == Brand.hue && c.deviceId != null) {
+      final lights = (await _devices.all())
+          .where((d) => d.meta['hueBridge'] == c.deviceId)
+          .toList();
+      if (lights.isNotEmpty) {
+        final moved = lights.first.ip != c.ip ? lights.first.ip : null;
+        for (final l in lights) {
+          await _devices.upsert(
+            l.copyWith(
+              ip: c.ip,
+              port: c.port ?? l.port,
+              lastSeen: _now().toUtc(),
+            ),
+          );
+        }
+        return ScanResult(c, device: lights.first, movedFrom: moved);
+      }
+    }
     final existing = await _match(c);
     if (existing == null) return ScanResult(c);
     final moved = existing.ip != c.ip ? existing.ip : null;
@@ -96,6 +115,19 @@ class DiscoveryService {
     );
     await _devices.upsert(updated);
     if (moved != null) log.i(_tag, '${existing.id} moved $moved → ${c.ip}');
+    // Gangs 2..N of a multi-gang Tuya switch share the host (meta.tuyaId).
+    for (final sib in await _devices.all()) {
+      if (sib.meta['tuyaId'] == existing.id &&
+          (sib.ip != updated.ip || sib.protocol != updated.protocol)) {
+        await _devices.upsert(
+          sib.copyWith(
+            ip: updated.ip,
+            protocol: updated.protocol,
+            lastSeen: updated.lastSeen,
+          ),
+        );
+      }
+    }
     return ScanResult(c, device: updated, movedFrom: moved);
   }
 
@@ -122,6 +154,7 @@ class DiscoveryService {
     String? name,
     String? roomId,
     List<String> aliases = const [],
+    Map<String, Object?> meta = const {},
   }) async {
     final id = c.deviceId ?? c.mac ?? 'ip:${c.ip}';
     final d = Device(
@@ -134,7 +167,11 @@ class DiscoveryService {
       name: name ?? c.name ?? defaultName(c.brand, id),
       roomId: roomId,
       aliases: aliases,
-      capabilities: defaultCapabilities(c.brand),
+      capabilities: {
+        ...defaultCapabilities(c.brand),
+        if ('${meta['espEntity']}'.startsWith('light/')) Capability.brightness,
+      },
+      meta: meta,
       lastSeen: _now().toUtc(),
     );
     await _devices.upsert(d);
@@ -156,7 +193,10 @@ class DiscoveryService {
 
   /// Until an adapter refines them, assume power; Tuya plugs have a countdown DP.
   static Set<Capability> defaultCapabilities(Brand b) => switch (b) {
-    Brand.tuya => {Capability.power, Capability.nativeCountdown},
+    Brand.tuya ||
+    Brand.shelly ||
+    Brand.kasa ||
+    Brand.hue => {Capability.power, Capability.nativeCountdown},
     _ => {Capability.power},
   };
 }

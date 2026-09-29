@@ -1,8 +1,16 @@
 import 'dart:io';
 
 import '../adapters/device_adapter.dart';
+import '../adapters/esphome/esphome_adapter.dart';
+import '../adapters/hue/hue_adapter.dart';
+import '../adapters/kasa/kasa_adapter.dart';
+import '../adapters/kasa/tapo_adapter.dart';
+import '../adapters/shelly/shelly_adapter.dart';
+import '../adapters/sonoff/sonoff_adapter.dart';
+import '../adapters/tasmota/tasmota_adapter.dart';
 import '../adapters/tuya/tuya_adapter.dart';
 import '../adapters/wiz/wiz_adapter.dart';
+import '../adapters/yeelight/yeelight_adapter.dart';
 import '../core/log.dart';
 import '../discovery/collectors.dart';
 import '../discovery/discovery_service.dart';
@@ -128,6 +136,23 @@ class AppServices {
       ? IosPlatformBridge()
       : DefaultPlatformBridge();
 
+  /// Every protocol adapter the app ships (T7.12 checks each discovered protocol has one).
+  static AdapterRegistry productionAdapters(
+    LanSocketFactory sockets,
+    SecretStore secrets,
+  ) => AdapterRegistry([
+    WizAdapter(sockets),
+    TuyaAdapter(sockets, secrets),
+    ShellyAdapter(sockets, secrets),
+    KasaAdapter(sockets, secrets: secrets),
+    TapoAdapter(sockets, secrets),
+    HueAdapter(sockets, secrets),
+    YeelightAdapter(sockets),
+    SonoffAdapter(sockets, secrets),
+    TasmotaAdapter(sockets, secrets),
+    EspHomeAdapter(sockets, secrets),
+  ]);
+
   /// Production wiring.
   static Future<AppServices> create() async {
     final redactor = Redactor();
@@ -139,10 +164,7 @@ class AppServices {
     await secrets.warmUp();
     final db = AppDatabase.open();
     final sockets = LanSocketFactory(platform);
-    final adapters = AdapterRegistry([
-      WizAdapter(sockets),
-      TuyaAdapter(sockets, secrets),
-    ]);
+    final adapters = productionAdapters(sockets, secrets);
     final network = NetworkMonitor(platform);
     await network.start();
     final services = AppServices(

@@ -25,6 +25,17 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 9 | T5.9 | Android: star 2 devices on their detail screens; add the "Offline Home" widget; tap a favourite → toggles; tap mic → voice sheet; add the "Voice command" quick-settings tile → opens voice sheet (Android 14+ too) | Android, devices |
 | 10 | T6.1 | Run `python -m tinytuya wizard` on the Mac, AirDrop/share devices.json to each phone, Settings → Import Tuya keys → each Wipro/Syska shows "Key works" | Mac, both phones, Tuya devices |
 | 11 | T6.3 | Phone with internet: Settings → Import Tuya keys → Import from Tuya cloud → Access ID/Secret from iot.tuya.com, data centre India → keys import and each device shows "Key works" (if the token step fails, tell me the error text) | phone, Tuya IoT project |
+| 12 | T7.1 | Any Tuya device whose devices.json / beacon says version 3.4: toggle, state refresh, "On for 1 minute" (plug timer), and one wrong key (edit it on the device page) → "key rejected" | phone, 3.4 device if you have one |
+| 13 | T7.2 | A Tuya 3.5 device (newer Tuya/Smart Life plugs): appears in a scan (port-7000 beacon), toggles, state refresh, plug timer | phone, 3.5 device if you have one |
+| 14 | T7.3 | Syska/Wipro bulb after devices.json import: brightness + colour-temp sliders work (note which end of the temp slider is warm); a 2/3-gang switch (if any) shows one tile per gang, each toggles its own relay, "On for 1 minute" per gang | phone, Tuya bulb / multi-gang switch |
+| 15 | T7.4 | Only if you own a Shelly: scan finds it, toggle, "On for 1 minute" (plug timer), then set a device password in the Shelly app and re-add | phone, Shelly |
+| 16 | T7.5 | Only if you own an older Kasa plug (HS1xx/KP1xx): scan finds it, toggle, "On for 1 minute" shows plug timer and it turns off by itself | phone, Kasa plug |
+| 17 | T7.6 | Only if you own a Tapo / new Kasa device: scan finds it (UDP 20002), enter the TP-Link account, toggle; bulbs: brightness slider. If the scan misses it, tell me the model | phone, Tapo device |
+| 18 | T7.7 | Only if you own a Hue bridge: scan → Needs pairing → press the bridge button → lights appear; toggle, brightness, "On for 1 minute" (bridge timer) | phone, Hue bridge |
+| 19 | T7.8 | Only if you own a Yeelight: enable "LAN Control" in the Yeelight app, scan, toggle, brightness, "off in 2 minutes" (bulb timer) | phone, Yeelight |
+| 20 | T7.9 | Only if you own a Sonoff: DIY mode (or LAN mode + devicekey), scan finds it (mDNS), toggle, state refresh | phone, Sonoff |
+| 21 | T7.10 | Only if you own a Tasmota device: scan, toggle, "on for 1 minute" (plug timer) — then press its button: it must stay on (PulseTime cleared) | phone, Tasmota |
+| 22 | T7.11 | Only if you run ESPHome with `web_server:`: scan finds it (mDNS), enter e.g. switch/relay, toggle | phone, ESPHome device |
 
 ## Device survey (T0.6)
 

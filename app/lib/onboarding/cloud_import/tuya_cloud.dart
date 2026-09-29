@@ -275,22 +275,28 @@ class TuyaCloudClient {
     }
   }
 
-  /// DP id → code, from GET /v1.1/devices/{id}/specifications (tinytuya getdps +
-  /// _build_mapping: status then functions, `dp_id` else code, first wins).
-  Future<Map<int, String>> _mapping(String deviceId) async {
+  /// DP id → code (+ Integer ranges), from GET /v1.1/devices/{id}/specifications
+  /// (tinytuya getdps + _build_mapping: status then functions, `dp_id` else code, first
+  /// wins; `values` is JSON text there).
+  Future<(Map<int, String>, Map<int, (int, int)>)> _mapping(
+    String deviceId,
+  ) async {
     final r = await _call('/v1.1/devices/$deviceId/specifications');
     final result = (r.valueOrNull?['result'] as Map?) ?? const {};
     final out = <int, String>{};
+    final ranges = <int, (int, int)>{};
     for (final key in const ['status', 'functions']) {
       final list = result[key];
       if (list is! List) continue;
       for (final m in list.whereType<Map<Object?, Object?>>()) {
         final dp = int.tryParse('${m['dp_id']}');
         final code = m['code'];
-        if (dp != null && code is String) out.putIfAbsent(dp, () => code);
+        if (dp == null || code is! String || out.containsKey(dp)) continue;
+        out[dp] = code;
+        if (rangeOf(m['values']) case final range?) ranges[dp] = range;
       }
     }
-    return out;
+    return (out, ranges);
   }
 
   /// The whole import: token → devices (+ per-user list for local keys) → mappings.
@@ -313,6 +319,7 @@ class TuyaCloudClient {
     for (final d in devs) {
       final id = d['id'];
       if (id is! String || id.isEmpty) continue;
+      final (mapping, ranges) = await _mapping(id);
       out.add(
         DevicesJsonEntry(
           id: id,
@@ -320,7 +327,8 @@ class TuyaCloudClient {
           key: (d['local_key'] as String?) ?? '',
           // The cloud's `ip` is the home's public address, not the LAN one; the next
           // scan fills the LAN IP (tinytuya also ignores it).
-          mapping: await _mapping(id),
+          mapping: mapping,
+          ranges: ranges,
           subDevice: d['sub'] == true || d['gateway_id'] is String,
         ),
       );

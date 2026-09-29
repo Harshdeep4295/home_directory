@@ -23,6 +23,7 @@ class DiscoveryPorts {
     this.klap = KlapDiscovery.port,
     this.yeelight = 1982,
     this.tuyaBeacons = tuyaBeaconPorts,
+    this.tuyaApp = tuyaAppPort,
     this.tcp = const {
       ScanPort.tuya: ScanPort.tuya,
       ScanPort.kasa: ScanPort.kasa,
@@ -43,6 +44,10 @@ class DiscoveryPorts {
   /// python-yeelight ssdp_discover.py: M-SEARCH to 239.255.255.250:1982.
   final int yeelight;
   final List<int> tuyaBeacons;
+
+  /// tinytuya scanner: REQ_DEVINFO is broadcast to UDPPORTAPP (7000) every
+  /// BROADCASTTIME (6 s) so 3.5 devices announce themselves.
+  final int tuyaApp;
 
   /// logical ScanPort → actual port to connect to.
   final Map<int, int> tcp;
@@ -153,7 +158,8 @@ class CandidateCollector implements EvidenceSource {
     }
   }
 
-  /// Tuya devices broadcast beacons on 6666/6667 every few seconds (tinytuya scanner).
+  /// Tuya devices broadcast beacons on 6666/6667 every few seconds; 3.5 devices answer
+  /// the app's REQ_DEVINFO on 7000 (tinytuya scanner).
   /// On iOS without the multicast entitlement this may hear nothing (PLAN §5 VERIFY).
   Future<void> _listenTuya(
     Duration window,
@@ -182,7 +188,17 @@ class CandidateCollector implements EvidenceSource {
     if (sockets.isEmpty) return;
     await _platform.acquireMulticastLock();
     try {
-      await Future<void>.delayed(window);
+      final ip = (await _platform.netInfo()).ip;
+      if (_platform.canBroadcast && ip != null) {
+        final req = tuyaDevInfoRequest(ip);
+        final to = InternetAddress(broadcastAddress ?? '255.255.255.255');
+        for (var i = 0; i < 2; i++) {
+          sockets.first.send(req, to, ports.tuyaApp);
+          await Future<void>.delayed(window * 0.5);
+        }
+      } else {
+        await Future<void>.delayed(window);
+      }
     } finally {
       await _platform.releaseMulticastLock();
       for (final s in subs) {
