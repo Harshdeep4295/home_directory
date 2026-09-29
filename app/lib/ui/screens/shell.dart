@@ -6,6 +6,7 @@ import '../widgets/net_banner.dart';
 import 'device_detail_screen.dart';
 import 'home_screen.dart';
 import 'timers_screen.dart';
+import 'voice_sheet.dart';
 
 /// Bottom navigation: Home · Timers · Settings. Screens arrive in T5.2–T5.7; the
 /// network banner sits above all of them.
@@ -35,10 +36,13 @@ class _ShellState extends ConsumerState<Shell> {
       'Home',
       Icons.home_outlined,
       Icons.home,
-      (context) => HomeScreen(
-        onOpenDevice: (d) => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => DeviceDetailScreen(deviceId: d.id),
+      (context) => Consumer(
+        builder: (context, ref, _) => HomeScreen(
+          onMic: () => showVoiceSheet(context, ref),
+          onOpenDevice: (d) => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => DeviceDetailScreen(deviceId: d.id),
+            ),
           ),
         ),
       ),

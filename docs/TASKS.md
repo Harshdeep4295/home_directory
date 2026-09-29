@@ -240,8 +240,9 @@ writes clear instructions, then stops.
 - [x] **T5.4 Timers screen** (S) — deps: T3.3
   Do: list with remaining time, tier badge (Plug / Phone), cancel, reconcile on open.
   Note: ui/screens/timers_screen.dart: reconcile on open, active timers sorted by fire time with live countdown ('Geyser off in 18m', 'at 9:40 PM'), tier chip (Plug/Bridge/Phone), cancel per row, iOS warning card when any phone-tier timer exists, empty state with a voice hint. Wired as the Timers tab. 2 widget tests.
-- [ ] **T5.5 Voice sheet** (S) — deps: T4.8
+- [x] **T5.5 Voice sheet** (S) — deps: T4.8
   Do: listening animation, live transcript, disambiguation chips, result.
+  Note: ui/screens/voice_sheet.dart: bottom sheet opened by the Home mic FAB (starts listening), pulsing mic + live transcript + Stop, confirmation chips (device / 'All of these' / Cancel), result with icon, Undo (5 s) and 'Speak again', idle 'Tap to speak', plus a typed-command field (works without speech). Widget test drives typed commands through VoiceController: result, TTS, undo, ambiguity chips.
 - [ ] **T5.6 Add-devices flow** (M) — deps: T2.9 — Ref: §Onboarding
   Do: scan, badges, per-badge resolve screens, naming + rooms + alias suggestions.
 - [ ] **T5.7 Settings** (S) — deps: T5.1
