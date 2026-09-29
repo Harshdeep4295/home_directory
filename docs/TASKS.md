@@ -198,9 +198,10 @@ writes clear instructions, then stops.
     available" error appears, download the offline model: Android → Settings → Google →
     Speech / "Offline speech recognition"; iPhone → Settings → General → Keyboard →
     Dictation languages (on-device).
-- [ ] **T4.2 Normaliser** (S) — deps: T1.1 — Ref: §Normaliser
+- [x] **T4.2 Normaliser** (S) — deps: T1.1 — Ref: §Normaliser
   Do: lowercase, punctuation, Devanagari→Latin map, filler removal, spelling variants
   (bandh→band, chaalu→chalu), number words EN + HI (ek..sau, one..hundred, "dedh", "dhai", "sava", "paune").
+  Note: voice/normaliser.dart: lowercase, Devanagari→Latin (word table + letter fallback with schwa deletion, Devanagari digits), punctuation (keeps 11:30, a.c.→ac), word + phrase variants (bandh→band, kar do→karo, geezer→geyser, half an hour→0.5 hour …), verb+'do' merging (jala do→jalao) with 'do'=2 only before a unit, 'saath'=60 only before a unit, a/an+unit→1, fillers, EN (incl. twenty five) + HI (1–100 common) number words, fractions aadha/dedh/dhai and sava/saadhe/paune X. 37 tests.
 - [ ] **T4.3 Lexicons** (S) — deps: T4.2 — Ref: §Lexicon
   Do: `assets/voice/lexicon_en.yaml`, `lexicon_hi.yaml`: actions, time words, room/device nouns.
 - [ ] **T4.4 Duration + time parser** (M) — deps: T4.2 — Ref: §Time parsing
