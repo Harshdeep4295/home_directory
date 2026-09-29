@@ -5,6 +5,7 @@ import '../providers.dart';
 import '../widgets/net_banner.dart';
 import 'device_detail_screen.dart';
 import 'home_screen.dart';
+import 'timers_screen.dart';
 
 /// Bottom navigation: Home · Timers · Settings. Screens arrive in T5.2–T5.7; the
 /// network banner sits above all of them.
@@ -46,7 +47,7 @@ class _ShellState extends ConsumerState<Shell> {
       'Timers',
       Icons.timer_outlined,
       Icons.timer,
-      (_) => const _Placeholder('Timers'),
+      (_) => const TimersScreen(),
     ),
     ShellPage(
       'Settings',

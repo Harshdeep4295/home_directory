@@ -237,8 +237,9 @@ writes clear instructions, then stops.
   Do: power, sliders by capability, timer presets (15/30/60/custom), default auto-off, name, room,
   aliases, protocol info, "re-scan IP".
   Note: ui/screens/device_detail_screen.dart: power switch (offline-aware), brightness / colour-temperature sliders only with those capabilities, current timer with tier + cancel, presets on for 15/30/60 min + custom (iOS phone-tier warning), default auto-off dropdown (TimerService.applyAutoOff now runs after app/voice power-on), rename, room, aliases with Hinglish suggestions (ui/alias_suggestions.dart), connection info (brand/protocol/IP/MAC/id, Tuya key stored?), Re-scan IP, remove device (cancels timers, deletes key). Feedback via SnackBar. Long-press on Home opens it. 5 widget tests + auto-off test.
-- [ ] **T5.4 Timers screen** (S) — deps: T3.3
+- [x] **T5.4 Timers screen** (S) — deps: T3.3
   Do: list with remaining time, tier badge (Plug / Phone), cancel, reconcile on open.
+  Note: ui/screens/timers_screen.dart: reconcile on open, active timers sorted by fire time with live countdown ('Geyser off in 18m', 'at 9:40 PM'), tier chip (Plug/Bridge/Phone), cancel per row, iOS warning card when any phone-tier timer exists, empty state with a voice hint. Wired as the Timers tab. 2 widget tests.
 - [ ] **T5.5 Voice sheet** (S) — deps: T4.8
   Do: listening animation, live transcript, disambiguation chips, result.
 - [ ] **T5.6 Add-devices flow** (M) — deps: T2.9 — Ref: §Onboarding
