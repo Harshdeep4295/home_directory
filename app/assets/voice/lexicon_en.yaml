@@ -1,0 +1,35 @@
+# English lexicon (PSEUDOCODE §11.3). Entries are in NORMALISED form (see normaliser.dart):
+# lowercase, fillers removed, variants folded. Longer phrases win over shorter ones.
+actions:
+  on: [turn on, switch on, power on, start, on, open]
+  off: [turn off, switch off, power off, shut off, shut down, stop, off, kill]
+  toggle: [toggle, switch]
+  cancel: [cancel timer, stop timer, remove timer, delete timer, clear timer, cancel the timer]
+  status: [is, status, is it on, is it off, what is status of, check]
+relations:
+  for: [for]
+  until: [until, till]
+  after: [after, in]
+  at: [at]
+dayparts:
+  morning: am
+  afternoon: pm
+  evening: pm
+  night: pm
+  tonight: pm
+  am: am
+  pm: pm
+nouns:
+  light: [light, lights, bulb, bulbs, lamp, lamps]
+  fan: [fan, fans]
+  geyser: [geyser, heater, water heater]
+  ac: [ac, air conditioner, aircon]
+  tv: [tv, television]
+  plug: [plug, socket, switch]
+quantifiers:
+  all: [all, everything, every, all the]
+  except: [except, but, other than, besides, apart from]
+units:
+  minute: [minute]
+  hour: [hour]
+  second: [second]

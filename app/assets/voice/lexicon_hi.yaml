@@ -1,0 +1,32 @@
+# Hinglish lexicon (Latin script, NORMALISED form; Devanagari is transliterated first).
+actions:
+  on: [chalu, chalu karo, on karo, jalao, jala, shuru karo, chalao, chala, chalu kar, laga, lagao, kholo]
+  off: [band, band karo, off karo, bujhao, bujha, roko, band kar, hatao]
+  toggle: []
+  cancel: [timer hatao, timer band karo, timer cancel karo, timer cancel, timer hata, timer roko, timer khatam karo]
+  status: [on hai kya, off hai kya, chal raha hai kya, kya chal raha hai, chalu hai kya, band hai kya, chalu hai, band hai]
+relations:
+  for: [ke liye, tak ke liye, liye]
+  until: [tak]
+  after: [baad, ke baad, mein]
+  at: [baje, pe, par, ko]
+dayparts:
+  subah: am
+  dopahar: pm
+  shaam: pm
+  raat: pm
+nouns:
+  light: [batti, battiyan, lightein, lighten]
+  fan: [pankha, pankhe]
+  geyser: [geyser, heater, garam pani]
+  ac: [ac]
+  tv: [tv]
+quantifiers:
+  all: [sab, sabhi, saari, saare, sare, sab ki sab, poore]
+  except: [chhod ke, chhodkar, chhod kar, ke alawa, alawa, ke siwa, siwa]
+units:
+  minute: [minute]
+  hour: [ghanta]
+  second: [second]
+# Words that glue Hindi phrases together and carry no meaning for targets.
+particles: [ka, ki, ke, ko, se, wala, wali, wale, hai, kya, karo, kar, abhi, jara]

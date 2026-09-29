@@ -202,8 +202,9 @@ writes clear instructions, then stops.
   Do: lowercase, punctuation, Devanagari→Latin map, filler removal, spelling variants
   (bandh→band, chaalu→chalu), number words EN + HI (ek..sau, one..hundred, "dedh", "dhai", "sava", "paune").
   Note: voice/normaliser.dart: lowercase, Devanagari→Latin (word table + letter fallback with schwa deletion, Devanagari digits), punctuation (keeps 11:30, a.c.→ac), word + phrase variants (bandh→band, kar do→karo, geezer→geyser, half an hour→0.5 hour …), verb+'do' merging (jala do→jalao) with 'do'=2 only before a unit, 'saath'=60 only before a unit, a/an+unit→1, fillers, EN (incl. twenty five) + HI (1–100 common) number words, fractions aadha/dedh/dhai and sava/saadhe/paune X. 37 tests.
-- [ ] **T4.3 Lexicons** (S) — deps: T4.2 — Ref: §Lexicon
+- [x] **T4.3 Lexicons** (S) — deps: T4.2 — Ref: §Lexicon
   Do: `assets/voice/lexicon_en.yaml`, `lexicon_hi.yaml`: actions, time words, room/device nouns.
+  Note: assets/voice/lexicon_en.yaml + lexicon_hi.yaml (normalised forms): actions on/off/toggle/cancel/status, relations for/until/after/at, dayparts (subah/raat/…→am/pm), nouns with Hinglish seeds (batti→light, pankha→fan …), quantifiers all/except, units (ghanta→hour), particles. voice/lexicon.dart loads + merges (longest phrase first), nounAt/unitOf/matchAt helpers; registered as Flutter assets. 4 tests.
 - [ ] **T4.4 Duration + time parser** (M) — deps: T4.2 — Ref: §Time parsing
   Accept: tests: "20 minutes", "adha ghanta", "dedh ghante", "for 1 hour 15", "11 pm", "raat 11 baje",
   "subah 6 baje", "11:30", "in 5 min", "5 minute baad".
