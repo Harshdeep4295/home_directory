@@ -72,10 +72,18 @@ writes clear instructions, then stops.
     4. Enter the laptop IP, port 38899 → "Send WiZ getPilot" → expect `OK in <N> ms` + JSON.
     5. Log the result (and N) in HARDWARE_LOG with test `lan-bind`. If it fails with
        timeout/offline, note it — that means sockets went over mobile data.
-- [ ] **T1.5 iOS LocalNetworkPlugin (Swift)** (S) — deps: T1.3 — Ref: §iOS plugin
+- [x] **T1.5 iOS LocalNetworkPlugin (Swift)** (S) — deps: T1.3 — Ref: §iOS plugin
   Do: trigger local-network permission (NWBrowser on `_http._tcp`), report granted/denied;
   Info.plist keys from PLAN §10.
   Accept: 👤 prompt appears on first launch; denied state shows guidance screen.
+  Note: LocalNetworkPlugin in AppDelegate.swift (no pbxproj edits): permission probe = NWListener advertising _offlinehome._tcp + NWBrowser (own service seen → granted; DNS PolicyDenied -65570 → denied, VERIFY); NWPathMonitor(wifi) + getifaddrs(en0) for ip/prefix; events channel. Info.plist: NSLocalNetworkUsageDescription, NSBonjourServices (+_offlinehome._tcp), NSAllowsLocalNetworking; deployment target 16.0. Dart IosPlatformBridge (canBroadcast=false); NetInfo.internet now nullable (iOS can't know without contacting the internet). Debug screen shows permission + denied guidance. Swift NOT compiled here (no toolchain) — first build on the MacBook.
+  - [ ] 👤 Hardware check (iPhone): `make run-ios` (Xcode → Signing: pick your Personal Team once).
+    1. First launch → system prompt "Offline Home would like to find devices on your local network" → Allow.
+       Debug screen shows `Local Network permission: granted`, Wi-Fi connected, your IP/prefix.
+    2. Settings → Privacy & Security → Local Network → turn Offline Home off → relaunch app →
+       expect `denied` + the guidance card. Turn it back on.
+    3. With the WiZ sim running on the laptop (see T1.4), "Send WiZ getPilot" → `OK`.
+    Log as test `lan-bind` in HARDWARE_LOG. If the build fails, paste the Xcode error.
 - [ ] **T1.6 NetworkMonitor** (S) — deps: T1.4, T1.5
   Do: stream of `NetState{wifi, internet, ssid, ip, prefix}`; UI banner "Local mode" when no internet.
   Accept: unit tests with fake platform channel.

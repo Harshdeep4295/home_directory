@@ -40,7 +40,7 @@ class AndroidPlatformBridge implements PlatformBridge {
 
 NetInfo netInfoFromMap(Map<String, Object?> m) => NetInfo(
   wifi: m['wifi'] == true,
-  internet: m['internet'] == true,
+  internet: m['internet'] as bool?,
   ip: m['ip'] as String?,
   prefix: (m['prefix'] as num?)?.toInt(),
   ssid: m['ssid'] as String?,

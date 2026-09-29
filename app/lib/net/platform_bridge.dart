@@ -4,19 +4,21 @@ import 'dart:io';
 class NetInfo {
   const NetInfo({
     required this.wifi,
-    required this.internet,
+    this.internet,
     this.ip,
     this.prefix,
     this.ssid,
   });
 
   final bool wifi;
-  final bool internet;
+
+  /// Whether the Wi-Fi reaches the internet; null when the platform cannot tell (iOS).
+  final bool? internet;
   final String? ip;
   final int? prefix;
   final String? ssid;
 
-  static const unknown = NetInfo(wifi: false, internet: false);
+  static const unknown = NetInfo(wifi: false);
 
   @override
   bool operator ==(Object other) =>
@@ -69,12 +71,7 @@ class DefaultPlatformBridge implements PlatformBridge {
       for (final i in ifaces) {
         for (final a in i.addresses) {
           if (!a.isLoopback) {
-            return NetInfo(
-              wifi: true,
-              internet: false,
-              ip: a.address,
-              prefix: 24,
-            );
+            return NetInfo(wifi: true, ip: a.address, prefix: 24);
           }
         }
       }
