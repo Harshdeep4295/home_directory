@@ -16,10 +16,11 @@ writes clear instructions, then stops.
   add packages from PLAN §4; `analysis_options.yaml` (strict); `.gitignore` (secrets, devices.json).
   Accept: `flutter analyze` clean, `flutter test` runs a placeholder test.
   Note: Flutter 3.47.5 / Dart 3.13.4. package offline_home, org dev.offlinehome, minSdk 26. sqlite3_flutter_libs is EOL → using sqlite3 3.x (bundled via build hooks). vosk_flutter deferred to T4.1. Root .gitignore anchored /lib/ so app/lib is tracked; secrets (devices.json etc.) ignored. iOS deployment target 16 set in T1.5.
-- [ ] **T0.2 Simulator harness** (S) — deps: T0.1
+- [x] **T0.2 Simulator harness** (S) — deps: T0.1
   Do: `sim/` Python package, `sim/run.py --devices wiz,tuya33,...` starts N fake devices on
   127.0.0.1 with configurable ports; pytest config. Ref: §Simulators.
   Accept: `pytest sim` green; `python sim/run.py --devices wiz` answers a UDP getPilot.
+  Note: ohsim package (UdpSimDevice/TcpSimDevice bases, registry, spec parser); run.py prints port map, exits on SIGTERM or stdin EOF; minimal WiZ sim (getPilot/setPilot) — rest of WiZ in T2.2. 9 pytest tests incl. run.py subprocess test.
 - [ ] **T0.3 Dev scripts** (S) — deps: T0.1
   Do: `Makefile` targets: `fmt`, `analyze`, `test`, `sim`, `run-android`, `run-ios`, `codegen`.
   Accept: `make test` runs analyze + flutter test + pytest.
