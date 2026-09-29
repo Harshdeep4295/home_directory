@@ -298,7 +298,8 @@ writes clear instructions, then stops.
   Note: HueAdapter (v1 REST per aiohue: pairing, lights on/bri/ct, errors 1/101, bridge-id normalisation); one app device per light (`<bridge>-<light>`), username in SecretStore; timers = bridge schedules `PT hh:mm:ss` found again via GET /schedules; add-flow pairing dialog with 30 s countdown; discovery moves lights with the bridge IP. HueSim verified with aiohue. VERIFY: schedule API/limits and starttime clock on a real bridge. Hardware check #18.
 - [x] **T7.8 Yeelight** (S) — deps: T2.1 — Ref: §Yeelight
   Note: YeelightAdapter (TCP 55443 JSON lines per python-yeelight: get_prop, set_power/bright/ct_abx + smooth 300 ms, props notifications skipped); native timer = cron off-timer in whole minutes (so ON-ending timers use the phone tier); YeelightSim verified with python-yeelight's Bulb. VERIFY: cron_get reply shape and max delay; LAN control must be enabled in the Yeelight app. Hardware check #19.
-- [ ] **T7.9 Sonoff LAN (DIY + encrypted)** (M) — deps: T2.1 — Ref: §Sonoff
+- [x] **T7.9 Sonoff LAN (DIY + encrypted)** (M) — deps: T2.1 — Ref: §Sonoff
+  Note: SonoffAdapter per AlexxIT/SonoffLAN local.py (POST /zeroconf/<cmd>, AES-CBC md5(devicekey) crypto byte-exact vs vectors from its own encrypt()); switch + multi-channel switches; state via DIY `info`; add-flow asks for the devicekey. SonoffSim (DIY / encrypted / outlets=N). VERIFY: `info` on eWeLink firmware (state may only be in mDNS TXT); no native countdown (phone tier). Hardware check #20.
 - [ ] **T7.10 Tasmota** (S) — deps: T2.1 — Ref: §Tasmota
 - [ ] **T7.11 ESPHome (web server REST)** (S) — deps: T2.1 — Ref: §ESPHome
 - [ ] **T7.12 Fingerprinter rules for all of the above** (S) — deps: T7.1–T7.11

@@ -61,6 +61,22 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
         } else if (c.brand == Brand.shelly) {
           final ok = await _shellyPassword(c);
           if (ok) await _nameAndAdd(c.copyWith(needsKey: false));
+        } else if (c.brand == Brand.sonoff) {
+          final key = await promptText(
+            context,
+            title: 'eWeLink devicekey',
+            message:
+                'Encrypted LAN mode needs the device key (from the eWeLink cloud export). '
+                'Or switch the device to DIY mode.',
+            action: 'Save',
+          );
+          if (key != null && key.isNotEmpty) {
+            await ref
+                .read(servicesProvider)
+                .secrets
+                .set(_key(c), SecretName.deviceKey, key.trim());
+            await _nameAndAdd(c.copyWith(needsKey: false));
+          }
         } else if (c.protocol.startsWith('klap-')) {
           final ok = await _tplinkAccount();
           if (ok) await _nameAndAdd(c.copyWith(needsKey: false));

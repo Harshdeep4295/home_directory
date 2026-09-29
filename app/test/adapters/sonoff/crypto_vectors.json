@@ -1,0 +1,39 @@
+{
+  "source": "AlexxIT/SonoffLAN local.py encrypt/decrypt",
+  "iv": "404142434445464748494a4b4c4d4e4f",
+  "cases": [
+    {
+      "devicekey": "0123456789abcdef0123456789abcdef",
+      "plain": {
+        "switch": "on"
+      },
+      "request": {
+        "sequence": "1790000000000",
+        "deviceid": "1000abcdef",
+        "selfApikey": "123",
+        "data": "IosGVrZButc1q9viZ+vSoQ==",
+        "encrypt": true,
+        "iv": "QEFCQ0RFRkdISUpLTE1OTw=="
+      }
+    },
+    {
+      "devicekey": "a1b2c3d4-e5f6-4a7b-8c9d-e0f1a2b3c4d5",
+      "plain": {
+        "switches": [
+          {
+            "switch": "off",
+            "outlet": 1
+          }
+        ]
+      },
+      "request": {
+        "sequence": "1790000000000",
+        "deviceid": "1000abcdef",
+        "selfApikey": "123",
+        "data": "WXhAAgQJ7QgvKeArIBDjs+mKLKXrkTyxMJeluESw6ADyKnE4+4jr0vTbbUJzdY5A",
+        "encrypt": true,
+        "iv": "QEFCQ0RFRkdISUpLTE1OTw=="
+      }
+    }
+  ]
+}
