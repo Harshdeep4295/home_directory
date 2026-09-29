@@ -35,6 +35,7 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 19 | T7.8 | Only if you own a Yeelight: enable "LAN Control" in the Yeelight app, scan, toggle, brightness, "off in 2 minutes" (bulb timer) | phone, Yeelight |
 | 20 | T7.9 | Only if you own a Sonoff: DIY mode (or LAN mode + devicekey), scan finds it (mDNS), toggle, state refresh | phone, Sonoff |
 | 21 | T7.10 | Only if you own a Tasmota device: scan, toggle, "on for 1 minute" (plug timer) — then press its button: it must stay on (PulseTime cleared) | phone, Tasmota |
+| 22 | T7.11 | Only if you run ESPHome with `web_server:`: scan finds it (mDNS), enter e.g. switch/relay, toggle | phone, ESPHome device |
 
 ## Device survey (T0.6)
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../adapters/esphome/esphome_adapter.dart';
 import '../../adapters/hue/hue_adapter.dart';
 import '../../adapters/kasa/kasa_adapter.dart';
 import '../../core/models.dart';
@@ -52,6 +53,18 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
 
   Future<void> _resolve(Candidate c, OnboardingBadge badge) async {
     switch (badge) {
+      case OnboardingBadge.ready when c.brand == Brand.esphome:
+        // ESPHome: the web_server entity to control (PSEUDOCODE §6.12).
+        final entity = await promptText(
+          context,
+          title: 'ESPHome entity',
+          message: 'As in the web UI URL, e.g. switch/relay or light/lamp.',
+          initial: EspHomeAdapter.defaultEntity,
+          action: 'Next',
+        );
+        if (entity != null && entity.contains('/')) {
+          await _nameAndAdd(c, meta: {'espEntity': entity.trim()});
+        }
       case OnboardingBadge.ready:
         await _nameAndAdd(c);
       case OnboardingBadge.needsKey:
@@ -256,7 +269,10 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
     return true;
   }
 
-  Future<void> _nameAndAdd(Candidate c) async {
+  Future<void> _nameAndAdd(
+    Candidate c, {
+    Map<String, Object?> meta = const {},
+  }) async {
     final s = ref.read(servicesProvider);
     final rooms = await s.rooms.all();
     if (!mounted) return;
@@ -279,6 +295,7 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
       name: result.name,
       roomId: roomId,
       aliases: result.aliases,
+      meta: meta,
     );
     // Verify we can actually talk to it (wrong Tuya key → auth error).
     final r = await s.engine.status([d]);

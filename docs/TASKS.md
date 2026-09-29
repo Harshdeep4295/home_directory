@@ -302,7 +302,8 @@ writes clear instructions, then stops.
   Note: SonoffAdapter per AlexxIT/SonoffLAN local.py (POST /zeroconf/<cmd>, AES-CBC md5(devicekey) crypto byte-exact vs vectors from its own encrypt()); switch + multi-channel switches; state via DIY `info`; add-flow asks for the devicekey. SonoffSim (DIY / encrypted / outlets=N). VERIFY: `info` on eWeLink firmware (state may only be in mDNS TXT); no native countdown (phone tier). Hardware check #20.
 - [x] **T7.10 Tasmota** (S) — deps: T2.1 — Ref: §Tasmota
   Note: TasmotaAdapter (/cm Power<n>, Dimmer, CT, web password); native timer only for "on for d" via PulseTime, cleared on every other power command, on cancel and when getState sees the pulse finished; other timers → phone tier. Contract harness gained `combinedPowerForOnly`. VERIFY: PulseTime behaviour on hardware. Hardware check #21.
-- [ ] **T7.11 ESPHome (web server REST)** (S) — deps: T2.1 — Ref: §ESPHome
+- [x] **T7.11 ESPHome (web server REST)** (S) — deps: T2.1 — Ref: §ESPHome
+  Note: EspHomeAdapter (GET /<domain>/<id>, POST turn_on/turn_off, light ?brightness=, optional Basic auth); entity entered when adding (meta.espEntity); phone-tier timers. EspHomeSim per the web_server REST docs. VERIFY: entity listing (/events) to avoid typing the id. Hardware check #22.
 - [ ] **T7.12 Fingerprinter rules for all of the above** (S) — deps: T7.1–T7.11
 
 ## M8 — Hardening and release to own phones

@@ -154,6 +154,7 @@ class DiscoveryService {
     String? name,
     String? roomId,
     List<String> aliases = const [],
+    Map<String, Object?> meta = const {},
   }) async {
     final id = c.deviceId ?? c.mac ?? 'ip:${c.ip}';
     final d = Device(
@@ -166,7 +167,11 @@ class DiscoveryService {
       name: name ?? c.name ?? defaultName(c.brand, id),
       roomId: roomId,
       aliases: aliases,
-      capabilities: defaultCapabilities(c.brand),
+      capabilities: {
+        ...defaultCapabilities(c.brand),
+        if ('${meta['espEntity']}'.startsWith('light/')) Capability.brightness,
+      },
+      meta: meta,
       lastSeen: _now().toUtc(),
     );
     await _devices.upsert(d);
