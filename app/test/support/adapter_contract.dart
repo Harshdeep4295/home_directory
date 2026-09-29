@@ -12,6 +12,7 @@ class ContractHarness {
     required this.tearDown,
     this.expectedTimeout = const Duration(milliseconds: 1500),
     this.countdownSupported = false,
+    this.combinedPowerForOnly = false,
   });
 
   final DeviceAdapter adapter;
@@ -24,6 +25,9 @@ class ContractHarness {
   /// The adapter's per-call timeout; offline calls must fail within this + 200 ms.
   final Duration expectedTimeout;
   final bool countdownSupported;
+
+  /// The only native timer is a one-shot "on now, off after d" (Tasmota PulseTime).
+  final bool combinedPowerForOnly;
 }
 
 /// Shared adapter suite (PSEUDOCODE §5). Every adapter runs this against its simulator.
@@ -50,6 +54,22 @@ void adapterContractTest(
     });
 
     test('native countdown turns the device off', () async {
+      if (h.combinedPowerForOnly) {
+        expect(h.adapter.supportsCombinedPowerFor(h.device), isTrue);
+        final r = await h.adapter.powerFor(
+          h.device,
+          true,
+          const Duration(seconds: 2),
+        );
+        expect(r, isA<Ok<CountdownHandle>>(), reason: '$r');
+        expect(await on(), isTrue);
+        final deadline = DateTime.now().add(const Duration(seconds: 4));
+        while (DateTime.now().isBefore(deadline) && await on() != false) {
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+        }
+        expect(await on(), isFalse);
+        return;
+      }
       if (!h.countdownSupported) {
         expect(h.adapter.nativeCountdownMax(h.device), isNull);
         return;

@@ -34,6 +34,7 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 18 | T7.7 | Only if you own a Hue bridge: scan → Needs pairing → press the bridge button → lights appear; toggle, brightness, "On for 1 minute" (bridge timer) | phone, Hue bridge |
 | 19 | T7.8 | Only if you own a Yeelight: enable "LAN Control" in the Yeelight app, scan, toggle, brightness, "off in 2 minutes" (bulb timer) | phone, Yeelight |
 | 20 | T7.9 | Only if you own a Sonoff: DIY mode (or LAN mode + devicekey), scan finds it (mDNS), toggle, state refresh | phone, Sonoff |
+| 21 | T7.10 | Only if you own a Tasmota device: scan, toggle, "on for 1 minute" (plug timer) — then press its button: it must stay on (PulseTime cleared) | phone, Tasmota |
 
 ## Device survey (T0.6)
 

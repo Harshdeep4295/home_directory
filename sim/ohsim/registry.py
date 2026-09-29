@@ -10,6 +10,7 @@ from .devices.kasa import KasaSim
 from .devices.klap import KlapSim
 from .devices.shelly import ShellySim
 from .devices.sonoff import SonoffSim
+from .devices.tasmota import TasmotaSim
 from .devices.tuya import TuyaSim
 from .devices.wiz import WizSim
 from .devices.yeelight import YeelightSim
@@ -23,6 +24,7 @@ SIM_TYPES: dict[str, type[SimDevice]] = {
     HueSim.kind: HueSim,
     YeelightSim.kind: YeelightSim,
     SonoffSim.kind: SonoffSim,
+    TasmotaSim.kind: TasmotaSim,
 }
 
 

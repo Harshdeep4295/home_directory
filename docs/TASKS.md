@@ -300,7 +300,8 @@ writes clear instructions, then stops.
   Note: YeelightAdapter (TCP 55443 JSON lines per python-yeelight: get_prop, set_power/bright/ct_abx + smooth 300 ms, props notifications skipped); native timer = cron off-timer in whole minutes (so ON-ending timers use the phone tier); YeelightSim verified with python-yeelight's Bulb. VERIFY: cron_get reply shape and max delay; LAN control must be enabled in the Yeelight app. Hardware check #19.
 - [x] **T7.9 Sonoff LAN (DIY + encrypted)** (M) — deps: T2.1 — Ref: §Sonoff
   Note: SonoffAdapter per AlexxIT/SonoffLAN local.py (POST /zeroconf/<cmd>, AES-CBC md5(devicekey) crypto byte-exact vs vectors from its own encrypt()); switch + multi-channel switches; state via DIY `info`; add-flow asks for the devicekey. SonoffSim (DIY / encrypted / outlets=N). VERIFY: `info` on eWeLink firmware (state may only be in mDNS TXT); no native countdown (phone tier). Hardware check #20.
-- [ ] **T7.10 Tasmota** (S) — deps: T2.1 — Ref: §Tasmota
+- [x] **T7.10 Tasmota** (S) — deps: T2.1 — Ref: §Tasmota
+  Note: TasmotaAdapter (/cm Power<n>, Dimmer, CT, web password); native timer only for "on for d" via PulseTime, cleared on every other power command, on cancel and when getState sees the pulse finished; other timers → phone tier. Contract harness gained `combinedPowerForOnly`. VERIFY: PulseTime behaviour on hardware. Hardware check #21.
 - [ ] **T7.11 ESPHome (web server REST)** (S) — deps: T2.1 — Ref: §ESPHome
 - [ ] **T7.12 Fingerprinter rules for all of the above** (S) — deps: T7.1–T7.11
 

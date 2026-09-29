@@ -6,6 +6,7 @@ import '../adapters/kasa/kasa_adapter.dart';
 import '../adapters/kasa/tapo_adapter.dart';
 import '../adapters/shelly/shelly_adapter.dart';
 import '../adapters/sonoff/sonoff_adapter.dart';
+import '../adapters/tasmota/tasmota_adapter.dart';
 import '../adapters/tuya/tuya_adapter.dart';
 import '../adapters/wiz/wiz_adapter.dart';
 import '../adapters/yeelight/yeelight_adapter.dart';
@@ -154,6 +155,7 @@ class AppServices {
       HueAdapter(sockets, secrets),
       YeelightAdapter(sockets),
       SonoffAdapter(sockets, secrets),
+      TasmotaAdapter(sockets, secrets),
     ]);
     final network = NetworkMonitor(platform);
     await network.start();
