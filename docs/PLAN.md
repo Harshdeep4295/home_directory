@@ -92,7 +92,7 @@ Tapo/Kasa credential capture, Hue link-button pairing
 | Sockets | `dart:io` `Socket`, `RawDatagramSocket`, `HttpClient` via `LanSocketFactory` | |
 | Crypto | `pointycastle` (AES-ECB/CBC/GCM, HMAC-SHA256), `crypto` (MD5, SHA) | Tuya, Sonoff, KLAP |
 | mDNS | `bonsoir` | Native NSD / NetService — works on iOS without multicast entitlement |
-| Wi-Fi info | `network_info_plus` | IP, subnet, SSID |
+| Wi-Fi info | own plugins (LanBindingPlugin / LocalNetworkPlugin) | IP, prefix, SSID (Android), internet (Android only); `network_info_plus` dropped in T1.6 |
 | STT | `speech_to_text` with on-device option; Android fallback: Vosk (`vosk_flutter`) | VERIFY each plugin's on-device flag and iOS support at T4.1 |
 | TTS | `flutter_tts` | offline voices |
 | Android native | Kotlin plugin `LanBindingPlugin`, `TimerForegroundService`, `AlarmReceiver` | |
@@ -203,7 +203,7 @@ back from devices and fixes drift or removes finished timers.
 
 ## 10. Platform configuration
 
-**Android** (`AndroidManifest.xml`): `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`,
+**Android** (`AndroidManifest.xml`): `INTERNET`, `ACCESS_NETWORK_STATE`, `CHANGE_NETWORK_STATE` (for `requestNetwork`), `ACCESS_WIFI_STATE`,
 `CHANGE_WIFI_MULTICAST_STATE`, `NEARBY_WIFI_DEVICES` (33+), `ACCESS_FINE_LOCATION`
 (≤32, for SSID), `RECORD_AUDIO`, `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`,
 `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` (VERIFY best FGS type),

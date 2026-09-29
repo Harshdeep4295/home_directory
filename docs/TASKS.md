@@ -45,33 +45,57 @@ writes clear instructions, then stops.
 
 ## M1 — Core, network, registry
 
-- [ ] **T1.1 Core models** (S) — deps: T0.1 — Ref: §Core models
+- [x] **T1.1 Core models** (S) — deps: T0.1 — Ref: §Core models
   Do: freezed models Device, DeviceState, Capability, Room, Alias, TimerJob, Intent,
   Candidate, `Result<T,E>`, `DeviceError`.
   Accept: JSON round-trip tests for every model.
-- [ ] **T1.2 Logger + redaction** (S) — deps: T1.1
+  Note: lib/core: result.dart (sealed Result<T> Ok/Err + freezed DeviceError), models.dart (Device, DeviceState, Room, Alias, TimerJob w/ meta, Candidate + enums), intent.dart (Intent union keyed by 'type', TargetSpan, ClockTime). Durations as seconds, DateTimes UTC ISO. Generated code committed; CI step make codegen-check. 19 tests.
+- [x] **T1.2 Logger + redaction** (S) — deps: T1.1
   Accept: test proves values registered in SecretStore never appear in log output.
-- [ ] **T1.3 LanSocketFactory (Dart side)** (M) — deps: T1.1 — Ref: §LanSocketFactory
+  Note: core/log.dart: Logger (d/i/w/e + tag), Redactor (longest-first, min length 4), ConsoleSink, MemorySink ring (500) for diagnostics. Message, error, stack and tag all redacted. End-to-end 'SecretStore value never logged' test lands with T1.8.
+- [x] **T1.3 LanSocketFactory (Dart side)** (M) — deps: T1.1 — Ref: §LanSocketFactory
   Do: tcp(), udp(), udpBroadcast(), http() with timeouts; delegates Android binding to plugin.
   Accept: unit tests with local echo servers; timeouts return `DeviceError.timeout`.
-- [ ] **T1.4 Android LanBindingPlugin (Kotlin)** (M) — deps: T1.3 — Ref: §Android plugin
+  Note: net/: LanSocketFactory (tcp w/ NODELAY, udp bind, udpRequest single/many, broadcast w/ MulticastLock + iOS unsupported, http with DIRECT proxy), errno→DeviceError map (Linux+Darwin), PlatformBridge interface + DefaultPlatformBridge, NetInfo, IPv4 helpers (broadcast addr, host list capped at /22). 15 tests vs local echo/HTTP servers incl. refused and timeouts.
+- [x] **T1.4 Android LanBindingPlugin (Kotlin)** (M) — deps: T1.3 — Ref: §Android plugin
   Do: request Wi-Fi network without INTERNET capability requirement, `bindProcessToNetwork`,
   expose `isWifiConnected`, `hasInternet`, `wifiIp`, `subnetPrefix`; MulticastLock acquire/release.
   Accept: 👤 on Wi-Fi with WAN unplugged and mobile data ON, app reaches a sim on the laptop by
   LAN IP (steps written in task note).
-- [ ] **T1.5 iOS LocalNetworkPlugin (Swift)** (S) — deps: T1.3 — Ref: §iOS plugin
+  Note: LanBindingPlugin.kt (requestNetwork Wi-Fi w/o INTERNET → bindProcessToNetwork; netInfo ip/prefix/validated/ssid; MulticastLock; event channel), registered in MainActivity; manifest network perms + cleartext; Dart AndroidPlatformBridge + mocked-channel tests; NetDebugScreen as placeholder home. Kotlin typechecked here with kotlinc 2.4.0 vs android-all API 35 + Flutter embedding (no Android SDK in container: dl.google.com blocked) — first real Gradle build happens on the MacBook.
+  - [ ] 👤 Hardware check (Android):
+    1. Laptop on home Wi-Fi: `python3 sim/run.py --devices wiz --host 0.0.0.0 --base-port 38899`
+       (allow incoming connections if macOS asks). Note the laptop IP (`ipconfig getifaddr en0`).
+    2. Unplug the router's WAN cable. On the phone: Wi-Fi on (same network), mobile data ON.
+       Android will show "connected, no internet" — tap "stay connected" if asked.
+    3. `make run-android`. The debug screen should show Wi-Fi connected, Internet "no (local mode)".
+    4. Enter the laptop IP, port 38899 → "Send WiZ getPilot" → expect `OK in <N> ms` + JSON.
+    5. Log the result (and N) in HARDWARE_LOG with test `lan-bind`. If it fails with
+       timeout/offline, note it — that means sockets went over mobile data.
+- [x] **T1.5 iOS LocalNetworkPlugin (Swift)** (S) — deps: T1.3 — Ref: §iOS plugin
   Do: trigger local-network permission (NWBrowser on `_http._tcp`), report granted/denied;
   Info.plist keys from PLAN §10.
   Accept: 👤 prompt appears on first launch; denied state shows guidance screen.
-- [ ] **T1.6 NetworkMonitor** (S) — deps: T1.4, T1.5
+  Note: LocalNetworkPlugin in AppDelegate.swift (no pbxproj edits): permission probe = NWListener advertising _offlinehome._tcp + NWBrowser (own service seen → granted; DNS PolicyDenied -65570 → denied, VERIFY); NWPathMonitor(wifi) + getifaddrs(en0) for ip/prefix; events channel. Info.plist: NSLocalNetworkUsageDescription, NSBonjourServices (+_offlinehome._tcp), NSAllowsLocalNetworking; deployment target 16.0. Dart IosPlatformBridge (canBroadcast=false); NetInfo.internet now nullable (iOS can't know without contacting the internet). Debug screen shows permission + denied guidance. Swift NOT compiled here (no toolchain) — first build on the MacBook.
+  - [ ] 👤 Hardware check (iPhone): `make run-ios` (Xcode → Signing: pick your Personal Team once).
+    1. First launch → system prompt "Offline Home would like to find devices on your local network" → Allow.
+       Debug screen shows `Local Network permission: granted`, Wi-Fi connected, your IP/prefix.
+    2. Settings → Privacy & Security → Local Network → turn Offline Home off → relaunch app →
+       expect `denied` + the guidance card. Turn it back on.
+    3. With the WiZ sim running on the laptop (see T1.4), "Send WiZ getPilot" → `OK`.
+    Log as test `lan-bind` in HARDWARE_LOG. If the build fails, paste the Xcode error.
+- [x] **T1.6 NetworkMonitor** (S) — deps: T1.4, T1.5
   Do: stream of `NetState{wifi, internet, ssid, ip, prefix}`; UI banner "Local mode" when no internet.
   Accept: unit tests with fake platform channel.
-- [ ] **T1.7 Database (drift)** (M) — deps: T1.1 — Ref: §Registry
+  Note: net/network_monitor.dart: NetworkMonitor (seed + platform changes, dedup, wifiChanges ignores internet-only flips), bannerFor → none/localMode/noWifi (iOS unknown internet → no banner); ui/widgets/net_banner.dart shown on debug screen. network_info_plus removed (plugins provide the data). Riverpod provider wiring in T5.1.
+- [x] **T1.7 Database (drift)** (M) — deps: T1.1 — Ref: §Registry
   Do: tables devices, rooms, aliases, timer_jobs, settings, device_state_cache; migrations v1.
   Accept: repository CRUD tests; migration test.
-- [ ] **T1.8 SecretStore** (S) — deps: T1.1
+  Note: registry/: drift tables (rooms, devices, aliases, timer_jobs+meta_json, device_state_cache, settings; FKs with cascade/set-null, foreign_keys ON, dates as text), AppDatabase.open()/memory(), repositories (Device w/ alias sync, Room, Timer, StateCache, Settings). Schema dump drift_schemas/app/v1 + SchemaVerifier migration test. upsertFromCandidate/merge is T2.9.
+- [x] **T1.8 SecretStore** (S) — deps: T1.1
   Do: wrapper over flutter_secure_storage; keys `secret/<deviceId>/<name>`; in-memory fake for tests.
   Accept: tests; no secret columns in SQLite (schema test).
+  Note: registry/secret_store.dart: SecretStore over SecretBackend (SecureStorageBackend: Keychain first_unlock_this_device / Keystore; MemorySecretBackend for tests), keys secret/<deviceId>/<name>, SecretName enum; every value read/written registered with the log Redactor, warmUp() at startup. Tests incl. end-to-end 'secret never logged'; no-secret-columns schema test is in repositories_test.dart.
 
 ## M2 — Adapter framework, first adapters, discovery
 
