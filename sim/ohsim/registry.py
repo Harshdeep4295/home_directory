@@ -5,10 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .base import SimDevice
+from .devices.tuya import TuyaSim
 from .devices.wiz import WizSim
 
 SIM_TYPES: dict[str, type[SimDevice]] = {
     WizSim.kind: WizSim,
+    TuyaSim.kind: TuyaSim,
 }
 
 
