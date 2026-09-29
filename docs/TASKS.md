@@ -205,9 +205,10 @@ writes clear instructions, then stops.
 - [x] **T4.3 Lexicons** (S) — deps: T4.2 — Ref: §Lexicon
   Do: `assets/voice/lexicon_en.yaml`, `lexicon_hi.yaml`: actions, time words, room/device nouns.
   Note: assets/voice/lexicon_en.yaml + lexicon_hi.yaml (normalised forms): actions on/off/toggle/cancel/status, relations for/until/after/at, dayparts (subah/raat/…→am/pm), nouns with Hinglish seeds (batti→light, pankha→fan …), quantifiers all/except, units (ghanta→hour), particles. voice/lexicon.dart loads + merges (longest phrase first), nounAt/unitOf/matchAt helpers; registered as Flutter assets. 4 tests.
-- [ ] **T4.4 Duration + time parser** (M) — deps: T4.2 — Ref: §Time parsing
+- [x] **T4.4 Duration + time parser** (M) — deps: T4.2 — Ref: §Time parsing
   Accept: tests: "20 minutes", "adha ghanta", "dedh ghante", "for 1 hour 15", "11 pm", "raat 11 baje",
   "subah 6 baje", "11:30", "in 5 min", "5 minute baad".
+  Note: voice/time_parser.dart: parseDuration (n unit, h hour m [minute], fractions from dedh/dhai/adha, seconds) and parseClock (HH:MM, H am/pm, H baje, at H, daypart before/after, saadhe/sava/paune via .5/.25/.75, raat 1–4 → early morning, raat 12 → 00:00, subah 12 → null/ask, bare 12-hour → next occurrence from now), both return token spans. 38 tests covering the task's list.
 - [ ] **T4.5 IntentParser** (M) — deps: T4.3, T4.4 — Ref: §IntentParser
 - [ ] **T4.6 TargetResolver** (M) — deps: T1.7, T4.5 — Ref: §TargetResolver
   Do: Jaro-Winkler + Double Metaphone, aliases, rooms, "all", "except", Hinglish plurals ("lights", "batiyan").
