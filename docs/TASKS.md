@@ -45,10 +45,11 @@ writes clear instructions, then stops.
 
 ## M1 — Core, network, registry
 
-- [ ] **T1.1 Core models** (S) — deps: T0.1 — Ref: §Core models
+- [x] **T1.1 Core models** (S) — deps: T0.1 — Ref: §Core models
   Do: freezed models Device, DeviceState, Capability, Room, Alias, TimerJob, Intent,
   Candidate, `Result<T,E>`, `DeviceError`.
   Accept: JSON round-trip tests for every model.
+  Note: lib/core: result.dart (sealed Result<T> Ok/Err + freezed DeviceError), models.dart (Device, DeviceState, Room, Alias, TimerJob w/ meta, Candidate + enums), intent.dart (Intent union keyed by 'type', TargetSpan, ClockTime). Durations as seconds, DateTimes UTC ISO. Generated code committed; CI step make codegen-check. 19 tests.
 - [ ] **T1.2 Logger + redaction** (S) — deps: T1.1
   Accept: test proves values registered in SecretStore never appear in log output.
 - [ ] **T1.3 LanSocketFactory (Dart side)** (M) — deps: T1.1 — Ref: §LanSocketFactory

@@ -22,6 +22,8 @@ jobs:
           cache: true
       - run: flutter pub get
         working-directory: app
+      - name: Generated code up to date
+        run: make codegen-check
       - name: Format check
         run: make fmt-check
       - name: Analyze

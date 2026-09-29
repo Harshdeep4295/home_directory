@@ -69,6 +69,8 @@ home_directory/          (repo root; project working name "Offline Home")
 ## Conventions
 
 - Dart 3, null-safe, `riverpod` for state, `drift` for SQLite, `freezed` for models.
+- Generated code (`*.g.dart`, `*.freezed.dart`) is committed. After changing a model or table run
+  `make codegen`; CI fails if generated code is stale (`make codegen-check`).
 - Every network call has a timeout (default 1500 ms LAN) and returns `Result<T, DeviceError>`;
   adapters never throw across their public interface.
 - All sockets are created through `LanSocketFactory` (so Android binds them to Wi-Fi).
