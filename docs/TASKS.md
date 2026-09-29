@@ -145,33 +145,46 @@ writes clear instructions, then stops.
 
 ## M3 — Engine, state, timers
 
-- [ ] **T3.1 CommandEngine** (M) — deps: T2.1, T1.7 — Ref: §CommandEngine
+- [x] **T3.1 CommandEngine** (M) — deps: T2.1, T1.7 — Ref: §CommandEngine
   Do: per-device serial queue, parallel across devices, retry (2x, backoff 150/400 ms),
   optimistic state + confirm read-back, result aggregation for multi-target commands.
   Accept: tests with FakeAdapter incl. partial failures.
-- [ ] **T3.2 StatePoller** (S) — deps: T3.1 — Ref: §StatePoller
+  Note: engine/command_engine.dart: per-device SerialQueue, parallel across devices, retry x2 (150/400 ms) except auth/unsupported, optimistic state + revert on failure + read-back (800 ms) confirm, cache persisted to device_state_cache (warmUp/remember), stateChanges stream, power/powerOne/status/run, Aggregate ok/failed. 8 tests with FakeAdapter incl. partial failure.
+- [x] **T3.2 StatePoller** (S) — deps: T3.1 — Ref: §StatePoller
   Do: push where adapter supports it, else poll every 5 s while app foreground, 0 when background;
   cache to device_state_cache.
-- [ ] **T3.3 TimerService core** (M) — deps: T3.1 — Ref: §TimerService
+  Note: engine/state_poller.dart: onForeground subscribes adapter.watch() pushes and polls every 5 s (also push devices, to notice offline); 2 consecutive timeout/offline/refused → online=false (auth/protocol errors don't count); background stops polls immediately, drops push sockets after 30 s; push partial updates merged with cache via engine.remember. Engine/poller guard against late results after dispose. 6 tests, stable over repeated runs.
+- [x] **T3.3 TimerService core** (M) — deps: T3.1 — Ref: §TimerService
   Do: tier selection, powerFor/powerAfter/powerAt semantics, persistence, cancel, reconcile.
   Accept: matrix tests with fake clock and fake adapters (native / no-native / max exceeded).
-- [ ] **T3.4 Android phone-tier timers (Kotlin)** (L → split) — deps: T3.3, T1.4
-  - [ ] **T3.4a Alarm scheduling channel** (S): MethodChannel `scheduleExactAlarm(jobId, fireAtMs)`,
+  Note: timers/timer_service.dart: tier selection (native if max ≥ d and canCountdownTo(end, currentOn), else phone), powerFor (combined adapter call when supported, else set now + countdown to the opposite), powerAfter, powerAt/powerUntil via untilNext, one active job per device, cancel per tier, reconcile (overdue native → done; overdue phone never run → failed, never executed late; countdown gone on device → cancelled; drift > 1 min → fireAt corrected), onAlarm for phone tier. PhoneAlarmScheduler interface. 19 matrix tests with fake clock and fake adapters.
+- [x] **T3.4 Android phone-tier timers (Kotlin)** (L → split) — deps: T3.3, T1.4
+  - [x] **T3.4a Alarm scheduling channel** (S): MethodChannel `scheduleExactAlarm(jobId, fireAtMs)`,
     `cancelAlarm(jobId)`, `canScheduleExactAlarms()`; AlarmManager `setExactAndAllowWhileIdle`;
     Dart side behind `PhoneAlarmScheduler` interface with a fake for tests.
-  - [ ] **T3.4b Background Dart entrypoint** (M): `@pragma('vm:entry-point') timerCallback(jobId)`
+    Note: AlarmStore.kt (SharedPreferences jobId→fireAt, setExactAndAllowWhileIdle, inexact fallback when exact not allowed, distinct PendingIntent per job via data URI) + AlarmsPlugin.kt channel offline_home/alarms; Dart AndroidPhoneAlarmScheduler (reports inexact fallback, openExactAlarmSettings) with mocked-channel tests.
+  - [x] **T3.4b Background Dart entrypoint** (M): `@pragma('vm:entry-point') timerCallback(jobId)`
     that opens the DB, builds adapters + CommandEngine without Flutter UI, runs `onAlarm(jobId)`.
     Accept: Dart unit test runs the entrypoint against a fake adapter.
-  - [ ] **T3.4c AlarmReceiver + TimerForegroundService** (M): receiver starts the FGS, FGS starts a
+    Note: timers/alarm_runner.dart: drainAlarms(host, timerService) pulls job ids until null, runs onAlarm each (crash-safe), reports finished/done; MethodChannelAlarmRunnerHost; @pragma('vm:entry-point') timerAlarmMain in main.dart builds AppServices and drains. AppServices now owns CommandEngine, StatePoller, TimerService (+ phone scheduler per platform). DB uses WAL (two engines share the file). Unit test runs the entry-point logic against a fake adapter.
+  - [x] **T3.4c AlarmReceiver + TimerForegroundService** (M): receiver starts the FGS, FGS starts a
     headless `FlutterEngine` on the entrypoint, passes jobId, stops itself when done (timeout 30 s);
     binds to Wi-Fi via LanBindingPlugin before running.
-  - [ ] **T3.4d Boot + re-arm** (S): `RECEIVE_BOOT_COMPLETED` receiver asks Dart for active phone
+    Note: AlarmReceiver.kt → startForegroundService; TimerForegroundService.kt starts a headless FlutterEngine on timerAlarmMain with LanBindingPlugin + AlarmsPlugin, serves next/finished/done over offline_home/alarm_runner, stops on done or 30 s. FGS type dataSync (VERIFY on Android 14/15). Manifest: SCHEDULE_EXACT_ALARM, FOREGROUND_SERVICE(_DATA_SYNC), RECEIVE_BOOT_COMPLETED, POST_NOTIFICATIONS, receivers, service.
+  - [x] **T3.4d Boot + re-arm** (S): `RECEIVE_BOOT_COMPLETED` receiver asks Dart for active phone
     jobs and re-arms them; exact-alarm permission prompt on Android 12+.
-  Accept: 👤 1-minute WiZ timer fires with screen off (WiZ has no native countdown).
-- [ ] **T3.5 iOS phone-tier behaviour** (S) — deps: T3.3
+  - [ ] 👤 Accept: 1-minute WiZ timer fires with screen off (WiZ has no native countdown). On first
+    use allow "Alarms & reminders" if asked. Use the timer action on the debug screen (T3.6).
+    Note: BootReceiver.kt re-arms future alarms from AlarmStore after BOOT_COMPLETED / MY_PACKAGE_REPLACED; jobs that passed while off are dropped (not fired late), same rule as reconcile. Exact-alarm permission prompt via AndroidPhoneAlarmScheduler.openExactAlarmSettings (UI in T5.8).
+- [x] **T3.5 iOS phone-tier behaviour** (S) — deps: T3.3
   Do: warning copy, foreground ticker, local notification at fire time.
-- [ ] **T3.6 👤 Hardware check #2** (S) — deps: T3.3, T2.6
+  Note: timers/ios_phone_timers.dart (IosPhoneTimers: local notification 'Timer due: <device> <on/off>' via flutter_local_notifications zonedSchedule at a UTC instant; cancel), timers/phone_tier_ticker.dart (runs due phone jobs while foreground), timers/tier_copy.dart (tier badge/feedback suffix, iOS warning, Android inexact warning). TimerService now stores the job before scheduling. AppServices wires the iOS scheduler + ticker. Android: core library desugaring enabled (plugin requirement). 5 tests.
+- [x] **T3.6 👤 Hardware check #2** (S) — deps: T3.3, T2.6
   Accept: "Wipro plug on for 1 minute" turns off with phone in airplane mode.
+  Note: Debug screen: long-press a registered device → 'On for 1 minute' / 'Off after 1 minute' / 'Cancel timer', result shows end time and tier ('(plug timer)' / '(phone timer…)'). App start runs timerService.reconcile(); iOS starts the phone-tier ticker. Widget test covers the native-tier path.
+  - [ ] 👤 Wipro/Syska plug: long-press → "On for 1 minute" → expect "(plug timer)". Put the phone in
+    airplane mode right away; the plug must switch off by itself after 1 minute. Log as
+    `native-timer`. If it shows "(phone timer)", note the DP map from the survey.
 
 ## M4 — Voice
 

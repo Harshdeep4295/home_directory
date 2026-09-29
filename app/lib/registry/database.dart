@@ -37,6 +37,9 @@ class AppDatabase extends _$AppDatabase {
     onCreate: (m) => m.createAll(),
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      // The timer foreground service opens the same file from a second engine (T3.4);
+      // WAL lets both read while one writes.
+      await customStatement('PRAGMA journal_mode = WAL');
     },
   );
 }

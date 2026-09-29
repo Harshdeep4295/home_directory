@@ -7,6 +7,8 @@ import '../core/log.dart';
 import '../discovery/collectors.dart';
 import '../discovery/discovery_service.dart';
 import '../discovery/mdns_browser.dart';
+import '../engine/command_engine.dart';
+import '../engine/state_poller.dart';
 import '../net/android_platform_bridge.dart';
 import '../net/ios_platform_bridge.dart';
 import '../net/lan_socket_factory.dart';
@@ -15,6 +17,10 @@ import '../net/platform_bridge.dart';
 import '../registry/database.dart';
 import '../registry/repositories.dart';
 import '../registry/secret_store.dart';
+import '../timers/android_alarm_scheduler.dart';
+import '../timers/ios_phone_timers.dart';
+import '../timers/phone_tier_ticker.dart';
+import '../timers/timer_service.dart';
 
 /// Object graph of the app (PSEUDOCODE §1 bootstrap). Riverpod providers wrap it in T5.1.
 class AppServices {
@@ -25,11 +31,23 @@ class AppServices {
     required this.adapters,
     required this.discovery,
     required this.network,
+    PhoneAlarmScheduler? phoneAlarms,
   }) : devices = DeviceRepository(db),
        rooms = RoomRepository(db),
        timers = TimerRepository(db),
        stateCache = StateCacheRepository(db),
-       settings = SettingsRepository(db);
+       settings = SettingsRepository(db) {
+    engine = CommandEngine(adapters, stateCache);
+    poller = StatePoller(engine, adapters);
+    timerService = TimerService(
+      engine,
+      adapters,
+      devices,
+      timers,
+      phoneAlarms ?? _phoneAlarmsForHost(),
+    );
+    phoneTicker = PhoneTierTicker(timers, timerService);
+  }
 
   final PlatformBridge platform;
   final AppDatabase db;
@@ -42,6 +60,29 @@ class AppServices {
   final TimerRepository timers;
   final StateCacheRepository stateCache;
   final SettingsRepository settings;
+  late final CommandEngine engine;
+  late final StatePoller poller;
+  late final TimerService timerService;
+
+  /// Runs due phone-tier jobs while the app is open. Started on foreground on iOS
+  /// (T3.5); Android relies on exact alarms instead.
+  late final PhoneTierTicker phoneTicker;
+
+  /// Android: exact alarms (T3.4). iOS: notification at fire time + [phoneTicker] (T3.5).
+  PhoneAlarmScheduler _phoneAlarmsForHost() {
+    if (Platform.isAndroid) return AndroidPhoneAlarmScheduler();
+    if (Platform.isIOS) {
+      return IosPhoneTimers(PluginLocalNotifier(), _describeJob);
+    }
+    return NoopPhoneAlarms();
+  }
+
+  Future<String> _describeJob(String jobId) async {
+    final j = await timers.byId(jobId);
+    final d = j == null ? null : await devices.byId(j.deviceId);
+    if (j == null || d == null) return 'timer';
+    return '${d.name} ${j.endOn ? 'on' : 'off'}';
+  }
 
   static PlatformBridge platformForHost() => Platform.isAndroid
       ? AndroidPlatformBridge()
@@ -65,7 +106,7 @@ class AppServices {
     ]);
     final network = NetworkMonitor(platform);
     await network.start();
-    return AppServices(
+    final services = AppServices(
       platform: platform,
       db: db,
       secrets: secrets,
@@ -77,11 +118,24 @@ class AppServices {
       ),
       network: network,
     );
+    await services.engine.warmUp();
+    return services;
   }
 
   Future<void> dispose() async {
+    phoneTicker.stop();
+    await poller.dispose();
+    await engine.dispose();
     await adapters.disposeAll();
     await network.dispose();
     await db.close();
   }
+}
+
+/// Phone tier without a platform backend: the job is stored, reconcile() handles it.
+class NoopPhoneAlarms implements PhoneAlarmScheduler {
+  @override
+  Future<void> schedule(String jobId, DateTime fireAt) async {}
+  @override
+  Future<void> cancel(String jobId) async {}
 }
