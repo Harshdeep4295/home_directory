@@ -25,7 +25,7 @@ nouns:
   geyser: [geyser, heater, water heater]
   ac: [ac, air conditioner, aircon]
   tv: [tv, television]
-  plug: [plug, socket, switch]
+  plug: [plug, plugs, socket, sockets]  # not "switch": too often the verb
 quantifiers:
   all: [all, everything, every, all the]
   except: [except, but, other than, besides, apart from]

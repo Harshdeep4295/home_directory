@@ -209,7 +209,8 @@ writes clear instructions, then stops.
   Accept: tests: "20 minutes", "adha ghanta", "dedh ghante", "for 1 hour 15", "11 pm", "raat 11 baje",
   "subah 6 baje", "11:30", "in 5 min", "5 minute baad".
   Note: voice/time_parser.dart: parseDuration (n unit, h hour m [minute], fractions from dedh/dhai/adha, seconds) and parseClock (HH:MM, H am/pm, H baje, at H, daypart before/after, saadhe/sava/paune via .5/.25/.75, raat 1–4 → early morning, raat 12 → 00:00, subah 12 → null/ask, bare 12-hour → next occurrence from now), both return token spans. 38 tests covering the task's list.
-- [ ] **T4.5 IntentParser** (M) — deps: T4.3, T4.4 — Ref: §IntentParser
+- [x] **T4.5 IntentParser** (M) — deps: T4.3, T4.4 — Ref: §IntentParser
+  Note: voice/intent_parser.dart: normalise → cancel (phrase or 'timer' + cancel verb anywhere) → status (question forms, trailing on/off dropped) → action (longest phrase; on/off beat toggle) → duration/clock spans with ADJACENT relation words only (for/after vs until/at) → target span (all quantifiers, plural nouns imply all, nouns canonicalised batti→light, English 'except X' vs Hindi 'X ke alawa', particles/verb residue dropped). No target → Unknown('which device?'). All 9 §11.5 examples + 15 more pass. 'switch' removed from plug nouns (verb ambiguity).
 - [ ] **T4.6 TargetResolver** (M) — deps: T1.7, T4.5 — Ref: §TargetResolver
   Do: Jaro-Winkler + Double Metaphone, aliases, rooms, "all", "except", Hinglish plurals ("lights", "batiyan").
 - [ ] **T4.7 Golden corpus** (M) — deps: T4.5, T4.6
