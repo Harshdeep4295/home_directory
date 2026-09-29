@@ -12,6 +12,7 @@ import '../../timers/tier_copy.dart';
 import '../alias_suggestions.dart';
 import '../providers.dart';
 import '../widgets/device_tile.dart';
+import '../widgets/prompt.dart';
 
 /// Everything about one device (T5.3).
 class DeviceDetailScreen extends ConsumerStatefulWidget {
@@ -64,25 +65,13 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
   }
 
   Future<void> _customTimer(Device d) async {
-    final ctl = TextEditingController();
-    final minutes = await showDialog<int>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('On for how many minutes?'),
-        content: TextField(
-          controller: ctl,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, int.tryParse(ctl.text.trim())),
-            child: const Text('Start'),
-          ),
-        ],
-      ),
+    final text = await promptText(
+      context,
+      title: 'On for how many minutes?',
+      action: 'Start',
+      keyboardType: TextInputType.number,
     );
-    ctl.dispose();
+    final minutes = int.tryParse(text ?? '');
     if (minutes != null && minutes > 0) {
       await _timer(d, Duration(minutes: minutes));
     }
@@ -91,48 +80,18 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
   Future<void> _save(Device d) => ref.read(servicesProvider).devices.upsert(d);
 
   Future<void> _rename(Device d) async {
-    final ctl = TextEditingController(text: d.name);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Name'),
-        content: TextField(controller: ctl, autofocus: true),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, ctl.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    ctl.dispose();
+    final name = await promptText(context, title: 'Name', initial: d.name);
     if (name != null && name.isNotEmpty) await _save(d.copyWith(name: name));
   }
 
   Future<void> _addAlias(Device d, [String? preset]) async {
     var alias = preset;
-    if (alias == null) {
-      final ctl = TextEditingController();
-      alias = await showDialog<String>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Add a name you say'),
-          content: TextField(
-            controller: ctl,
-            autofocus: true,
-            decoration: const InputDecoration(hintText: 'e.g. batti, pankha'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () =>
-                  Navigator.pop(ctx, ctl.text.trim().toLowerCase()),
-              child: const Text('Add'),
-            ),
-          ],
-        ),
-      );
-      ctl.dispose();
-    }
+    alias ??= (await promptText(
+      context,
+      title: 'Add a name you say',
+      hint: 'e.g. batti, pankha',
+      action: 'Add',
+    ))?.toLowerCase();
     if (alias == null || alias.isEmpty || d.aliases.contains(alias)) return;
     await _save(d.copyWith(aliases: [...d.aliases, alias]));
   }

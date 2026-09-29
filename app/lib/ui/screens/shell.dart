@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers.dart';
 import '../widgets/net_banner.dart';
+import 'add_devices_screen.dart';
 import 'device_detail_screen.dart';
 import 'home_screen.dart';
 import 'timers_screen.dart';
@@ -39,6 +40,9 @@ class _ShellState extends ConsumerState<Shell> {
       (context) => Consumer(
         builder: (context, ref, _) => HomeScreen(
           onMic: () => showVoiceSheet(context, ref),
+          onAddDevices: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const AddDevicesScreen()),
+          ),
           onOpenDevice: (d) => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => DeviceDetailScreen(deviceId: d.id),

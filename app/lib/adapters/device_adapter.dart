@@ -116,6 +116,11 @@ class AdapterRegistry {
     return null;
   }
 
+  /// True if some adapter serves [protocol] (e.g. `tuya-3.3`, `wiz`).
+  bool supportsProtocol(String protocol) => adapters.any(
+    (a) => a.protocols.any((p) => protocol == p || protocol.startsWith('$p-')),
+  );
+
   DeviceAdapter? byBrand(Brand b) {
     for (final a in adapters) {
       if (a.brand == b) return a;
