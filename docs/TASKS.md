@@ -53,9 +53,10 @@ writes clear instructions, then stops.
 - [x] **T1.2 Logger + redaction** (S) — deps: T1.1
   Accept: test proves values registered in SecretStore never appear in log output.
   Note: core/log.dart: Logger (d/i/w/e + tag), Redactor (longest-first, min length 4), ConsoleSink, MemorySink ring (500) for diagnostics. Message, error, stack and tag all redacted. End-to-end 'SecretStore value never logged' test lands with T1.8.
-- [ ] **T1.3 LanSocketFactory (Dart side)** (M) — deps: T1.1 — Ref: §LanSocketFactory
+- [x] **T1.3 LanSocketFactory (Dart side)** (M) — deps: T1.1 — Ref: §LanSocketFactory
   Do: tcp(), udp(), udpBroadcast(), http() with timeouts; delegates Android binding to plugin.
   Accept: unit tests with local echo servers; timeouts return `DeviceError.timeout`.
+  Note: net/: LanSocketFactory (tcp w/ NODELAY, udp bind, udpRequest single/many, broadcast w/ MulticastLock + iOS unsupported, http with DIRECT proxy), errno→DeviceError map (Linux+Darwin), PlatformBridge interface + DefaultPlatformBridge, NetInfo, IPv4 helpers (broadcast addr, host list capped at /22). 15 tests vs local echo/HTTP servers incl. refused and timeouts.
 - [ ] **T1.4 Android LanBindingPlugin (Kotlin)** (M) — deps: T1.3 — Ref: §Android plugin
   Do: request Wi-Fi network without INTERNET capability requirement, `bindProcessToNetwork`,
   expose `isWifiConnected`, `hasInternet`, `wifiIp`, `subnetPrefix`; MulticastLock acquire/release.
