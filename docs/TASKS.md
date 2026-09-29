@@ -154,9 +154,10 @@ writes clear instructions, then stops.
   Do: push where adapter supports it, else poll every 5 s while app foreground, 0 when background;
   cache to device_state_cache.
   Note: engine/state_poller.dart: onForeground subscribes adapter.watch() pushes and polls every 5 s (also push devices, to notice offline); 2 consecutive timeout/offline/refused → online=false (auth/protocol errors don't count); background stops polls immediately, drops push sockets after 30 s; push partial updates merged with cache via engine.remember. Engine/poller guard against late results after dispose. 6 tests, stable over repeated runs.
-- [ ] **T3.3 TimerService core** (M) — deps: T3.1 — Ref: §TimerService
+- [x] **T3.3 TimerService core** (M) — deps: T3.1 — Ref: §TimerService
   Do: tier selection, powerFor/powerAfter/powerAt semantics, persistence, cancel, reconcile.
   Accept: matrix tests with fake clock and fake adapters (native / no-native / max exceeded).
+  Note: timers/timer_service.dart: tier selection (native if max ≥ d and canCountdownTo(end, currentOn), else phone), powerFor (combined adapter call when supported, else set now + countdown to the opposite), powerAfter, powerAt/powerUntil via untilNext, one active job per device, cancel per tier, reconcile (overdue native → done; overdue phone never run → failed, never executed late; countdown gone on device → cancelled; drift > 1 min → fireAt corrected), onAlarm for phone tier. PhoneAlarmScheduler interface. 19 matrix tests with fake clock and fake adapters.
 - [ ] **T3.4 Android phone-tier timers (Kotlin)** (L → split) — deps: T3.3, T1.4
   - [ ] **T3.4a Alarm scheduling channel** (S): MethodChannel `scheduleExactAlarm(jobId, fireAtMs)`,
     `cancelAlarm(jobId)`, `canScheduleExactAlarms()`; AlarmManager `setExactAndAllowWhileIdle`;
