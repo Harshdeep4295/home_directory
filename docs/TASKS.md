@@ -150,9 +150,10 @@ writes clear instructions, then stops.
   optimistic state + confirm read-back, result aggregation for multi-target commands.
   Accept: tests with FakeAdapter incl. partial failures.
   Note: engine/command_engine.dart: per-device SerialQueue, parallel across devices, retry x2 (150/400 ms) except auth/unsupported, optimistic state + revert on failure + read-back (800 ms) confirm, cache persisted to device_state_cache (warmUp/remember), stateChanges stream, power/powerOne/status/run, Aggregate ok/failed. 8 tests with FakeAdapter incl. partial failure.
-- [ ] **T3.2 StatePoller** (S) — deps: T3.1 — Ref: §StatePoller
+- [x] **T3.2 StatePoller** (S) — deps: T3.1 — Ref: §StatePoller
   Do: push where adapter supports it, else poll every 5 s while app foreground, 0 when background;
   cache to device_state_cache.
+  Note: engine/state_poller.dart: onForeground subscribes adapter.watch() pushes and polls every 5 s (also push devices, to notice offline); 2 consecutive timeout/offline/refused → online=false (auth/protocol errors don't count); background stops polls immediately, drops push sockets after 30 s; push partial updates merged with cache via engine.remember. Engine/poller guard against late results after dispose. 6 tests, stable over repeated runs.
 - [ ] **T3.3 TimerService core** (M) — deps: T3.1 — Ref: §TimerService
   Do: tier selection, powerFor/powerAfter/powerAt semantics, persistence, cancel, reconcile.
   Accept: matrix tests with fake clock and fake adapters (native / no-native / max exceeded).

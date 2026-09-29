@@ -80,6 +80,7 @@ class CommandEngine {
 
   /// Records a state learned elsewhere (poller, push) without sending anything.
   Future<void> remember(String deviceId, DeviceState s) async {
+    if (_changes.isClosed) return;
     _cache[deviceId] = s;
     _changes.add((deviceId, s));
     await _cacheRepo.put(deviceId, s);
@@ -145,7 +146,9 @@ class CommandEngine {
         _emit(d.id, before);
       } else {
         _cache.remove(d.id);
-        _changes.add((d.id, DeviceState(online: false, at: _now())));
+        if (!_changes.isClosed) {
+          _changes.add((d.id, DeviceState(online: false, at: _now())));
+        }
       }
       return r;
     }
@@ -172,7 +175,7 @@ class CommandEngine {
 
   void _emit(String id, DeviceState s) {
     _cache[id] = s;
-    _changes.add((id, s));
+    if (!_changes.isClosed) _changes.add((id, s));
   }
 
   Future<void> dispose() => _changes.close();
