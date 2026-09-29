@@ -228,7 +228,8 @@ writes clear instructions, then stops.
 
 ## M5 — UI and onboarding
 
-- [ ] **T5.1 App shell + theme + navigation** (S) — deps: T0.1
+- [x] **T5.1 App shell + theme + navigation** (S) — deps: T0.1
+  Note: ui/providers.dart (services, devices, rooms, deviceStates from engine cache + stateChanges, netState, active timers with 1 s tick, voiceState, clock), ui/theme.dart (Material 3 teal seed, light/dark), ui/app.dart (lifecycle: resume → poller.onForeground + iOS ticker + reconcile; pause → poller.onBackground; devices change → re-arm poller), ui/screens/shell.dart (Home/Timers/Settings NavigationBar + network banner), debug screens moved behind ui/screens/debug_menu.dart. main() runs the shell in a ProviderScope. test/support/test_services.dart builds AppServices on fakes; tearDown() pumps before closing drift (else close() hangs on fake-zone stream queries).
 - [ ] **T5.2 Home screen** (M) — deps: T5.1, T3.2
   Do: rooms → device tiles (state, tap toggle, long-press detail), "Local mode" banner, mic FAB.
 - [ ] **T5.3 Device detail** (M) — deps: T5.2, T3.3
