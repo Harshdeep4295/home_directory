@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../home_widget_sync.dart';
 import '../providers.dart';
 import '../widgets/net_banner.dart';
 import 'add_devices_screen.dart';
@@ -31,6 +34,45 @@ class ShellPage {
 
 class _ShellState extends ConsumerState<Shell> {
   int _index = 0;
+  StreamSubscription<Uri?>? _clicks;
+
+  @override
+  void initState() {
+    super.initState();
+    final bridge = ref.read(homeWidgetBridgeProvider);
+    _clicks = bridge.clicks.listen(_onWidgetUri);
+    unawaited(bridge.initialUri().then(_onWidgetUri));
+  }
+
+  @override
+  void dispose() {
+    unawaited(_clicks?.cancel());
+    super.dispose();
+  }
+
+  /// A tap on the home-screen widget or the quick-settings tile (T5.9).
+  Future<void> _onWidgetUri(Uri? uri) async {
+    if (!mounted) return;
+    switch (parseWidgetUri(uri)) {
+      case OpenVoice():
+        setState(() => _index = 0);
+        await showVoiceSheet(context, ref);
+      case ToggleDevice(:final deviceId):
+        final d = await ref.read(servicesProvider).devices.byId(deviceId);
+        if (d != null && mounted) await HomeScreen.toggle(ref, d);
+      case null:
+        break;
+    }
+  }
+
+  void _publishWidget() {
+    final devices = ref.read(devicesProvider).value;
+    if (devices == null) return;
+    final states = ref.read(deviceStatesProvider).value ?? const {};
+    unawaited(
+      ref.read(homeWidgetBridgeProvider).publish(widgetData(devices, states)),
+    );
+  }
 
   static final defaultPages = [
     ShellPage(
@@ -68,6 +110,8 @@ class _ShellState extends ConsumerState<Shell> {
   @override
   Widget build(BuildContext context) {
     final pages = widget.pages ?? defaultPages;
+    ref.listen(devicesProvider, (_, _) => _publishWidget());
+    ref.listen(deviceStatesProvider, (_, _) => _publishWidget());
     final net = ref.watch(netStateProvider).value;
     return Scaffold(
       body: SafeArea(

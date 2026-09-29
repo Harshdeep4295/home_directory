@@ -6,6 +6,7 @@ import '../app/services.dart';
 import '../core/models.dart';
 import '../net/platform_bridge.dart';
 import '../voice/voice_controller.dart';
+import 'home_widget_sync.dart';
 
 /// UI state (PSEUDOCODE §13). [servicesProvider] is overridden in main().
 final servicesProvider = Provider<AppServices>(
@@ -79,3 +80,8 @@ final voiceStateProvider = StreamProvider<VoiceState>((ref) async* {
 
 /// Wall clock for UI countdowns (overridable in tests).
 final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
+/// Home-screen widget bridge (T5.9); a no-op off Android and in tests.
+final homeWidgetBridgeProvider = Provider<HomeWidgetBridge>(
+  (ref) => HomeWidgetBridge.forPlatform(),
+);

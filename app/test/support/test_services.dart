@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:offline_home/adapters/device_adapter.dart';
 import 'package:offline_home/adapters/fake_adapter.dart';
@@ -122,10 +123,11 @@ class TestServices {
     return TestServices._(s, fake, platform, evidence, tts);
   }
 
-  Widget wrap(Widget child) => ProviderScope(
-    overrides: [servicesProvider.overrideWithValue(services)],
-    child: child,
-  );
+  Widget wrap(Widget child, {List<Override> overrides = const []}) =>
+      ProviderScope(
+        overrides: [servicesProvider.overrideWithValue(services), ...overrides],
+        child: child,
+      );
 
   /// Unmounts the tree, lets provider/stream cancellations run in the fake-async zone,
   /// then disposes services for real. Without the pumps, drift's close() waits forever

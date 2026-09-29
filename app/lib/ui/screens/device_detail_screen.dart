@@ -10,6 +10,7 @@ import '../../core/result.dart';
 import '../../registry/secret_store.dart';
 import '../../timers/tier_copy.dart';
 import '../alias_suggestions.dart';
+import '../home_widget_sync.dart';
 import '../providers.dart';
 import '../widgets/device_tile.dart';
 import '../widgets/prompt.dart';
@@ -163,6 +164,13 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
       appBar: AppBar(
         title: Text(d.name),
         actions: [
+          IconButton(
+            tooltip: isFavourite(d)
+                ? 'Remove from widget'
+                : 'Add to home-screen widget',
+            onPressed: () => _save(withFavourite(d, !isFavourite(d))),
+            icon: Icon(isFavourite(d) ? Icons.star : Icons.star_border),
+          ),
           IconButton(
             tooltip: 'Rename',
             onPressed: () => _rename(d),

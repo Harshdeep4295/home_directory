@@ -54,6 +54,27 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <!-- Home-screen widget + quick-settings tile (T5.9). -->
+        <receiver
+            android:name=".OfflineHomeWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/offline_home_widget_info" />
+        </receiver>
+        <service
+            android:name=".VoiceTileService"
+            android:exported="true"
+            android:icon="@android:drawable/ic_btn_speak_now"
+            android:label="Voice command"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
         <!-- VERIFY FGS type on Android 14/15 (PLAN §10). -->
         <service
             android:name=".TimerForegroundService"

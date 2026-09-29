@@ -253,9 +253,11 @@ writes clear instructions, then stops.
 - [x] **T5.8 Permissions + first-run** (S) — deps: T1.5, T4.1
   Do: permission walkthrough, offline speech model download instructions per platform.
   Note: ui/screens/first_run.dart shown until settings.onboarded: welcome (local-only, not affiliated) → permissions (onboarding/permissions.dart PlatformPermissions: iOS Local Network probe, mic+speech via speech_to_text init, notifications via flutter_local_notifications, Android exact alarms → system settings; status per row with Allow / Try again) → offline speech model (lists en/hi locales, per-platform download steps) → add devices → Done. App root gated by onboardedProvider. Widget test walks the whole flow with fake permissions.
-- [ ] **T5.9 Android widget + quick-settings tile** (M) — deps: T4.8
+- [x] **T5.9 Android widget + quick-settings tile** (M) — deps: T4.8
   Do: widget with mic button + 4 favourite devices; tile opens voice sheet directly.
+  Note: plain AppWidgetProvider (no Glance) + TileService open the app with `offlinehome://voice|toggle/<id>` via home_widget's launch action; star on device detail marks favourites; hardware check #9 pending.
 - [ ] **T5.10 iOS widget / Shortcuts** (S) — deps: T4.8 — optional, can defer.
+  Note: deferred — needs a WidgetKit extension target + App Group, which requires Xcode signing on the Mac.
 
 ## M6 — Key import (onboarding/cloud_import — the only internet code)
 
