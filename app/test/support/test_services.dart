@@ -84,7 +84,9 @@ class TestServices {
     final platform = FakePlatformBridge(info: net);
     final db = AppDatabase.memory();
     final secrets = SecretStore(MemorySecretBackend(), Redactor());
-    final fake = FakeAdapter(protocols: {'fake', 'wiz', 'tuya', 'tuya-3.3'});
+    final fake = FakeAdapter(
+      protocols: {'fake', 'wiz', 'tuya', 'tuya-3.3', 'klap-smart'},
+    );
     final evidence = StaticEvidence();
     final network = NetworkMonitor(platform);
     await network.start();

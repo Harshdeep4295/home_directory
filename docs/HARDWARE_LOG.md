@@ -30,6 +30,7 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 14 | T7.3 | Syska/Wipro bulb after devices.json import: brightness + colour-temp sliders work (note which end of the temp slider is warm); a 2/3-gang switch (if any) shows one tile per gang, each toggles its own relay, "On for 1 minute" per gang | phone, Tuya bulb / multi-gang switch |
 | 15 | T7.4 | Only if you own a Shelly: scan finds it, toggle, "On for 1 minute" (plug timer), then set a device password in the Shelly app and re-add | phone, Shelly |
 | 16 | T7.5 | Only if you own an older Kasa plug (HS1xx/KP1xx): scan finds it, toggle, "On for 1 minute" shows plug timer and it turns off by itself | phone, Kasa plug |
+| 17 | T7.6 | Only if you own a Tapo / new Kasa device: scan finds it (UDP 20002), enter the TP-Link account, toggle; bulbs: brightness slider. If the scan misses it, tell me the model | phone, Tapo device |
 
 ## Device survey (T0.6)
 

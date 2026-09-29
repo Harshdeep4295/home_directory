@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../adapters/kasa/kasa_adapter.dart';
 import '../../core/models.dart';
 import '../../core/result.dart';
 import '../../discovery/discovery_service.dart';
@@ -58,6 +59,9 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
         } else if (c.brand == Brand.shelly) {
           final ok = await _shellyPassword(c);
           if (ok) await _nameAndAdd(c.copyWith(needsKey: false));
+        } else if (c.protocol.startsWith('klap-')) {
+          final ok = await _tplinkAccount();
+          if (ok) await _nameAndAdd(c.copyWith(needsKey: false));
         } else {
           _info(
             '${c.brand.name} credentials',
@@ -104,6 +108,31 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
     final cb = widget.onImportDevicesJson;
     if (cb != null) return cb();
     openDevicesJsonImport(context);
+  }
+
+  /// Tapo / new Kasa (KLAP): the TP-Link (Kasa/Tapo app) account, stored once for all
+  /// devices under the pseudo id `tplink`. It is only used to derive the local
+  /// handshake hash; nothing is sent to TP-Link.
+  Future<bool> _tplinkAccount() async {
+    final email = await promptText(
+      context,
+      title: 'TP-Link account e-mail',
+      message: 'The account used in the Tapo / Kasa app. Stays on this phone.',
+      keyboardType: TextInputType.emailAddress,
+      action: 'Next',
+    );
+    if (email == null || email.isEmpty || !mounted) return false;
+    final pw = await promptText(
+      context,
+      title: 'TP-Link account password',
+      message: 'Case-sensitive.',
+      action: 'Save',
+    );
+    if (pw == null || pw.isEmpty) return false;
+    final secrets = ref.read(servicesProvider).secrets;
+    await secrets.set(KasaAdapter.accountId, SecretName.email, email.trim());
+    await secrets.set(KasaAdapter.accountId, SecretName.password, pw);
+    return true;
   }
 
   /// Shelly with auth enabled: the device password (user "admin"), kept in SecretStore.

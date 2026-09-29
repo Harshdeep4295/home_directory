@@ -38,7 +38,7 @@ abstract class Device with _$Device {
     required String id,
     required Brand brand,
 
-    /// Protocol id including version, e.g. `tuya-3.3`, `wiz`, `kasa-klap`.
+    /// Protocol id including version, e.g. `tuya-3.3`, `wiz`, `klap-smart`.
     required String protocol,
     required String ip,
     String? mac,

@@ -212,12 +212,24 @@ abstract final class Fingerprinter {
       final type = r['device_type'] as String? ?? '';
       final scheme = r['mgt_encrypt_schm'];
       final encrypt = scheme is Map ? scheme['encrypt_type'] as String? : null;
+      final https = scheme is Map && scheme['is_support_https'] == true;
+      final httpPort = scheme is Map ? scheme['http_port'] as num? : null;
       final mac = _normMac(r['mac']);
+      // kasa/device_factory.py: "<IOT|SMART>.<encrypt_type>[.HTTPS]" picks the stack.
+      final family = type.split('.').first;
+      final protocol = switch ((family, encrypt, https)) {
+        ('IOT', 'KLAP', false) => 'klap-iot',
+        ('SMART', 'KLAP', false) => 'klap-smart',
+        // SMART.KLAP.HTTPS, SMART.AES (Tapo cameras/hubs) — no adapter yet.
+        _ =>
+          'tplink-${family.toLowerCase()}-${(encrypt ?? '?').toLowerCase()}${https ? '-https' : ''}',
+      };
       return Candidate(
         ip: e.ip,
         mac: mac,
+        port: httpPort?.toInt(),
         brand: type.contains('TAPO') ? Brand.tapo : Brand.kasa,
-        protocol: encrypt == 'AES' ? 'kasa-aes' : 'kasa-klap',
+        protocol: protocol,
         deviceId: (r['device_id'] as String?) ?? mac,
         name: r['device_model'] as String?,
         needsKey: !known.tplinkAccount,

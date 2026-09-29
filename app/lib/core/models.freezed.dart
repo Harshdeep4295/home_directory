@@ -17,7 +17,7 @@ T _$identity<T>(T value) => value;
 mixin _$Device {
 
 /// Stable id: vendor device id, else MAC, else `ip:<ip>`.
- String get id; Brand get brand;/// Protocol id including version, e.g. `tuya-3.3`, `wiz`, `kasa-klap`.
+ String get id; Brand get brand;/// Protocol id including version, e.g. `tuya-3.3`, `wiz`, `klap-smart`.
  String get protocol; String get ip; String? get mac; int? get port; String get name; String? get roomId; List<String> get aliases; Set<Capability> get capabilities; Duration? get nativeCountdownMax;/// Tuya data-point map, e.g. `{"switch": 1, "countdown": 9}`.
  Map<String, int>? get dpMap; Duration? get defaultAutoOff;/// Adapter-specific extras: model, firmware, Shelly gen, Hue light id, ...
  Map<String, Object?> get meta; DateTime get lastSeen;
@@ -240,7 +240,7 @@ class _Device implements Device {
 /// Stable id: vendor device id, else MAC, else `ip:<ip>`.
 @override final  String id;
 @override final  Brand brand;
-/// Protocol id including version, e.g. `tuya-3.3`, `wiz`, `kasa-klap`.
+/// Protocol id including version, e.g. `tuya-3.3`, `wiz`, `klap-smart`.
 @override final  String protocol;
 @override final  String ip;
 @override final  String? mac;

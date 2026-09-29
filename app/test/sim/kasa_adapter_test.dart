@@ -52,7 +52,7 @@ void main() {
     final d = Device(
       id: 'x',
       brand: Brand.tapo,
-      protocol: 'kasa-klap',
+      protocol: 'klap-smart',
       ip: '1.2.3.4',
       name: 'x',
       lastSeen: DateTime.now(),

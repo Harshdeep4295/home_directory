@@ -173,8 +173,42 @@ void main() {
           ]),
         ),
       brand: Brand.tapo,
-      protocol: 'kasa-klap',
+      protocol: 'klap-smart',
       deviceId: 'abc123',
+      needsKey: true,
+    ),
+    (
+      name: 'Kasa KP125M IOT.KLAP 20002 (python-kasa DiscoveryResult fields; SIM)',
+      evidence: () => HostEvidence('192.168.1.39')
+        ..addUdp(
+          UdpProbe.klap,
+          Uint8List.fromList([
+            ...List.filled(16, 0),
+            ...b(
+              '{"result":{"device_id":"iot456","device_type":"IOT.SMARTPLUGSWITCH","device_model":"KP125M(US)","ip":"192.168.1.39","mac":"AA-BB-CC-DD-EE-00","mgt_encrypt_schm":{"is_support_https":false,"encrypt_type":"KLAP","http_port":80}},"error_code":0}',
+            ),
+          ]),
+        ),
+      brand: Brand.kasa,
+      protocol: 'klap-iot',
+      deviceId: 'iot456',
+      needsKey: true,
+    ),
+    (
+      name: 'Tapo hub SMART.AES over HTTPS → not supported (SIM)',
+      evidence: () => HostEvidence('192.168.1.40')
+        ..addUdp(
+          UdpProbe.klap,
+          Uint8List.fromList([
+            ...List.filled(16, 0),
+            ...b(
+              '{"result":{"device_id":"hub1","device_type":"SMART.TAPOHUB","device_model":"H200","ip":"192.168.1.40","mac":"AA-BB-CC-DD-EE-01","mgt_encrypt_schm":{"is_support_https":true,"encrypt_type":"AES","http_port":443}},"error_code":0}',
+            ),
+          ]),
+        ),
+      brand: Brand.tapo,
+      protocol: 'tplink-smart-aes-https',
+      deviceId: 'hub1',
       needsKey: true,
     ),
     (
