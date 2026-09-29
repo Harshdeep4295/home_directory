@@ -83,5 +83,9 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Offline Home listens only while you hold the mic button, to turn your devices on and off by voice. Audio never leaves your phone.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Speech is recognised on your iPhone to understand commands like "geyser on for 20 minutes". Nothing is sent to a server.</string>
 </dict>
 </plist>

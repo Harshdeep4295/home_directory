@@ -188,10 +188,16 @@ writes clear instructions, then stops.
 
 ## M4 — Voice
 
-- [ ] **T4.1 SttService** (M) — deps: T0.1 — Ref: §SttService
+- [x] **T4.1 SttService** (M) — deps: T0.1 — Ref: §SttService
   Do: speech_to_text on-device mode, contextual strings, partial results, 1.2 s silence stop;
   capability check (on-device available? locales?); Vosk fallback on Android behind interface.
   Accept: 👤 prints transcripts offline on both phones; task note lists available locales.
+  Note: voice/stt_service.dart: SttService over a SpeechEngine interface (partials → one final/error, 8 s max, 1.2 s silence stop, contextual phrases, capabilities = available + locale ids); PlatformSpeechEngine = speech_to_text 7.5 with onDevice: true always (rule 6, no cloud fallback) and error mapping to modelMissing/noMatch/permission (VERIFY strings on phones). Vosk fallback NOT added: vosk_flutter is abandoned (Dart 2); the engine interface allows adding one if T4.9 shows a phone lacks an on-device model. Android RECORD_AUDIO + RecognitionService query; iOS mic/speech usage strings. 4 tests.
+  - [ ] 👤 On each phone with Wi-Fi off: speak a few commands on the voice debug screen (T4.8) and
+    note the transcripts and the locales it lists (en_IN? hi_IN?). If a "language not
+    available" error appears, download the offline model: Android → Settings → Google →
+    Speech / "Offline speech recognition"; iPhone → Settings → General → Keyboard →
+    Dictation languages (on-device).
 - [ ] **T4.2 Normaliser** (S) — deps: T1.1 — Ref: §Normaliser
   Do: lowercase, punctuation, Devanagari→Latin map, filler removal, spelling variants
   (bandh→band, chaalu→chalu), number words EN + HI (ek..sau, one..hundred, "dedh", "dhai", "sava", "paune").

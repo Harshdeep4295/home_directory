@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- Voice (T4.1). Recognition is always on-device (CLAUDE.md rule 6). The Bluetooth
+         permissions speech_to_text lists are only needed for headset mics; not requested. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Phone-tier timers (T3.4): exact alarms, foreground service, re-arm after boot. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -68,6 +71,10 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <!-- speech_to_text on Android 11+ (its README, "Android SDK 30 or later"). -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
