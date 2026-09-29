@@ -18,6 +18,8 @@ import '../registry/database.dart';
 import '../registry/repositories.dart';
 import '../registry/secret_store.dart';
 import '../timers/android_alarm_scheduler.dart';
+import '../timers/ios_phone_timers.dart';
+import '../timers/phone_tier_ticker.dart';
 import '../timers/timer_service.dart';
 
 /// Object graph of the app (PSEUDOCODE §1 bootstrap). Riverpod providers wrap it in T5.1.
@@ -42,8 +44,9 @@ class AppServices {
       adapters,
       devices,
       timers,
-      phoneAlarms ?? phoneAlarmsForHost(),
+      phoneAlarms ?? _phoneAlarmsForHost(),
     );
+    phoneTicker = PhoneTierTicker(timers, timerService);
   }
 
   final PlatformBridge platform;
@@ -61,10 +64,25 @@ class AppServices {
   late final StatePoller poller;
   late final TimerService timerService;
 
-  /// Android: exact alarms (T3.4). iOS: notification + foreground ticker (T3.5);
-  /// until then a no-op that leaves the job in the DB for reconcile().
-  static PhoneAlarmScheduler phoneAlarmsForHost() =>
-      Platform.isAndroid ? AndroidPhoneAlarmScheduler() : NoopPhoneAlarms();
+  /// Runs due phone-tier jobs while the app is open. Started on foreground on iOS
+  /// (T3.5); Android relies on exact alarms instead.
+  late final PhoneTierTicker phoneTicker;
+
+  /// Android: exact alarms (T3.4). iOS: notification at fire time + [phoneTicker] (T3.5).
+  PhoneAlarmScheduler _phoneAlarmsForHost() {
+    if (Platform.isAndroid) return AndroidPhoneAlarmScheduler();
+    if (Platform.isIOS) {
+      return IosPhoneTimers(PluginLocalNotifier(), _describeJob);
+    }
+    return NoopPhoneAlarms();
+  }
+
+  Future<String> _describeJob(String jobId) async {
+    final j = await timers.byId(jobId);
+    final d = j == null ? null : await devices.byId(j.deviceId);
+    if (j == null || d == null) return 'timer';
+    return '${d.name} ${j.endOn ? 'on' : 'off'}';
+  }
 
   static PlatformBridge platformForHost() => Platform.isAndroid
       ? AndroidPlatformBridge()
@@ -105,6 +123,7 @@ class AppServices {
   }
 
   Future<void> dispose() async {
+    phoneTicker.stop();
     await poller.dispose();
     await engine.dispose();
     await adapters.disposeAll();

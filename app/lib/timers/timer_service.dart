@@ -267,8 +267,9 @@ class TimerService {
       meta: handle,
       createdAt: now,
     );
-    if (tier == TimerTier.phone) await _phone.schedule(job.id, job.fireAt);
+    // Store first: phone schedulers may read the job (iOS notification text).
     await _timers.upsert(job);
+    if (tier == TimerTier.phone) await _phone.schedule(job.id, job.fireAt);
     log.i(
       _tag,
       '${dev.id}: ${endOn ? 'on' : 'off'} in ${d.inSeconds}s (${tier.name})',

@@ -158,7 +158,7 @@ writes clear instructions, then stops.
   Do: tier selection, powerFor/powerAfter/powerAt semantics, persistence, cancel, reconcile.
   Accept: matrix tests with fake clock and fake adapters (native / no-native / max exceeded).
   Note: timers/timer_service.dart: tier selection (native if max ≥ d and canCountdownTo(end, currentOn), else phone), powerFor (combined adapter call when supported, else set now + countdown to the opposite), powerAfter, powerAt/powerUntil via untilNext, one active job per device, cancel per tier, reconcile (overdue native → done; overdue phone never run → failed, never executed late; countdown gone on device → cancelled; drift > 1 min → fireAt corrected), onAlarm for phone tier. PhoneAlarmScheduler interface. 19 matrix tests with fake clock and fake adapters.
-- [ ] **T3.4 Android phone-tier timers (Kotlin)** (L → split) — deps: T3.3, T1.4
+- [x] **T3.4 Android phone-tier timers (Kotlin)** (L → split) — deps: T3.3, T1.4
   - [x] **T3.4a Alarm scheduling channel** (S): MethodChannel `scheduleExactAlarm(jobId, fireAtMs)`,
     `cancelAlarm(jobId)`, `canScheduleExactAlarms()`; AlarmManager `setExactAndAllowWhileIdle`;
     Dart side behind `PhoneAlarmScheduler` interface with a fake for tests.
@@ -173,10 +173,12 @@ writes clear instructions, then stops.
     Note: AlarmReceiver.kt → startForegroundService; TimerForegroundService.kt starts a headless FlutterEngine on timerAlarmMain with LanBindingPlugin + AlarmsPlugin, serves next/finished/done over offline_home/alarm_runner, stops on done or 30 s. FGS type dataSync (VERIFY on Android 14/15). Manifest: SCHEDULE_EXACT_ALARM, FOREGROUND_SERVICE(_DATA_SYNC), RECEIVE_BOOT_COMPLETED, POST_NOTIFICATIONS, receivers, service.
   - [x] **T3.4d Boot + re-arm** (S): `RECEIVE_BOOT_COMPLETED` receiver asks Dart for active phone
     jobs and re-arms them; exact-alarm permission prompt on Android 12+.
-  Accept: 👤 1-minute WiZ timer fires with screen off (WiZ has no native countdown).
+  - [ ] 👤 Accept: 1-minute WiZ timer fires with screen off (WiZ has no native countdown). On first
+    use allow "Alarms & reminders" if asked. Use the timer action on the debug screen (T3.6).
     Note: BootReceiver.kt re-arms future alarms from AlarmStore after BOOT_COMPLETED / MY_PACKAGE_REPLACED; jobs that passed while off are dropped (not fired late), same rule as reconcile. Exact-alarm permission prompt via AndroidPhoneAlarmScheduler.openExactAlarmSettings (UI in T5.8).
-- [ ] **T3.5 iOS phone-tier behaviour** (S) — deps: T3.3
+- [x] **T3.5 iOS phone-tier behaviour** (S) — deps: T3.3
   Do: warning copy, foreground ticker, local notification at fire time.
+  Note: timers/ios_phone_timers.dart (IosPhoneTimers: local notification 'Timer due: <device> <on/off>' via flutter_local_notifications zonedSchedule at a UTC instant; cancel), timers/phone_tier_ticker.dart (runs due phone jobs while foreground), timers/tier_copy.dart (tier badge/feedback suffix, iOS warning, Android inexact warning). TimerService now stores the job before scheduling. AppServices wires the iOS scheduler + ticker. Android: core library desugaring enabled (plugin requirement). 5 tests.
 - [ ] **T3.6 👤 Hardware check #2** (S) — deps: T3.3, T2.6
   Accept: "Wipro plug on for 1 minute" turns off with phone in airplane mode.
 
