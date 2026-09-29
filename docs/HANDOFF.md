@@ -1,0 +1,96 @@
+# Handoff — Offline Home (state as of 2026-09-29)
+
+Read `CLAUDE.md` first (rules are non-negotiable), then this file, then `docs/TASKS.md`.
+This note says where the work stands, how to run things, and what is left.
+
+## 1. Where things are
+
+| Milestone | State |
+|---|---|
+| M0–M6 | **Merged into `main`** (M5 = PR #6 App UI, M6 = PR #7 Key import). |
+| M7 Remaining adapters | **In progress** on branch `claude/sweet-thompson-fba2km` (pushed, **no PR yet**). T7.1 Tuya 3.4 and T7.2 Tuya 3.5 are committed; T7.3 onwards not started. |
+| M8 Hardening | Not started. |
+
+- Working branch: `claude/sweet-thompson-fba2km`, currently `main` (e1bf4f9) + `T7.1` (6820a3d) + `T7.2` (afe7ea8).
+- Working tree is clean; nothing uncommitted.
+- No open PRs, no scheduled check-ins, no PR subscriptions.
+- Latest full local run: 390 Flutter tests + 24 simulator (pytest) tests green, `flutter analyze --fatal-infos` clean, codegen up to date.
+
+## 2. Workflow the owner agreed to
+
+- One commit per task, message `T<id>: <title>`; tick the task in `docs/TASKS.md` with a one-line note (what was done + open VERIFYs).
+- Commit trailers (required on every commit):
+  ```
+  Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+  Claude-Session: <link of the session making the commit>
+  ```
+  No model IDs in commits/PRs. PR bodies end with `🤖 Generated with [Claude Code](https://claude.com/claude-code)` + session link.
+- **One PR per milestone** into `main`, created from the latest `main` after the previous milestone merged. The owner authorised **the agent to merge a milestone PR itself once CI (`flutter` + `sim` jobs) is green** (merge method `merge`, pass the full head SHA). After merging: `git fetch origin main && git checkout -B claude/sweet-thompson-fba2km origin/main` and start the next milestone.
+- The owner is **not near the devices**: implement everything, skip 👤 hardware steps, and add each real-device check to the **"Pending hardware checks"** table in `docs/HARDWARE_LOG.md` (rows 1–13 so far). They will run them in one go later.
+- Only ping the owner (push notification) when their input is genuinely needed.
+
+## 3. Environment (cloud container) — how to run things
+
+- Flutter: `export PATH=/opt/flutter/bin:$PATH` (Flutter 3.47.5 / Dart 3.13.4; runs as root, ignore the warning).
+- Python for simulators: a venv with `pytest pytest-asyncio tinytuya==1.20.0` (`sim/requirements-dev.txt`). The previous session's venv lived in its scratchpad and is **gone** in a new container — recreate:
+  ```
+  python3 -m venv /tmp/venv && /tmp/venv/bin/pip install -r sim/requirements-dev.txt
+  ```
+- Full check (same as CI): `make fmt-check codegen-check test PYTHON=/tmp/venv/bin/python`
+  - `codegen-check` fails if anything under `app/lib`/`app/test` is **uncommitted** (it uses `git status`), so run it after committing.
+  - Simulator-backed Dart tests (`app/test/sim`, tag `sim`) need `OH_PYTHON=/tmp/venv/bin/python` when run directly with `flutter test`.
+- Kotlin was only type-checked (kotlinc + android-all API 35 + Flutter embedding jar, script lived in the old scratchpad); Swift was never compiled. Neither is built in CI.
+- Byte-exact protocol vectors are generated from the reference libraries: `python sim/tools/gen_tuya_vectors.py` (3.x/3.4/3.5), `sim/tools/gen_tuya_cloud_vectors.py` (OpenAPI signing). Re-running must leave existing vector files unchanged.
+- `.gitignore` ignores any file named `devices.json` (real keys). Test fixtures must use another name (`test/onboarding/fixtures/sample_devices.json`) — this bit CI once.
+
+## 4. Architecture cheat-sheet (what exists)
+
+- `app/lib/adapters/` — `DeviceAdapter` interface (`guarded()`, countdown API, `powerFor`), `AdapterRegistry`, `FakeAdapter`, `wiz/`, `tuya/` (codec: 3.1/3.3 `TuyaCodec3x`, 3.4 `TuyaCodec34` HMAC+ECB, 3.5 `TuyaCodec35` 6699 AES-GCM; `TuyaSessionCodec` negotiation; adapter matches 3.5 replies by command), `kasa/kasa_xor.dart` (discovery only so far).
+- `discovery/` CandidateCollector (UDP probes, Tuya beacons 6666/6667/7000 + REQ_DEVINFO broadcast, TCP port scan, HTTP, mDNS) → `Fingerprinter` → `DiscoveryService` (merge by id → MAC → IP).
+- `engine/` CommandEngine (serial per device, retries, optimistic state) + StatePoller. `timers/` TimerService (native tier first, phone tier fallback; Android exact alarms + headless engine, iOS notification + ticker). `voice/` offline STT → normaliser → lexicon → time/intent parser → fuzzy target resolver.
+- `onboarding/` badges, permissions, `devices_json_import.dart`, `manual_key.dart`, `cloud_import/tuya_cloud.dart` (**the only internet code**; a guard test fails if any other `lib/` file uses HTTPS/`package:http`/imports `cloud_import`).
+- `ui/` Riverpod providers, Shell (Home/Timers/Settings), device detail, voice sheet, add devices, key import screens, Tuya guide, home-screen widget sync (`home_widget_sync.dart`).
+- `sim/ohsim/devices/`: `WizSim`, `TuyaSim` (versions 3.1/3.3/3.4/3.5, profiles plug|bulb, device22, beacons). Sim behaviour is checked against the reference client (tinytuya) in `sim/tests`.
+- Every adapter must pass `adapterContractTest()` (`app/test/support/adapter_contract.dart`) against its simulator.
+
+## 5. What is left
+
+### M7 — Remaining adapters (each: simulator → adapter → contract suite → probe rule)
+- **T7.3 Tuya bulb + multi-gang profiles — next up.** Research done, no code yet:
+  - Bulb DP sets must come from tinytuya `BulbDevice.DEFAULT_DPSET` (cite it): Type A switch 1 / mode 2 / brightness 3 / colourtemp 4, range 25–255; **Type B** switch 20 / mode 21 / brightness 22 / colourtemp 23 / timer(countdown) 26, range 10–1000; Type C switch 1 / brightness 2 / colourtemp 3, range 25–255. Detection: `BulbDevice.detect_bulb` (keys 20+ → B, 1–9 → A, only 1–2 → C). Percent → value: `int(value_max * pct // 100)`.
+  - Today `TuyaDp` only has roles `switch` / `countdown` with profiles plug {1, 9} and bulb {20, 26}. Add `brightness` / `colorTemp` roles (+ value range) so `setBrightness`/`setColorTemp` work, and set `Capability.brightness/colorTemp` when the profile has them. `dpMapFromMapping` (devices.json import) should also map `bright_value(_v2)` / `temp_value(_v2)` codes.
+  - Multi-gang: PSEUDOCODE says switch_n = n (1..4), countdown_n = 7..10 (**VERIFY** — prefer the per-device mapping from devices.json / cloud import: codes `switch_1..switch_N`, `countdown_1..countdown_N`). Needs a design for one Tuya id → several app devices (e.g. device id `<tuyaId>#<n>` sharing IP + the key of `<tuyaId>`); SecretStore lookups must resolve the base id.
+  - Extend `TuyaSim` profiles (bulb type A/B, `gang=N`) and add sim/contract tests.
+- T7.4 Shelly Gen1 + Gen2 (PSEUDOCODE §6.5; aioshelly / Shelly API docs; combined `powerFor` via `turn=..&timer=` / `toggle_after`; digest auth VERIFY).
+- T7.5 Kasa legacy (python-kasa XOR transport, port 9999; XOR key 171 already ported in `kasa_xor.dart`).
+- T7.6 KLAP transport + Tapo/Kasa new (split into sub-tasks in TASKS.md first; python-kasa `klaptransport.py`; credentials via SecretStore pseudo-id `tplink`).
+- T7.7 Hue bridge + link-button pairing (username in SecretStore).
+- T7.8 Yeelight (python-yeelight; SSDP discovery on 1982 already in the collector).
+- T7.9 Sonoff LAN (DIY + encrypted, eWeLink devicekey in SecretStore).
+- T7.10 Tasmota, T7.11 ESPHome web-server REST.
+- T7.12 Fingerprinter rules for all of the above.
+- Then push, open the **M7 PR** (branch already contains T7.1/T7.2), watch CI, merge when green.
+
+### M8 — Hardening
+T8.1 error UX, T8.2 performance (tap→device p95 < 500 ms), T8.3 👤 offline validation checklist (hardware → log it), T8.4 README/install docs, T8.5 `make apk` / `make ios-device` scripts.
+
+### Deferred / optional
+- T4.9 👤 real-voice test (hardware, row 8 in HARDWARE_LOG).
+- T5.10 iOS widget / Shortcuts (needs a WidgetKit extension + App Group, Xcode signing on the Mac).
+- Later list L1–L5 (TVs, Matter, hub mode, wake word, scenes).
+
+## 6. Open VERIFY items (need real hardware or official docs)
+
+`grep -rn VERIFY app/lib` lists them in code. Main ones:
+- Tuya: countdown flip semantics + max duration; 3.4/3.5 STATUS push shape; behaviour on a wrong key during 3.4/3.5 negotiation (we map "connection closed during handshake" → auth); beacons on iOS.
+- Tuya cloud import: token call without tinytuya's `secret` header; auth error codes 1004/1010/1011.
+- WiZ reply port on broadcast; KLAP static discovery query answered by devices.
+- Android foreground-service type on 14/15; STT error strings; home-screen widget + quick-settings tile never run on a device.
+
+## 7. Gotchas learned
+
+- Riverpod 3: use `.value` (no `valueOrNull`); `Override` type comes from `package:flutter_riverpod/misc.dart`.
+- drift in widget tests: create services via `TestServices.inTester` (real async) and always `await t.tearDown(tester)`; FK constraints are on (seed rooms/devices before referencing them).
+- Lazily built lists in widget tests: `scrollUntilVisible(..., scrollable: find.byType(Scrollable).first)`.
+- `flutter analyze` needs `--fatal-infos` to fail on infos (Makefile already does this).
+- Merging a PR via the GitHub tool: pass the full 40-char head SHA from `git rev-parse HEAD`.
