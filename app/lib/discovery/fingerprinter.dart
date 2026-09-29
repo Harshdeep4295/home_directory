@@ -88,7 +88,6 @@ abstract final class Fingerprinter {
         brand: Brand.wiz,
         protocol: 'wiz',
         deviceId: mac.toLowerCase(),
-        name: 'WiZ',
         evidence: const ['udp 38899 reply'],
       );
     }

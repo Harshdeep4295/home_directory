@@ -131,9 +131,10 @@ writes clear instructions, then stops.
   Accept: table-driven tests using recorded replies for every brand in PLAN §6 (use sim replies
   where no real recording exists; mark them).
   Note: discovery/fingerprinter.dart: pure, first-match rules per §7.2 (Tuya beacon → WiZ → Hue → Shelly gen1/2 → Sonoff → ESPHome → Kasa XOR → KLAP/Tapo → Yeelight SSDP/55443 → Tasmota → Tuya port → unknown), KnownSecrets turns needsKey off. 16 table-driven tests with fixtures from pywizlight/python-kasa/python-yeelight/tinytuya and vendor-doc samples; SIM-marked ones to be replaced by real recordings from HARDWARE_LOG. Collector now also GETs /api/config for Hue.
-- [ ] **T2.9 Discovery service + merge** (S) — deps: T2.8, T1.7
+- [x] **T2.9 Discovery service + merge** (S) — deps: T2.8, T1.7
   Do: merge candidates with registry by deviceId → mac → ip; mark moved IPs (DHCP change).
   Accept: test: device changes IP, registry updates, user settings preserved.
+  Note: discovery/discovery_service.dart: scan() = collect → fingerprint (KnownSecrets from SecretStore.deviceIdsWithSecrets) → merge; merge matches deviceId → MAC → IP (IP only for same brand), updates ip/mac/port/lastSeen, keeps known protocol version and all user settings, reports movedFrom; new candidates are reported (add() inserts with '<Brand> <last4>' name + default caps); notSeen list. CandidateCollector implements EvidenceSource. 6 tests incl. the IP-change case.
 - [ ] **T2.10 👤 Hardware check #1** (S) — deps: T2.3, T2.6, T2.9
   Do: debug screen "Scan + toggle"; human tests WiZ + Wipro with WAN unplugged; logs results.
 

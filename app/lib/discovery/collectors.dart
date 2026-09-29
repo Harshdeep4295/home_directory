@@ -10,6 +10,7 @@ import '../core/result.dart';
 import '../net/ipv4.dart';
 import '../net/lan_socket_factory.dart';
 import '../net/platform_bridge.dart';
+import 'discovery_service.dart';
 import 'evidence.dart';
 import 'mdns_browser.dart';
 
@@ -55,7 +56,7 @@ const yeelightSearch =
     'ST: wifi_bulb';
 
 /// Runs every discovery probe in parallel and groups what it hears by IP (PSEUDOCODE §7.1).
-class CandidateCollector {
+class CandidateCollector implements EvidenceSource {
   CandidateCollector(
     this._sockets,
     this._platform,
@@ -86,6 +87,7 @@ class CandidateCollector {
 
   static const _tag = 'discovery';
 
+  @override
   Future<Map<String, HostEvidence>> collect({
     Duration window = const Duration(seconds: 6),
   }) async {
