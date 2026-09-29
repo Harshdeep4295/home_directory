@@ -84,6 +84,25 @@ class DiscoveryService {
   /// brand, so a DHCP shuffle cannot swap two devices). Updates IP / lastSeen /
   /// protocol version of a match and keeps every user setting.
   Future<ScanResult> merge(Candidate c) async {
+    // A Hue bridge is not a device itself; its lights are (meta.hueBridge).
+    if (c.brand == Brand.hue && c.deviceId != null) {
+      final lights = (await _devices.all())
+          .where((d) => d.meta['hueBridge'] == c.deviceId)
+          .toList();
+      if (lights.isNotEmpty) {
+        final moved = lights.first.ip != c.ip ? lights.first.ip : null;
+        for (final l in lights) {
+          await _devices.upsert(
+            l.copyWith(
+              ip: c.ip,
+              port: c.port ?? l.port,
+              lastSeen: _now().toUtc(),
+            ),
+          );
+        }
+        return ScanResult(c, device: lights.first, movedFrom: moved);
+      }
+    }
     final existing = await _match(c);
     if (existing == null) return ScanResult(c);
     final moved = existing.ip != c.ip ? existing.ip : null;

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import '../adapters/device_adapter.dart';
+import '../adapters/hue/hue_adapter.dart';
 import '../adapters/kasa/kasa_adapter.dart';
 import '../adapters/kasa/tapo_adapter.dart';
 import '../adapters/shelly/shelly_adapter.dart';
@@ -148,6 +149,7 @@ class AppServices {
       ShellyAdapter(sockets, secrets),
       KasaAdapter(sockets, secrets: secrets),
       TapoAdapter(sockets, secrets),
+      HueAdapter(sockets, secrets),
     ]);
     final network = NetworkMonitor(platform);
     await network.start();

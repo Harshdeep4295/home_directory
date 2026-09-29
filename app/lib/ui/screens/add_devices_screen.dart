@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../adapters/hue/hue_adapter.dart';
 import '../../adapters/kasa/kasa_adapter.dart';
 import '../../core/models.dart';
 import '../../core/result.dart';
 import '../../discovery/discovery_service.dart';
 import '../../onboarding/badges.dart';
+import '../../onboarding/hue_pairing.dart';
 import '../../registry/secret_store.dart';
 import '../alias_suggestions.dart';
 import '../providers.dart';
@@ -69,7 +71,7 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
           );
         }
       case OnboardingBadge.needsPairing:
-        _info('Pair the bridge', 'Hue pairing arrives with the Hue adapter.');
+        await _pairHue(c);
       case OnboardingBadge.cloudOnly:
         _info(
           'Cloud-only',
@@ -108,6 +110,59 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
     final cb = widget.onImportDevicesJson;
     if (cb != null) return cb();
     openDevicesJsonImport(context);
+  }
+
+  /// Hue: press the bridge's link button within 30 s; its lights are then added.
+  Future<void> _pairHue(Candidate c) async {
+    final s = ref.read(servicesProvider);
+    final hue = s.adapters.adapters.whereType<HueAdapter>().firstOrNull;
+    if (hue == null) return;
+    final left = ValueNotifier<int>(30);
+    var cancelled = false;
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Press the round button on the Hue bridge'),
+          content: ValueListenableBuilder<int>(
+            valueListenable: left,
+            builder: (_, v, _) => Text('Waiting for the bridge… $v s'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                cancelled = true;
+                Navigator.pop(ctx);
+              },
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final r = await HuePairing(hue, s.secrets, s.devices).pairAndImport(
+      c,
+      onTick: (v) => left.value = v,
+      cancelled: () => cancelled,
+    );
+    if (!mounted) return;
+    if (!cancelled) Navigator.of(context).pop();
+    left.dispose();
+    switch (r) {
+      case Ok(:final value):
+        setState(() => _added.add(_key(c)));
+        _info('Hue bridge paired', 'Added ${value.length} lights.');
+      case Err(:final error) when !cancelled:
+        _info(
+          'Pairing failed',
+          error.kind == DeviceErrorKind.auth
+              ? 'The button was not pressed in time. Try again.'
+              : error.message,
+        );
+      case Err():
+        break;
+    }
   }
 
   /// Tapo / new Kasa (KLAP): the TP-Link (Kasa/Tapo app) account, stored once for all

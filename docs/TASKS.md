@@ -294,7 +294,8 @@ writes clear instructions, then stops.
     Note: KasaAdapter speaks `klap-iot` (KLAP v1) with the same IOT JSON; new TapoAdapter for `klap-smart` (get/set_device_info, brightness, color_temp; SmartErrorCode auth set). Contract suites green for both. No native countdown for Tapo (phone tier).
   - [x] **T7.6c TP-Link account + discovery** — account e-mail/password in SecretStore (`tplink`), add-flow prompt, fingerprinter maps 20002 device_type → `klap-iot` / `klap-smart` (AES → not supported yet).
     Note: fingerprinter maps 20002 device_type/encrypt_type like kasa/device_factory.py → `klap-iot` / `klap-smart` (AES / HTTPS → `tplink-*` = not supported yet); add flow asks for the TP-Link account once (SecretStore `tplink`). VERIFY: the static 20002 query is answered at home. Hardware check #17.
-- [ ] **T7.7 Hue bridge + link-button pairing** (M) — deps: T2.1 — Ref: §Hue
+- [x] **T7.7 Hue bridge + link-button pairing** (M) — deps: T2.1 — Ref: §Hue
+  Note: HueAdapter (v1 REST per aiohue: pairing, lights on/bri/ct, errors 1/101, bridge-id normalisation); one app device per light (`<bridge>-<light>`), username in SecretStore; timers = bridge schedules `PT hh:mm:ss` found again via GET /schedules; add-flow pairing dialog with 30 s countdown; discovery moves lights with the bridge IP. HueSim verified with aiohue. VERIFY: schedule API/limits and starttime clock on a real bridge. Hardware check #18.
 - [ ] **T7.8 Yeelight** (S) — deps: T2.1 — Ref: §Yeelight
 - [ ] **T7.9 Sonoff LAN (DIY + encrypted)** (M) — deps: T2.1 — Ref: §Sonoff
 - [ ] **T7.10 Tasmota** (S) — deps: T2.1 — Ref: §Tasmota

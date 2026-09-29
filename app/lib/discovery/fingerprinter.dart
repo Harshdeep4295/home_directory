@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../adapters/hue/hue_adapter.dart';
 import '../adapters/kasa/kasa_xor.dart';
 import '../adapters/tuya/tuya_codec.dart';
 import '../core/models.dart';
@@ -98,8 +99,8 @@ abstract final class Fingerprinter {
     final cfg = _httpJson(e.http['/api/config']);
     final rec = e.mdnsOf('_hue._tcp');
     if (rec == null && cfg?['bridgeid'] == null) return null;
-    final id = (cfg?['bridgeid'] as String? ?? rec?.attributes['bridgeid'])
-        ?.toLowerCase();
+    final raw = cfg?['bridgeid'] as String? ?? rec?.attributes['bridgeid'];
+    final id = raw == null ? null : HueAdapter.normalizeBridgeId(raw);
     return Candidate(
       ip: e.ip,
       brand: Brand.hue,

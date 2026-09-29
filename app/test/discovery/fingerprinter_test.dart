@@ -77,7 +77,7 @@ void main() {
         ),
       brand: Brand.hue,
       protocol: 'hue',
-      deviceId: '001788fffe1a2b3c',
+      deviceId: '0017881a2b3c', // aiohue normalize_bridge_id
       needsKey: true,
     ),
     (

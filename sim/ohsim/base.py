@@ -171,7 +171,10 @@ class HttpSimDevice(TcpSimDevice):
     async def handle_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         from urllib.parse import parse_qsl, urlsplit
 
-        head = await reader.readuntil(b"\r\n\r\n")
+        first = await reader.read(1)
+        if not first or not first.isalpha():
+            return  # not HTTP (e.g. a client trying TLS first): hang up at once
+        head = first + await reader.readuntil(b"\r\n\r\n")
         lines = head.decode("latin-1").split("\r\n")
         method, target, _ = lines[0].split(" ", 2)
         headers: dict[str, str] = {}
