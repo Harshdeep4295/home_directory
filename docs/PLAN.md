@@ -203,7 +203,7 @@ back from devices and fixes drift or removes finished timers.
 
 ## 10. Platform configuration
 
-**Android** (`AndroidManifest.xml`): `INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`,
+**Android** (`AndroidManifest.xml`): `INTERNET`, `ACCESS_NETWORK_STATE`, `CHANGE_NETWORK_STATE` (for `requestNetwork`), `ACCESS_WIFI_STATE`,
 `CHANGE_WIFI_MULTICAST_STATE`, `NEARBY_WIFI_DEVICES` (33+), `ACCESS_FINE_LOCATION`
 (≤32, for SSID), `RECORD_AUDIO`, `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`,
 `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` (VERIFY best FGS type),

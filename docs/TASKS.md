@@ -57,11 +57,21 @@ writes clear instructions, then stops.
   Do: tcp(), udp(), udpBroadcast(), http() with timeouts; delegates Android binding to plugin.
   Accept: unit tests with local echo servers; timeouts return `DeviceError.timeout`.
   Note: net/: LanSocketFactory (tcp w/ NODELAY, udp bind, udpRequest single/many, broadcast w/ MulticastLock + iOS unsupported, http with DIRECT proxy), errno→DeviceError map (Linux+Darwin), PlatformBridge interface + DefaultPlatformBridge, NetInfo, IPv4 helpers (broadcast addr, host list capped at /22). 15 tests vs local echo/HTTP servers incl. refused and timeouts.
-- [ ] **T1.4 Android LanBindingPlugin (Kotlin)** (M) — deps: T1.3 — Ref: §Android plugin
+- [x] **T1.4 Android LanBindingPlugin (Kotlin)** (M) — deps: T1.3 — Ref: §Android plugin
   Do: request Wi-Fi network without INTERNET capability requirement, `bindProcessToNetwork`,
   expose `isWifiConnected`, `hasInternet`, `wifiIp`, `subnetPrefix`; MulticastLock acquire/release.
   Accept: 👤 on Wi-Fi with WAN unplugged and mobile data ON, app reaches a sim on the laptop by
   LAN IP (steps written in task note).
+  Note: LanBindingPlugin.kt (requestNetwork Wi-Fi w/o INTERNET → bindProcessToNetwork; netInfo ip/prefix/validated/ssid; MulticastLock; event channel), registered in MainActivity; manifest network perms + cleartext; Dart AndroidPlatformBridge + mocked-channel tests; NetDebugScreen as placeholder home. Kotlin typechecked here with kotlinc 2.4.0 vs android-all API 35 + Flutter embedding (no Android SDK in container: dl.google.com blocked) — first real Gradle build happens on the MacBook.
+  - [ ] 👤 Hardware check (Android):
+    1. Laptop on home Wi-Fi: `python3 sim/run.py --devices wiz --host 0.0.0.0 --base-port 38899`
+       (allow incoming connections if macOS asks). Note the laptop IP (`ipconfig getifaddr en0`).
+    2. Unplug the router's WAN cable. On the phone: Wi-Fi on (same network), mobile data ON.
+       Android will show "connected, no internet" — tap "stay connected" if asked.
+    3. `make run-android`. The debug screen should show Wi-Fi connected, Internet "no (local mode)".
+    4. Enter the laptop IP, port 38899 → "Send WiZ getPilot" → expect `OK in <N> ms` + JSON.
+    5. Log the result (and N) in HARDWARE_LOG with test `lan-bind`. If it fails with
+       timeout/offline, note it — that means sockets went over mobile data.
 - [ ] **T1.5 iOS LocalNetworkPlugin (Swift)** (S) — deps: T1.3 — Ref: §iOS plugin
   Do: trigger local-network permission (NWBrowser on `_http._tcp`), report granted/denied;
   Info.plist keys from PLAN §10.
