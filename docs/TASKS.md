@@ -104,8 +104,9 @@ writes clear instructions, then stops.
   Note: adapters/device_adapter.dart: DeviceAdapter (defaults = Err(unsupported); countdown handle, canCountdownTo, combined powerFor, watch, dispose), guarded() wrapper, AdapterRegistry (protocol exact or '<id>-' prefix), ProbeContext. FakeAdapter (flip-based countdown, offline set, failNext) passes shared adapterContractTest (test/support/adapter_contract.dart).
 - [x] **T2.2 WiZ simulator** (S) — deps: T0.2
   Note: WizSim: getPilot/setPilot/getSystemConfig/registration + -32601 error, shapes from pywizlight tests/fake_bulb.py 0.6.6; options mac, module (default ESP10_SOCKET_06 plug), fw, drop=N for retry tests; records request methods.
-- [ ] **T2.3 WiZ adapter** (M) — deps: T2.1, T2.2 — Ref: §WiZ
+- [x] **T2.3 WiZ adapter** (M) — deps: T2.1, T2.2 — Ref: §WiZ
   Accept: contract suite green vs sim; power, brightness, colorTemp; probe() identifies WiZ.
+  Note: adapters/wiz/wiz_adapter.dart (ported from pywizlight 0.6.6: port 38899, registration message, -32601, dimming max(1,…), temp clamp 1000..10000 VERIFY per model, resend after 750 ms, capabilities from moduleName per bulblibrary). Contract suite green vs WizSim + probe/brightness/CT/drop-resend tests in test/sim/ (tag sim, SimProcess helper spawns sim/run.py). No native countdown → phone tier. CI flutter job now installs Python.
 - [ ] **T2.4 Tuya codec 3.1/3.3** (M) — deps: T2.1 — Ref: §Tuya codec
   Do: frame encode/decode, CRC32, AES-ECB, version header rules, sequence numbers.
   Accept: byte-exact tests with vectors ported from tinytuya tests (cite file).
