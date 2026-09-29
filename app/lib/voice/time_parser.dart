@@ -101,6 +101,13 @@ class TimeParser {
           _lex.dayparts.containsKey(t[end])) {
         daypart = t[end];
         end++;
+      } else if (mer == null &&
+          end + 1 < t.length &&
+          (t[end] == 'in' || t[end] == 'at') &&
+          _lex.dayparts.containsKey(t[end + 1])) {
+        // "6:30 in the morning", "11 at night"
+        daypart = t[end + 1];
+        end += 2;
       }
       final start = daypart != null && prev == daypart
           ? i - 1

@@ -1,7 +1,7 @@
 # English lexicon (PSEUDOCODE §11.3). Entries are in NORMALISED form (see normaliser.dart):
 # lowercase, fillers removed, variants folded. Longer phrases win over shorter ones.
 actions:
-  on: [turn on, switch on, power on, start, on, open]
+  on: [turn on, switch on, power on, start, on, open, run, keep on]
   off: [turn off, switch off, power off, shut off, shut down, stop, off, kill]
   toggle: [toggle, switch]
   cancel: [cancel timer, stop timer, remove timer, delete timer, clear timer, cancel the timer]

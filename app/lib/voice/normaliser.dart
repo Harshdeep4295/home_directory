@@ -20,6 +20,7 @@ abstract final class Normaliser {
     s = _punctuation(s);
     var t = _split(s);
     t = _phrases(t);
+    t = _ofOff(t);
     t = _verbDo(t);
     t = _articleNumbers(t);
     t = t.where((w) => !fillers.contains(w)).toList();
@@ -374,6 +375,25 @@ abstract final class Normaliser {
     }
     return out;
   }
+
+  /// Recognisers often write "of" for "off": "turn of the fan", "fan of in 5 mins".
+  /// "of" becomes "off" after turn/switch/power/shut, at the end of the command, or
+  /// before a time relation; "status of the geyser" is left alone.
+  static List<String> _ofOff(List<String> t) => [
+    for (var i = 0; i < t.length; i++)
+      t[i] == 'of' &&
+              ((i > 0 &&
+                      const {
+                        'turn',
+                        'switch',
+                        'power',
+                        'shut',
+                      }.contains(t[i - 1])) ||
+                  i == t.length - 1 ||
+                  const {'in', 'after', 'at', 'for'}.contains(t[i + 1]))
+          ? 'off'
+          : t[i],
+  ];
 
   /// Verb stems that take "do" as an auxiliary ("jala do" = light it).
   static const verbStems = {

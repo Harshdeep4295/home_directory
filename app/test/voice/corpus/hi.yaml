@@ -1,0 +1,67 @@
+# Hinglish (Latin script as an en-IN recogniser writes it) and Devanagari.
+- ["geyser chalu karo", "power on | geyser"]
+- ["geyser band karo", "power off | geyser"]
+- ["geyser on karo", "power on | geyser"]
+- ["geyser off karo", "power off | geyser"]
+- ["pankha chalu karo", "power on | fan"]
+- ["pankha band karo", "power off | fan"]
+- ["pankha chala do", "power on | fan"]
+- ["fan band kar do", "power off | fan"]
+- ["light jala do", "power on | light"]
+- ["batti bujha do", "power off | light"]
+- ["ac band karo", "power off | ac"]
+- ["ac chalu kar do", "power on | ac"]
+- ["tv band kar do", "power off | tv"]
+- ["kitchen ki light jala do", "power on | kitchen light"]
+- ["bedroom ka pankha band karo", "power off | bedroom fan"]
+- ["hall ki batti chalu karo", "power on | hall light"]
+- ["sab batti band karo", "power off | light | all"]
+- ["saari lights band karo", "power off | light | all"]
+- ["sab band karo", "power off | | all"]
+- ["sab kuch band kar do", "power off | | all"]
+- ["sab batti band karo bedroom ke alawa", "power off | light | all except=bedroom"]
+- ["bedroom chhod ke sab light band karo", "power off | light | all except=bedroom"]
+- ["bedroom ki lights band karo", "power off | bedroom light | all"]
+- ["bedroom ki saari battiyan band karo", "power off | bedroom light | all"]
+- ["geyser 20 minute ke liye chalu karo", "powerFor on 20m | geyser"]
+- ["geyser bees minute ke liye chalu karo", "powerFor on 20m | geyser"]
+- ["geyser adha ghanta chalu karo", "powerFor on 30m | geyser"]
+- ["ac do ghante ke liye chalao", "powerFor on 2h | ac"]
+- ["pankha dedh ghante ke liye chalao", "powerFor on 1h30m | fan"]
+- ["ac dhai ghante ke liye chalu karo", "powerFor on 2h30m | ac"]
+- ["geyser 15 minute chalu karo", "powerFor on 15m | geyser"]
+- ["10 minute baad fan band kar do", "powerAfter off 10m | fan"]
+- ["5 minute baad light band karo", "powerAfter off 5m | light"]
+- ["fan 10 minute baad band karo", "powerAfter off 10m | fan"]
+- ["aadhe ghante mein ac band kar dena", "powerAfter off 30m | ac"]
+- ["geyser 20 minute mein band karo", "powerAfter off 20m | geyser"]
+- ["ac band karo 11 baje", "powerAt off 23:00 | ac"]
+- ["raat 11 baje ac band karo", "powerAt off 23:00 | ac"]
+- ["subah 6 baje geyser chalu karo", "powerAt on 06:00 | geyser"]
+- ["saadhe das baje tv band karo", "powerAt off 22:30 | tv"]
+- ["raat 1 baje ac band kar dena", "powerAt off 01:00 | ac"]
+- ["ac 11 baje tak chalao", "powerUntil on 23:00 | ac"]
+- ["pankha subah 6 baje tak chalao", "powerUntil on 06:00 | fan"]
+- ["geyser chalu hai kya", "status | geyser"]
+- ["fan band hai kya", "status | fan"]
+- ["ac chal raha hai kya", "status | ac"]
+- ["geyser ka timer hatao", "cancelTimer | geyser"]
+- ["ac ka timer cancel karo", "cancelTimer | ac"]
+- ["fan ka timer band karo", "cancelTimer | fan"]
+# Devanagari
+- ["गीज़र चालू करो", "power on | geyser"]
+- ["पंखा बंद करो", "power off | fan"]
+- ["गीज़र 20 मिनट के लिए चालू करो", "powerFor on 20m | geyser"]
+- ["एसी बंद करो ११ बजे", "powerAt off 23:00 | ac"]
+- ["सब बत्ती बंद करो", "power off | light | all"]
+- ["10 मिनट बाद पंखा बंद कर दो", "powerAfter off 10m | fan"]
+# stt-style errors
+- ["geezer chaalu karo", "power on | geyser"] # stt
+- ["gizer bandh kar do", "power off | geyser"] # stt
+- ["pankha bund karo", "power off | fan"] # stt
+- ["geyser bees minit ke liye chalu kardo", "powerFor on 20m | geyser"] # stt
+- ["ac gyara baje band karo", "powerAt off 23:00 | ac"] # stt
+- ["fan paanch minat baad band karo", "powerAfter off 5m | fan"] # stt
+- ["batti band kar dijiye", "power off | light"] # stt
+- ["light jalao zara", "power on | light"] # stt
+- ["geyser ko 30 min ke liye on karo", "powerFor on 30m | geyser"] # stt

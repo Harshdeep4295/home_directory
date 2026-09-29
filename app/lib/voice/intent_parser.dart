@@ -47,10 +47,15 @@ class IntentParser {
     'timer',
     'what',
     'whats',
+    'keep',
+    'leave',
+    'kuch',
   };
 
+  /// With the word "timer" these mean cancel ("stop the geyser timer").
   static const _cancelVerbs = {
     'cancel',
+    'stop',
     'remove',
     'delete',
     'clear',

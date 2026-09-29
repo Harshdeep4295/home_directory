@@ -214,9 +214,10 @@ writes clear instructions, then stops.
 - [x] **T4.6 TargetResolver** (M) — deps: T1.7, T4.5 — Ref: §TargetResolver
   Do: Jaro-Winkler + Double Metaphone, aliases, rooms, "all", "except", Hinglish plurals ("lights", "batiyan").
   Note: voice/target_resolver.dart + voice/fuzzy.dart: exact whole-phrase name wins; room matching (token or JW ≥ 0.85); room + only nouns / room alone / all → pool filtered by noun (name/alias/brightness-capable for 'light') minus except (room or device); otherwise score = max over name+aliases of containment (0.95) or 0.6·JaroWinkler + 0.4·phonetic; < 0.6 none, < 0.8 or tie within 0.05 → ambiguous chips (top 3). Generic alias == generic word scores as category (0.95), not a name. DEVIATION: Hinglish-tuned phonetic key instead of Double Metaphone (English rules mangle aspirates/vowels). 14 end-to-end utterance→device tests + ambiguity + fuzzy tests.
-- [ ] **T4.7 Golden corpus** (M) — deps: T4.5, T4.6
+- [x] **T4.7 Golden corpus** (M) — deps: T4.5, T4.6
   Do: ≥ 150 cases in `test/voice/corpus/*.yaml` (EN 60%, Hinglish 40%, incl. STT-style misspellings).
   Accept: ≥ 95% pass; failures listed in task note.
+  Note: test/voice/corpus/{en,hi}.yaml: 159 cases (95 EN = 60 %, 64 Hinglish incl. Devanagari = 40 %, 17 STT-style misspellings), compact [utterance, expected] notation (corpus/README.md); golden_corpus_test.dart asserts ≥ 150 cases and ≥ 95 % exact. First run 92.5 %: fixed 'run'/'keep … on', 'in the morning'/'at night' after a time, 'stop … timer' as cancel, STT 'of'→'off'; one expectation of mine was wrong ('sab kuch' = everything). Now 159/159. CAVEAT: written alongside the parser, so this proves consistency, not real-world accuracy — add real transcripts from T4.9.
 - [ ] **T4.8 VoiceController + feedback** (S) — deps: T4.1, T4.6, T3.1, T3.3
   Do: orchestration, confirmation rules (PLAN §7), TTS + toast, undo for 5 s.
 - [ ] **T4.9 👤 Real-voice test** (S) — deps: T4.8
