@@ -6,10 +6,14 @@ import 'dart:typed_data';
 import '../../core/models.dart';
 import '../../core/result.dart';
 import '../../net/lan_socket_factory.dart';
+import '../../registry/secret_store.dart';
 import '../device_adapter.dart';
 import 'kasa_xor.dart';
+import 'klap.dart';
 
-/// TP-Link Kasa legacy (IOT) plugs, strips and bulbs: TCP 9999, length-prefixed XOR JSON.
+/// TP-Link Kasa legacy (IOT) plugs, strips and bulbs: TCP 9999, length-prefixed XOR JSON,
+/// or the same JSON over KLAP v1 for IOT.KLAP firmware (protocol `klap-iot`,
+/// kasa/device_factory.py "IOT.KLAP": (IotProtocol, KlapTransport)).
 /// Ported from python-kasa 0.10.2: transports/xortransport.py (framing),
 /// iot/iotdevice.py (_create_request {target: {cmd: args}} + context child_ids,
 /// _query_helper err_code checks), iot/iotplug.py (system.set_relay_state),
@@ -23,9 +27,13 @@ import 'kasa_xor.dart';
 class KasaAdapter extends DeviceAdapter {
   KasaAdapter(
     this._sockets, {
+    this.secrets,
     this.timeout = LanSocketFactory.defaultTimeout,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
+
+  /// Pseudo device id of the TP-Link account in SecretStore (DiscoveryService.tplinkAccountId).
+  static const accountId = 'tplink';
 
   /// xortransport.py: XorTransport.DEFAULT_PORT = 9999.
   static const port = KasaXor.discoveryPort;
@@ -39,8 +47,12 @@ class KasaAdapter extends DeviceAdapter {
   static const _tag = 'kasa';
 
   final LanSocketFactory _sockets;
+
+  /// Holds the TP-Link account for `klap-iot` devices (unused for XOR).
+  final SecretStore? secrets;
   final Duration timeout;
   final DateTime Function() _now;
+  final Map<String, KlapTransport> _klap = {};
 
   /// Countdown module name that worked per device (learned on first use).
   final Map<String, String> _countdownModule = {};
@@ -49,11 +61,26 @@ class KasaAdapter extends DeviceAdapter {
   Brand get brand => Brand.kasa;
 
   @override
-  Set<String> get protocols => {'kasa'};
+  Set<String> get protocols => {'kasa', 'klap-iot'};
 
-  /// Only legacy IOT devices; `kasa-klap` / `kasa-aes` belong to the KLAP adapter.
+  /// Legacy IOT devices only (XOR or KLAP v1); `klap-smart` belongs to TapoAdapter.
   @override
-  bool handles(Device d) => d.protocol == 'kasa';
+  bool handles(Device d) => d.protocol == 'kasa' || d.protocol == 'klap-iot';
+
+  /// KLAP transport for [d], created with the TP-Link account from SecretStore.
+  Future<KlapTransport> klapFor(Device d, KlapVersion v) async {
+    final existing = _klap[d.id];
+    if (existing != null) return existing;
+    return _klap[d.id] = KlapTransport(
+      _sockets,
+      host: d.ip,
+      port: d.port ?? 80,
+      version: v,
+      username: await secrets?.get(accountId, SecretName.email),
+      password: await secrets?.get(accountId, SecretName.password),
+      timeout: timeout,
+    );
+  }
 
   static String? childOf(Device d) => d.meta['childId'] as String?;
 
@@ -143,13 +170,16 @@ class KasaAdapter extends DeviceAdapter {
     Map<String, Object?> args = const {},
   ]) async {
     final child = childOf(d);
-    final r = await query(d.ip, d.port ?? port, {
+    final request = <String, Object?>{
       if (child != null)
         'context': {
           'child_ids': [child],
         },
       target: {cmd: args},
-    });
+    };
+    final r = d.protocol == 'klap-iot'
+        ? await (await klapFor(d, KlapVersion.v1)).send(request)
+        : await query(d.ip, d.port ?? port, request);
     if (r case Err(:final error)) return Err(error);
     final t = (r as Ok<Map<String, Object?>>).value[target];
     if (t is Map && t['err_code'] is num && t['err_code'] != 0) {
@@ -332,8 +362,14 @@ class KasaAdapter extends DeviceAdapter {
       (await _countdown(d, 'delete_all_rules')).map((_) {});
 
   @override
-  Future<void> dispose(Device d) async => _countdownModule.remove(d.id);
+  Future<void> dispose(Device d) async {
+    _countdownModule.remove(d.id);
+    _klap.remove(d.id);
+  }
 
   @override
-  Future<void> disposeAll() async => _countdownModule.clear();
+  Future<void> disposeAll() async {
+    _countdownModule.clear();
+    _klap.clear();
+  }
 }
