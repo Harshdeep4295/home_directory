@@ -312,7 +312,8 @@ writes clear instructions, then stops.
 - [x] **T8.1 Error UX** (S) — deps: T5.*
   Do: per-device offline state, "device moved IP" auto-rescan, key-rejected → re-import prompt.
   Note: DeviceState.keyRejected (poller flags auth errors, clears on success) → tile "Key rejected" opens the device, detail card with the brand's fix (devices.json / local key / password / TP-Link account / re-pair Hue); offline card with Re-scan IP; AutoRescan runs a 3 s scan when a device goes offline (max one per 2 min) and the poller resubscribes on IP/port/protocol change.
-- [ ] **T8.2 Performance** (S) — Accept: tap→device p95 < 500 ms on LAN, list render < 2 s cold start (measure, log).
+- [x] **T8.2 Performance** (S) — Accept: tap→device p95 < 500 ms on LAN, list render < 2 s cold start (measure, log).
+  Note: lib/core/perf.dart — engine records tap→device (setPower acknowledged) per protocol family, cold start → first device-list frame; logged (warn above budget) and shown in Settings → Diagnostics → Performance. Sim benchmark: p95 < 500 ms for WiZ / Tuya 3.3 / 3.4 / Shelly on loopback; 100-tile home screen renders < 2 s. Real Wi-Fi numbers: hardware check #23.
 - [ ] **T8.3 👤 Offline validation checklist** (S)
   With WAN cable unplugged and mobile data ON, on Android and iPhone:
   - [ ] cold start shows all devices with state

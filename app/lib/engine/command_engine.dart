@@ -4,6 +4,7 @@ import '../adapters/device_adapter.dart';
 import '../core/intent.dart';
 import '../core/log.dart';
 import '../core/models.dart';
+import '../core/perf.dart';
 import '../core/result.dart';
 import '../registry/repositories.dart';
 
@@ -139,7 +140,10 @@ class CommandEngine {
       d.id,
       (before ?? DeviceState(at: _now())).copyWith(on: on, at: _now()),
     );
+    final sw = Stopwatch()..start();
     final r = await _withRetry(() => a.setPower(d, on));
+    // T8.2: tap → device acknowledged (before the confirming read-back).
+    if (r.isOk) Perf.recordTap(d.protocol, sw.elapsed);
     if (r case Err(:final error)) {
       log.w(_tag, '${d.id} setPower($on) failed: ${error.kind.name}');
       if (before != null) {

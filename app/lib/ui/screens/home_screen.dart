@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/intent.dart';
 import '../../core/models.dart';
+import '../../core/perf.dart';
 import '../providers.dart';
 import '../widgets/device_tile.dart';
 
@@ -62,6 +63,9 @@ class HomeScreen extends ConsumerWidget {
         ),
       );
     } else {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => Perf.markDeviceListShown(),
+      );
       final sections = <(String, List<Device>)>[
         for (final r in rooms)
           (r.name, devices.where((d) => d.roomId == r.id).toList()),
