@@ -325,7 +325,8 @@ writes clear instructions, then stops.
   - [ ] timer on WiZ fires (Android phone tier) with screen off
   - [ ] device IP change (reboot router) → recovered within one scan
   - [ ] no request leaves the LAN (check router logs or Android `PCAPdroid`)
-- [ ] **T8.4 README + LICENSE + disclaimer** (S) — MIT (LICENSE + README disclaimer added in M0; T8.4 finishes install docs), "not affiliated", build + install steps for both phones.
+- [x] **T8.4 README + LICENSE + disclaimer** (S) — MIT (LICENSE + README disclaimer added in M0; T8.4 finishes install docs), "not affiliated", build + install steps for both phones.
+  Note: README: features, supported-devices table (transport / timer tier / what it needs), privacy + no-internet guarantee, not-affiliated + mains-appliance disclaimer, install link to docs/INSTALL.md, dev commands. LICENSE (MIT) unchanged.
 - [x] **T8.5 Build scripts** (S) — `make apk`, `make ios-device` with notes on 7-day free signing.
   Note: `make apk`, `make install-apk`, `make ios-device [IOS_DEVICE=id]`, `make doctor`; docs/INSTALL.md (both phones, free-signing 7-day / 3-app limits, trust + Developer Mode, troubleshooting). Not buildable in the CI container (no Android SDK / Xcode): hardware check #25.
 

@@ -1,4 +1,4 @@
-# Handoff — Offline Home (state as of 2026-09-29, updated during M7)
+# Handoff — Offline Home (state as of 2026-09-30, end of M8)
 
 Read `CLAUDE.md` first (rules are non-negotiable), then this file, then `docs/TASKS.md`.
 This note says where the work stands, how to run things, and what is left.
@@ -7,14 +7,14 @@ This note says where the work stands, how to run things, and what is left.
 
 | Milestone | State |
 |---|---|
-| M0–M6 | **Merged into `main`** (M5 = PR #6 App UI, M6 = PR #7 Key import). |
-| M7 Remaining adapters | **In progress** on branch `claude/sweet-thompson-fba2km` (pushed, **no PR yet**). Done: T7.1 Tuya 3.4, T7.2 Tuya 3.5, T7.3 Tuya bulbs + multi-gang, T7.4 Shelly, T7.5 Kasa legacy, T7.6a–c KLAP / Tapo. Next: T7.7 Hue. |
-| M8 Hardening | Not started. |
+| M0–M7 | **Merged into `main`** (M5 = PR #6 App UI, M6 = PR #7 Key import, M7 = PR #8 Remaining adapters). |
+| M8 Hardening | T8.1 error UX, T8.2 performance, T8.4 README, T8.5 build scripts done on `claude/sweet-thompson-fba2km` → **M8 PR**. T8.3 is the owner's offline checklist (hardware check #24). |
 
-- Working branch: `claude/sweet-thompson-fba2km` = `main` (e1bf4f9) + one commit per finished M7 task (see `git log origin/main..`).
-- Working tree is clean; nothing uncommitted.
-- No open PRs, no scheduled check-ins, no PR subscriptions.
-- Latest full local run: 458 Flutter tests + 37 simulator (pytest) tests green, `flutter analyze --fatal-infos` clean, codegen up to date.
+- v1 is feature-complete. What remains is **real-hardware validation** by the owner: every row of
+  "Pending hardware checks" in `docs/HARDWARE_LOG.md` (#1–#25), plus the open `VERIFY` notes per task in
+  `docs/TASKS.md`. Fix whatever those checks report.
+- Deferred / optional: T4.9 real-voice test (hardware), T5.10 iOS widget, Later list L1–L5.
+- Latest full local run: 513 Flutter tests + 49 simulator tests green.
 
 ## 2. Workflow the owner agreed to
 
@@ -26,7 +26,7 @@ This note says where the work stands, how to run things, and what is left.
   ```
   No model IDs in commits/PRs. PR bodies end with `🤖 Generated with [Claude Code](https://claude.com/claude-code)` + session link.
 - **One PR per milestone** into `main`, created from the latest `main` after the previous milestone merged. The owner authorised **the agent to merge a milestone PR itself once CI (`flutter` + `sim` jobs) is green** (merge method `merge`, pass the full head SHA). After merging: `git fetch origin main && git checkout -B claude/sweet-thompson-fba2km origin/main` and start the next milestone.
-- The owner is **not near the devices**: implement everything, skip 👤 hardware steps, and add each real-device check to the **"Pending hardware checks"** table in `docs/HARDWARE_LOG.md` (rows 1–13 so far). They will run them in one go later.
+- The owner is **not near the devices**: implement everything, skip 👤 hardware steps, and add each real-device check to the **"Pending hardware checks"** table in `docs/HARDWARE_LOG.md` (rows 1–25 so far). They will run them in one go later.
 - Only ping the owner (push notification) when their input is genuinely needed.
 
 ## 3. Environment (cloud container) — how to run things
@@ -56,26 +56,14 @@ This note says where the work stands, how to run things, and what is left.
 
 ## 5. What is left
 
-### M7 — Remaining adapters (each: simulator → adapter → contract suite → probe rule)
-Done (see TASKS.md notes for VERIFYs): T7.1–T7.6 (Tuya 3.4/3.5/bulbs/multi-gang, Shelly Gen1/2, Kasa XOR, KLAP + Tapo).
-Adapters live in `app/lib/adapters/{tuya,shelly,kasa}`; sims in `sim/ohsim/devices/{tuya,shelly,kasa,klap}.py`
-(HTTP sims use `HttpSimDevice` in `sim/ohsim/base.py`). Each sim is checked in `sim/tests` against the reference
-Python client (tinytuya / aioshelly AuthData / python-kasa).
-Left:
-- T7.7 Hue bridge + link-button pairing (username in SecretStore; Hue API docs).
-- T7.8 Yeelight (python-yeelight; SSDP discovery on 1982 already in the collector).
-- T7.9 Sonoff LAN (DIY + encrypted, eWeLink devicekey in SecretStore; AlexxIT SonoffLAN).
-- T7.10 Tasmota, T7.11 ESPHome web-server REST.
-- T7.12 Fingerprinter rules for all of the above (+ auto-create Kasa strip outlets / Tuya-scan bulb caps).
-- Then push, open the **M7 PR**, watch CI, merge when green.
-
-### M8 — Hardening
-T8.1 error UX, T8.2 performance (tap→device p95 < 500 ms), T8.3 👤 offline validation checklist (hardware → log it), T8.4 README/install docs, T8.5 `make apk` / `make ios-device` scripts.
-
-### Deferred / optional
-- T4.9 👤 real-voice test (hardware, row 8 in HARDWARE_LOG).
-- T5.10 iOS widget / Shortcuts (needs a WidgetKit extension + App Group, Xcode signing on the Mac).
-- Later list L1–L5 (TVs, Matter, hub mode, wake word, scenes).
+All planned milestones are implemented (adapters in `app/lib/adapters/{tuya,wiz,shelly,kasa,hue,yeelight,sonoff,tasmota,esphome}`,
+sims in `sim/ohsim/devices/`, each sim checked in `sim/tests` against the reference client).
+Next work comes from the owner's hardware runs:
+- Work through `docs/HARDWARE_LOG.md` → *Pending hardware checks* results as the owner reports them; fix and add a
+  regression test (sim or vector) for every real-device difference, then resolve the matching `VERIFY` note.
+- Known gaps: TP-Link AES / HTTPS devices (Tapo cameras, hubs) show "Not supported yet"; Sonoff state on eWeLink
+  firmware may need mDNS TXT parsing; ESPHome entity listing; iOS widget (T5.10); Later list L1–L5.
+- Builds were never run in the cloud container (no Android SDK / Xcode): first real build is hardware check #25.
 
 ## 6. Open VERIFY items (need real hardware or official docs)
 
