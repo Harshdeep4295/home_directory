@@ -22,6 +22,9 @@ class FakeAdapter extends DeviceAdapter {
   final Map<String, int> brightness = {};
   final Set<String> offline = {};
 
+  /// Devices that answer but refuse our key (auth errors).
+  final Set<String> rejectKey = {};
+
   /// Ids whose next N setPower calls fail with the given error (for retry tests).
   final Map<String, List<DeviceError>> failNext = {};
   final List<String> calls = [];
@@ -45,6 +48,9 @@ class FakeAdapter extends DeviceAdapter {
     if (latency > Duration.zero) await Future<void>.delayed(latency);
     if (offline.contains(d.id)) {
       return Err(DeviceError.offline('${d.id} offline'));
+    }
+    if (rejectKey.contains(d.id)) {
+      return Err(DeviceError.auth('${d.id} key rejected'));
     }
     return body();
   }

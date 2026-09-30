@@ -123,4 +123,38 @@ void main() {
       DeviceErrorKind.unsupported,
     );
   });
+
+  test(
+    'key rejected is flagged (not offline) and cleared on success',
+    () async {
+      polly.rejectKey.add('q');
+      poller.onForeground([dev('q', 'poll')]);
+      await Future<void>.delayed(tick * 3);
+      var st = engine.cached('q')!;
+      expect(st.keyRejected, isTrue);
+      expect(st.online, isTrue);
+      polly.rejectKey.remove('q');
+      await Future<void>.delayed(tick * 3);
+      st = engine.cached('q')!;
+      expect(st.keyRejected, isFalse);
+    },
+  );
+
+  test('offline → onOffline fires once; new IP → resubscribed', () async {
+    final offline = <String>[];
+    poller.onOffline = (d) => offline.add(d.id);
+    polly.offline.add('q');
+    poller.onForeground([dev('q', 'poll')]);
+    await Future<void>.delayed(tick * 5);
+    expect(offline, ['q']);
+    expect(engine.cached('q')?.online, isFalse);
+    // A rescan found it at another address: the poller must use the new Device.
+    polly.offline.remove('q');
+    final moved = dev('q', 'poll').copyWith(ip: '127.0.0.2');
+    await DeviceRepository(db).upsert(moved);
+    poller.onForeground([moved]);
+    await Future<void>.delayed(tick * 3);
+    expect(engine.cached('q')?.online, isTrue);
+    expect(polly.calls.where((c) => c == 'getState:q'), isNotEmpty);
+  });
 }

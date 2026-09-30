@@ -105,6 +105,7 @@ _DeviceState _$DeviceStateFromJson(Map<String, dynamic> json) => _DeviceState(
     const DurationSecondsConverter().fromJson,
   ),
   online: json['online'] as bool? ?? true,
+  keyRejected: json['keyRejected'] as bool? ?? false,
   at: const UtcDateTimeConverter().fromJson(json['at'] as String),
 );
 
@@ -118,6 +119,7 @@ Map<String, dynamic> _$DeviceStateToJson(_DeviceState instance) =>
         const DurationSecondsConverter().toJson,
       ),
       'online': instance.online,
+      'keyRejected': instance.keyRejected,
       'at': const UtcDateTimeConverter().toJson(instance.at),
     };
 

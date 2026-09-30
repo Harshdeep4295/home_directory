@@ -72,6 +72,9 @@ abstract class DeviceState with _$DeviceState {
     int? colorTemp,
     Duration? countdownLeft,
     @Default(true) bool online,
+
+    /// The device answered but refused our key / password (T8.1).
+    @Default(false) bool keyRejected,
     required DateTime at,
   }) = _DeviceState;
 

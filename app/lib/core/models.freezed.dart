@@ -365,7 +365,8 @@ as DateTime,
 /// @nodoc
 mixin _$DeviceState {
 
- bool? get on; int? get brightness; int? get colorTemp; Duration? get countdownLeft; bool get online; DateTime get at;
+ bool? get on; int? get brightness; int? get colorTemp; Duration? get countdownLeft; bool get online;/// The device answered but refused our key / password (T8.1).
+ bool get keyRejected; DateTime get at;
 /// Create a copy of DeviceState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -379,20 +380,20 @@ $DeviceStateCopyWith<DeviceState> get copyWith => _$DeviceStateCopyWithImpl<Devi
 @override
 bool operator ==(Object other) {
   final _this = this as DeviceState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DeviceState&&(identical(other.on, _this.on) || other.on == _this.on)&&(identical(other.brightness, _this.brightness) || other.brightness == _this.brightness)&&(identical(other.colorTemp, _this.colorTemp) || other.colorTemp == _this.colorTemp)&&(identical(other.countdownLeft, _this.countdownLeft) || other.countdownLeft == _this.countdownLeft)&&(identical(other.online, _this.online) || other.online == _this.online)&&(identical(other.at, _this.at) || other.at == _this.at));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DeviceState&&(identical(other.on, _this.on) || other.on == _this.on)&&(identical(other.brightness, _this.brightness) || other.brightness == _this.brightness)&&(identical(other.colorTemp, _this.colorTemp) || other.colorTemp == _this.colorTemp)&&(identical(other.countdownLeft, _this.countdownLeft) || other.countdownLeft == _this.countdownLeft)&&(identical(other.online, _this.online) || other.online == _this.online)&&(identical(other.keyRejected, _this.keyRejected) || other.keyRejected == _this.keyRejected)&&(identical(other.at, _this.at) || other.at == _this.at));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as DeviceState;
-  return Object.hash(runtimeType,_this.on,_this.brightness,_this.colorTemp,_this.countdownLeft,_this.online,_this.at);
+  return Object.hash(runtimeType,_this.on,_this.brightness,_this.colorTemp,_this.countdownLeft,_this.online,_this.keyRejected,_this.at);
 }
 
 @override
 String toString() {
   final _this = this as DeviceState;
-  return 'DeviceState(on: ${_this.on}, brightness: ${_this.brightness}, colorTemp: ${_this.colorTemp}, countdownLeft: ${_this.countdownLeft}, online: ${_this.online}, at: ${_this.at})';
+  return 'DeviceState(on: ${_this.on}, brightness: ${_this.brightness}, colorTemp: ${_this.colorTemp}, countdownLeft: ${_this.countdownLeft}, online: ${_this.online}, keyRejected: ${_this.keyRejected}, at: ${_this.at})';
 }
 
 
@@ -403,7 +404,7 @@ abstract mixin class $DeviceStateCopyWith<$Res>  {
   factory $DeviceStateCopyWith(DeviceState value, $Res Function(DeviceState) _then) = _$DeviceStateCopyWithImpl;
 @useResult
 $Res call({
- bool? on, int? brightness, int? colorTemp, Duration? countdownLeft, bool online, DateTime at
+ bool? on, int? brightness, int? colorTemp, Duration? countdownLeft, bool online, bool keyRejected, DateTime at
 });
 
 
@@ -420,13 +421,14 @@ class _$DeviceStateCopyWithImpl<$Res>
 
 /// Create a copy of DeviceState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? on = freezed,Object? brightness = freezed,Object? colorTemp = freezed,Object? countdownLeft = freezed,Object? online = null,Object? at = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? on = freezed,Object? brightness = freezed,Object? colorTemp = freezed,Object? countdownLeft = freezed,Object? online = null,Object? keyRejected = null,Object? at = null,}) {
   return _then(DeviceState(
 on: freezed == on ? _self.on : on // ignore: cast_nullable_to_non_nullable
 as bool?,brightness: freezed == brightness ? _self.brightness : brightness // ignore: cast_nullable_to_non_nullable
 as int?,colorTemp: freezed == colorTemp ? _self.colorTemp : colorTemp // ignore: cast_nullable_to_non_nullable
 as int?,countdownLeft: freezed == countdownLeft ? _self.countdownLeft : countdownLeft // ignore: cast_nullable_to_non_nullable
 as Duration?,online: null == online ? _self.online : online // ignore: cast_nullable_to_non_nullable
+as bool,keyRejected: null == keyRejected ? _self.keyRejected : keyRejected // ignore: cast_nullable_to_non_nullable
 as bool,at: null == at ? _self.at : at // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -513,10 +515,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool? on,  int? brightness,  int? colorTemp,  Duration? countdownLeft,  bool online,  DateTime at)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool? on,  int? brightness,  int? colorTemp,  Duration? countdownLeft,  bool online,  bool keyRejected,  DateTime at)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DeviceState() when $default != null:
-return $default(_that.on,_that.brightness,_that.colorTemp,_that.countdownLeft,_that.online,_that.at);case _:
+return $default(_that.on,_that.brightness,_that.colorTemp,_that.countdownLeft,_that.online,_that.keyRejected,_that.at);case _:
   return orElse();
 
 }
@@ -534,10 +536,10 @@ return $default(_that.on,_that.brightness,_that.colorTemp,_that.countdownLeft,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool? on,  int? brightness,  int? colorTemp,  Duration? countdownLeft,  bool online,  DateTime at)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool? on,  int? brightness,  int? colorTemp,  Duration? countdownLeft,  bool online,  bool keyRejected,  DateTime at)  $default,) {final _that = this;
 switch (_that) {
 case _DeviceState():
-return $default(_that.on,_that.brightness,_that.colorTemp,_that.countdownLeft,_that.online,_that.at);case _:
+return $default(_that.on,_that.brightness,_that.colorTemp,_that.countdownLeft,_that.online,_that.keyRejected,_that.at);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -554,10 +556,10 @@ return $default(_that.on,_that.brightness,_that.colorTemp,_that.countdownLeft,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool? on,  int? brightness,  int? colorTemp,  Duration? countdownLeft,  bool online,  DateTime at)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool? on,  int? brightness,  int? colorTemp,  Duration? countdownLeft,  bool online,  bool keyRejected,  DateTime at)?  $default,) {final _that = this;
 switch (_that) {
 case _DeviceState() when $default != null:
-return $default(_that.on,_that.brightness,_that.colorTemp,_that.countdownLeft,_that.online,_that.at);case _:
+return $default(_that.on,_that.brightness,_that.colorTemp,_that.countdownLeft,_that.online,_that.keyRejected,_that.at);case _:
   return null;
 
 }
@@ -570,7 +572,7 @@ return $default(_that.on,_that.brightness,_that.colorTemp,_that.countdownLeft,_t
 @DurationSecondsConverter()
 @UtcDateTimeConverter()
 class _DeviceState implements DeviceState {
-  const _DeviceState({this.on, this.brightness, this.colorTemp, this.countdownLeft, this.online = true, required this.at});
+  const _DeviceState({this.on, this.brightness, this.colorTemp, this.countdownLeft, this.online = true, this.keyRejected = false, required this.at});
   factory _DeviceState.fromJson(Map<String, dynamic> json) => _$DeviceStateFromJson(json);
 
 @override final  bool? on;
@@ -578,6 +580,8 @@ class _DeviceState implements DeviceState {
 @override final  int? colorTemp;
 @override final  Duration? countdownLeft;
 @override@JsonKey() final  bool online;
+/// The device answered but refused our key / password (T8.1).
+@override@JsonKey() final  bool keyRejected;
 @override final  DateTime at;
 
 /// Create a copy of DeviceState
@@ -593,18 +597,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DeviceState&&(identical(other.on, on) || other.on == on)&&(identical(other.brightness, brightness) || other.brightness == brightness)&&(identical(other.colorTemp, colorTemp) || other.colorTemp == colorTemp)&&(identical(other.countdownLeft, countdownLeft) || other.countdownLeft == countdownLeft)&&(identical(other.online, online) || other.online == online)&&(identical(other.at, at) || other.at == at));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DeviceState&&(identical(other.on, on) || other.on == on)&&(identical(other.brightness, brightness) || other.brightness == brightness)&&(identical(other.colorTemp, colorTemp) || other.colorTemp == colorTemp)&&(identical(other.countdownLeft, countdownLeft) || other.countdownLeft == countdownLeft)&&(identical(other.online, online) || other.online == online)&&(identical(other.keyRejected, keyRejected) || other.keyRejected == keyRejected)&&(identical(other.at, at) || other.at == at));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,on,brightness,colorTemp,countdownLeft,online,at);
+    return Object.hash(runtimeType,on,brightness,colorTemp,countdownLeft,online,keyRejected,at);
 }
 
 @override
 String toString() {
-    return 'DeviceState(on: $on, brightness: $brightness, colorTemp: $colorTemp, countdownLeft: $countdownLeft, online: $online, at: $at)';
+    return 'DeviceState(on: $on, brightness: $brightness, colorTemp: $colorTemp, countdownLeft: $countdownLeft, online: $online, keyRejected: $keyRejected, at: $at)';
 }
 
 
@@ -615,7 +619,7 @@ abstract mixin class _$DeviceStateCopyWith<$Res> implements $DeviceStateCopyWith
   factory _$DeviceStateCopyWith(_DeviceState value, $Res Function(_DeviceState) _then) = __$DeviceStateCopyWithImpl;
 @override @useResult
 $Res call({
- bool? on, int? brightness, int? colorTemp, Duration? countdownLeft, bool online, DateTime at
+ bool? on, int? brightness, int? colorTemp, Duration? countdownLeft, bool online, bool keyRejected, DateTime at
 });
 
 
@@ -632,13 +636,14 @@ class __$DeviceStateCopyWithImpl<$Res>
 
 /// Create a copy of DeviceState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? on = freezed,Object? brightness = freezed,Object? colorTemp = freezed,Object? countdownLeft = freezed,Object? online = null,Object? at = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? on = freezed,Object? brightness = freezed,Object? colorTemp = freezed,Object? countdownLeft = freezed,Object? online = null,Object? keyRejected = null,Object? at = null,}) {
   return _then(_DeviceState(
 on: freezed == on ? _self.on : on // ignore: cast_nullable_to_non_nullable
 as bool?,brightness: freezed == brightness ? _self.brightness : brightness // ignore: cast_nullable_to_non_nullable
 as int?,colorTemp: freezed == colorTemp ? _self.colorTemp : colorTemp // ignore: cast_nullable_to_non_nullable
 as int?,countdownLeft: freezed == countdownLeft ? _self.countdownLeft : countdownLeft // ignore: cast_nullable_to_non_nullable
 as Duration?,online: null == online ? _self.online : online // ignore: cast_nullable_to_non_nullable
+as bool,keyRejected: null == keyRejected ? _self.keyRejected : keyRejected // ignore: cast_nullable_to_non_nullable
 as bool,at: null == at ? _self.at : at // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

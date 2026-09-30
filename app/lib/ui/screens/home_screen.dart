@@ -103,7 +103,12 @@ class HomeScreen extends ConsumerWidget {
                     state: states[d.id],
                     timer: timers[d.id],
                     now: now,
-                    onTap: () => unawaited(toggle(ref, d)),
+                    // A rejected key cannot toggle: open the device to fix it.
+                    onTap:
+                        states[d.id]?.keyRejected == true &&
+                            onOpenDevice != null
+                        ? () => onOpenDevice!(d)
+                        : () => unawaited(toggle(ref, d)),
                     onLongPress: onOpenDevice == null
                         ? null
                         : () => onOpenDevice!(d),
