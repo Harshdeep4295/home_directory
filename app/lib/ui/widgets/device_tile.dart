@@ -69,6 +69,8 @@ class DeviceTile extends StatelessWidget {
         : scheme.onSurface;
     final status = offline
         ? 'Offline'
+        : state?.keyRejected == true
+        ? 'Key rejected'
         : state?.on == null
         ? '—'
         : on

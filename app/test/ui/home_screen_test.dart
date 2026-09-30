@@ -91,4 +91,20 @@ void main() {
     expect(remainingText(const Duration(seconds: 40)), '40s');
     expect(remainingText(Duration.zero), 'now');
   });
+
+  testWidgets('T8.2: 100 devices render within the cold-start budget', (
+    tester,
+  ) async {
+    final t = await TestServices.inTester(
+      tester,
+      devices: [for (var i = 0; i < 100; i++) testDevice('d$i', 'Device $i')],
+    );
+    final sw = Stopwatch()..start();
+    await tester.pumpWidget(t.wrap(const MaterialApp(home: HomeScreen())));
+    await TestServices.settle(tester);
+    sw.stop();
+    expect(find.byType(DeviceTile), findsWidgets);
+    expect(sw.elapsed, lessThan(const Duration(seconds: 2)));
+    await t.tearDown(tester);
+  });
 }

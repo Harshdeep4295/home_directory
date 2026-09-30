@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/perf.dart';
 import '../debug/net_debug_screen.dart';
 import '../debug/scan_debug_screen.dart';
 import '../debug/voice_debug_screen.dart';
@@ -17,6 +18,11 @@ class DebugMenu extends ConsumerWidget {
         Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => w));
     return Column(
       children: [
+        ListTile(
+          leading: const Icon(Icons.speed),
+          title: const Text('Performance'),
+          subtitle: Text(Perf.summary()),
+        ),
         ListTile(
           leading: const Icon(Icons.wifi),
           title: const Text('Network debug'),

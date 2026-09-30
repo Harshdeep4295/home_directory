@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/intent.dart';
 import '../../core/models.dart';
+import '../../core/perf.dart';
 import '../providers.dart';
 import '../widgets/device_tile.dart';
 
@@ -62,6 +63,9 @@ class HomeScreen extends ConsumerWidget {
         ),
       );
     } else {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => Perf.markDeviceListShown(),
+      );
       final sections = <(String, List<Device>)>[
         for (final r in rooms)
           (r.name, devices.where((d) => d.roomId == r.id).toList()),
@@ -103,7 +107,12 @@ class HomeScreen extends ConsumerWidget {
                     state: states[d.id],
                     timer: timers[d.id],
                     now: now,
-                    onTap: () => unawaited(toggle(ref, d)),
+                    // A rejected key cannot toggle: open the device to fix it.
+                    onTap:
+                        states[d.id]?.keyRejected == true &&
+                            onOpenDevice != null
+                        ? () => onOpenDevice!(d)
+                        : () => unawaited(toggle(ref, d)),
                     onLongPress: onOpenDevice == null
                         ? null
                         : () => onOpenDevice!(d),

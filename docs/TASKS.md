@@ -309,10 +309,13 @@ writes clear instructions, then stops.
 
 ## M8 — Hardening and release to own phones
 
-- [ ] **T8.1 Error UX** (S) — deps: T5.*
+- [x] **T8.1 Error UX** (S) — deps: T5.*
   Do: per-device offline state, "device moved IP" auto-rescan, key-rejected → re-import prompt.
-- [ ] **T8.2 Performance** (S) — Accept: tap→device p95 < 500 ms on LAN, list render < 2 s cold start (measure, log).
+  Note: DeviceState.keyRejected (poller flags auth errors, clears on success) → tile "Key rejected" opens the device, detail card with the brand's fix (devices.json / local key / password / TP-Link account / re-pair Hue); offline card with Re-scan IP; AutoRescan runs a 3 s scan when a device goes offline (max one per 2 min) and the poller resubscribes on IP/port/protocol change.
+- [x] **T8.2 Performance** (S) — Accept: tap→device p95 < 500 ms on LAN, list render < 2 s cold start (measure, log).
+  Note: lib/core/perf.dart — engine records tap→device (setPower acknowledged) per protocol family, cold start → first device-list frame; logged (warn above budget) and shown in Settings → Diagnostics → Performance. Sim benchmark: p95 < 500 ms for WiZ / Tuya 3.3 / 3.4 / Shelly on loopback; 100-tile home screen renders < 2 s. Real Wi-Fi numbers: hardware check #23.
 - [ ] **T8.3 👤 Offline validation checklist** (S)
+  Note: human-run; queued as hardware check #24 (the list below).
   With WAN cable unplugged and mobile data ON, on Android and iPhone:
   - [ ] cold start shows all devices with state
   - [ ] tap on/off each brand
@@ -322,8 +325,10 @@ writes clear instructions, then stops.
   - [ ] timer on WiZ fires (Android phone tier) with screen off
   - [ ] device IP change (reboot router) → recovered within one scan
   - [ ] no request leaves the LAN (check router logs or Android `PCAPdroid`)
-- [ ] **T8.4 README + LICENSE + disclaimer** (S) — MIT (LICENSE + README disclaimer added in M0; T8.4 finishes install docs), "not affiliated", build + install steps for both phones.
-- [ ] **T8.5 Build scripts** (S) — `make apk`, `make ios-device` with notes on 7-day free signing.
+- [x] **T8.4 README + LICENSE + disclaimer** (S) — MIT (LICENSE + README disclaimer added in M0; T8.4 finishes install docs), "not affiliated", build + install steps for both phones.
+  Note: README: features, supported-devices table (transport / timer tier / what it needs), privacy + no-internet guarantee, not-affiliated + mains-appliance disclaimer, install link to docs/INSTALL.md, dev commands. LICENSE (MIT) unchanged.
+- [x] **T8.5 Build scripts** (S) — `make apk`, `make ios-device` with notes on 7-day free signing.
+  Note: `make apk`, `make install-apk`, `make ios-device [IOS_DEVICE=id]`, `make doctor`; docs/INSTALL.md (both phones, free-signing 7-day / 3-app limits, trust + Developer Mode, troubleshooting). Not buildable in the CI container (no Android SDK / Xcode): hardware check #25.
 
 ## Later (not v1)
 

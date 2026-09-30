@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../adapters/kasa/kasa_adapter.dart';
 import '../../adapters/tuya/tuya_adapter.dart';
 import '../../core/intent.dart';
 import '../../core/models.dart';
@@ -16,6 +17,7 @@ import '../home_widget_sync.dart';
 import '../providers.dart';
 import '../widgets/device_tile.dart';
 import '../widgets/prompt.dart';
+import 'devices_json_import_screen.dart';
 
 /// Everything about one device (T5.3).
 class DeviceDetailScreen extends ConsumerStatefulWidget {
@@ -210,6 +212,8 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (state?.keyRejected == true) _keyRejectedCard(d),
+          if (state?.online == false) _offlineCard(d, state!),
           SwitchListTile(
             secondary: Icon(iconFor(d), size: 32),
             title: Text(
@@ -377,6 +381,116 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
         ],
       ),
     );
+  }
+
+  /// T8.1: the device answers but refuses our key / password.
+  Widget _keyRejectedCard(Device d) {
+    final (text, action, onFix) = switch (d.brand) {
+      Brand.tuya => (
+        'The device rejected its local key. This happens after it was reset or '
+            're-paired in the vendor app (the key changes). Import a fresh '
+            'devices.json or enter the new key.',
+        'Import devices.json',
+        () => openDevicesJsonImport(context),
+      ),
+      Brand.shelly || Brand.tasmota || Brand.esphome => (
+        'The device asks for a password we do not have (or it changed).',
+        'Enter password',
+        () => _enterPassword(d),
+      ),
+      Brand.kasa || Brand.tapo => (
+        'The device did not accept the TP-Link account. Check the e-mail and '
+            'password used in the Kasa / Tapo app.',
+        'Re-enter account',
+        _enterTplink,
+      ),
+      Brand.hue => (
+        'The Hue bridge no longer knows this app. Pair it again from Add devices.',
+        'Add devices',
+        () => Navigator.of(context).maybePop(),
+      ),
+      _ => ('The device rejected our key.', 'OK', () async {}),
+    };
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Key rejected',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(text),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(onPressed: onFix, child: Text(action)),
+            ),
+            if (d.brand == Brand.tuya)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => _enterKey(d),
+                  child: const Text('Enter local key'),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// T8.1: not answering; the app already rescans once in the background.
+  Widget _offlineCard(Device d, DeviceState st) {
+    final ago = ref.read(clockProvider)().difference(st.at);
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.wifi_off),
+        title: const Text('Not responding'),
+        subtitle: Text(
+          'Since ${remainingText(ago)} ago. Check that it has power and is on this '
+          'Wi-Fi. If the router gave it a new address, Re-scan IP finds it.',
+        ),
+        trailing: TextButton(
+          onPressed: () => _rescan(d),
+          child: const Text('Re-scan IP'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _enterPassword(Device d) async {
+    final pw = await promptText(
+      context,
+      title: 'Device password',
+      action: 'Save',
+    );
+    if (pw == null || pw.isEmpty) return;
+    await ref.read(servicesProvider).secrets.set(d.id, SecretName.password, pw);
+    await ref.read(servicesProvider).adapters.adapterFor(d)?.dispose(d);
+    _say('Password saved.');
+  }
+
+  Future<void> _enterTplink() async {
+    final email = await promptText(
+      context,
+      title: 'TP-Link account e-mail',
+      action: 'Next',
+    );
+    if (email == null || email.isEmpty || !mounted) return;
+    final pw = await promptText(
+      context,
+      title: 'TP-Link account password',
+      action: 'Save',
+    );
+    if (pw == null || pw.isEmpty) return;
+    final s = ref.read(servicesProvider);
+    await s.secrets.set(KasaAdapter.accountId, SecretName.email, email.trim());
+    await s.secrets.set(KasaAdapter.accountId, SecretName.password, pw);
+    await s.adapters.disposeAll();
+    _say('Account saved.');
   }
 
   Widget _info(String k, String v) => ListTile(

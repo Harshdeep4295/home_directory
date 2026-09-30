@@ -12,6 +12,7 @@ import '../adapters/tuya/tuya_adapter.dart';
 import '../adapters/wiz/wiz_adapter.dart';
 import '../adapters/yeelight/yeelight_adapter.dart';
 import '../core/log.dart';
+import '../discovery/auto_rescan.dart';
 import '../discovery/collectors.dart';
 import '../discovery/discovery_service.dart';
 import '../discovery/mdns_browser.dart';
@@ -55,7 +56,12 @@ class AppServices {
        stateCache = StateCacheRepository(db),
        settings = SettingsRepository(db) {
     engine = CommandEngine(adapters, stateCache);
-    poller = StatePoller(engine, adapters);
+    autoRescan = AutoRescan(discovery.scan);
+    poller = StatePoller(
+      engine,
+      adapters,
+      onOffline: (d) => autoRescan.request('${d.id} went offline'),
+    );
     timerService = TimerService(
       engine,
       adapters,
@@ -79,6 +85,9 @@ class AppServices {
   final SettingsRepository settings;
   late final CommandEngine engine;
   late final StatePoller poller;
+
+  /// Rescans when a device goes offline, to follow DHCP moves (T8.1).
+  late final AutoRescan autoRescan;
   late final TimerService timerService;
 
   /// Phone-tier backend (exact alarms / notifications); null until built.

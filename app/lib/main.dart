@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/services.dart';
+import 'core/perf.dart';
 import 'timers/alarm_runner.dart';
 import 'ui/app.dart';
 import 'ui/providers.dart';
 
 Future<void> main() async {
+  Perf.markAppStart();
   WidgetsFlutterBinding.ensureInitialized();
   final services = await AppServices.create();
   runApp(

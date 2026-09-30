@@ -5,6 +5,7 @@ import 'package:offline_home/onboarding/manual_key.dart';
 import 'package:offline_home/registry/secret_store.dart';
 import 'package:offline_home/ui/alias_suggestions.dart';
 import 'package:offline_home/ui/screens/device_detail_screen.dart';
+import 'package:offline_home/ui/widgets/device_tile.dart';
 
 import '../support/test_services.dart';
 
@@ -141,6 +142,44 @@ void main() {
       ),
       'G00dKeyG00dKey!!',
     );
+    await t.tearDown(tester);
+  });
+
+  testWidgets('key rejected: tile says so, detail explains the fix', (
+    tester,
+  ) async {
+    final t = await TestServices.inTester(
+      tester,
+      devices: [testDevice('plug', 'Plug')],
+    );
+    await tester.runAsync(
+      () => t.services.engine.remember(
+        'plug',
+        DeviceState(on: false, keyRejected: true, at: DateTime.now()),
+      ),
+    );
+    await tester.pumpWidget(
+      t.wrap(
+        MaterialApp(
+          home: Scaffold(
+            body: DeviceTile(
+              device: testDevice('plug', 'Plug'),
+              state: DeviceState(keyRejected: true, at: DateTime.now()),
+              now: DateTime.now(),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Key rejected'), findsOneWidget);
+    await tester.pumpWidget(
+      t.wrap(const MaterialApp(home: DeviceDetailScreen(deviceId: 'plug'))),
+    );
+    await TestServices.settle(tester);
+    await TestServices.settle(tester, ms: 100);
+    expect(find.text('Key rejected'), findsOneWidget);
+    expect(find.text('Import devices.json'), findsOneWidget);
+    expect(find.text('Enter local key'), findsWidgets);
     await t.tearDown(tester);
   });
 }

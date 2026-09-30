@@ -15,8 +15,12 @@ class StatePoller {
     this.interval = const Duration(seconds: 5),
     this.pushGrace = const Duration(seconds: 30),
     this.offlineAfter = 2,
+    this.onOffline,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
+
+  /// Called once when a device is marked offline (e.g. to rescan for a moved IP).
+  void Function(Device d)? onOffline;
 
   final CommandEngine _engine;
   final AdapterRegistry _adapters;
@@ -53,6 +57,15 @@ class StatePoller {
       if (!ids.contains(id)) _stop(id);
     }
     for (final d in devices) {
+      final old = _devices[d.id];
+      // New IP / port / protocol (rescan found it elsewhere): resubscribe.
+      if (old != null &&
+          (old.ip != d.ip ||
+              old.port != d.port ||
+              old.protocol != d.protocol)) {
+        _stop(d.id);
+        unawaited(_adapters.adapterFor(old)?.dispose(old));
+      }
       _devices[d.id] = d;
       if (_polls.containsKey(d.id) || _pushes.containsKey(d.id)) continue;
       final adapter = _adapters.adapterFor(d);
@@ -63,7 +76,10 @@ class StatePoller {
       }
       // Pushes carry changes only; still poll so offline devices are noticed.
       unawaited(pollOnce(d));
-      _polls[d.id] = Timer.periodic(interval, (_) => unawaited(pollOnce(d)));
+      _polls[d.id] = Timer.periodic(
+        interval,
+        (_) => unawaited(pollOnce(_devices[d.id] ?? d)),
+      );
     }
   }
 
@@ -110,9 +126,24 @@ class StatePoller {
               at: _now(),
             ),
           );
+          onOffline?.call(d);
+        }
+      case Err(:final error) when error.kind == DeviceErrorKind.auth:
+        _failures[d.id] = 0;
+        final last = _engine.cached(d.id);
+        if (last?.keyRejected != true) {
+          log.w(_tag, '${d.id}: key / password rejected');
+          await _engine.remember(
+            d.id,
+            (last ?? DeviceState(at: _now())).copyWith(
+              online: true,
+              keyRejected: true,
+              at: _now(),
+            ),
+          );
         }
       case Err():
-        break; // auth/protocol problems are surfaced elsewhere, not as "offline"
+        break; // protocol problems: keep the last known state
     }
   }
 
@@ -127,6 +158,7 @@ class StatePoller {
             brightness: s.brightness ?? last.brightness,
             colorTemp: s.colorTemp ?? last.colorTemp,
             online: true,
+            keyRejected: false,
           );
     await _engine.remember(d.id, merged);
   }
