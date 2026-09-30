@@ -37,6 +37,8 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 21 | T7.10 | Only if you own a Tasmota device: scan, toggle, "on for 1 minute" (plug timer) — then press its button: it must stay on (PulseTime cleared) | phone, Tasmota |
 | 22 | T7.11 | Only if you run ESPHome with `web_server:`: scan finds it (mDNS), enter e.g. switch/relay, toggle | phone, ESPHome device |
 | 23 | T8.2 | After a day of normal use: Settings → Diagnostics → Performance — note p50 / p95 and cold start for each phone (targets: p95 < 500 ms, cold start < 2 s) | both phones |
+| 24 | T8.3 | Offline validation: WAN cable unplugged, mobile data ON, both phones — run the checklist under T8.3 in docs/TASKS.md | both phones, router, devices |
+| 25 | T8.5 | On the Mac: `make doctor`, `make install-apk` (Android), `make ios-device` (iPhone) per docs/INSTALL.md; tell me any build error verbatim | Mac, both phones |
 
 ## Device survey (T0.6)
 

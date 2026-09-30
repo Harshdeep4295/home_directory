@@ -315,6 +315,7 @@ writes clear instructions, then stops.
 - [x] **T8.2 Performance** (S) — Accept: tap→device p95 < 500 ms on LAN, list render < 2 s cold start (measure, log).
   Note: lib/core/perf.dart — engine records tap→device (setPower acknowledged) per protocol family, cold start → first device-list frame; logged (warn above budget) and shown in Settings → Diagnostics → Performance. Sim benchmark: p95 < 500 ms for WiZ / Tuya 3.3 / 3.4 / Shelly on loopback; 100-tile home screen renders < 2 s. Real Wi-Fi numbers: hardware check #23.
 - [ ] **T8.3 👤 Offline validation checklist** (S)
+  Note: human-run; queued as hardware check #24 (the list below).
   With WAN cable unplugged and mobile data ON, on Android and iPhone:
   - [ ] cold start shows all devices with state
   - [ ] tap on/off each brand
@@ -325,7 +326,8 @@ writes clear instructions, then stops.
   - [ ] device IP change (reboot router) → recovered within one scan
   - [ ] no request leaves the LAN (check router logs or Android `PCAPdroid`)
 - [ ] **T8.4 README + LICENSE + disclaimer** (S) — MIT (LICENSE + README disclaimer added in M0; T8.4 finishes install docs), "not affiliated", build + install steps for both phones.
-- [ ] **T8.5 Build scripts** (S) — `make apk`, `make ios-device` with notes on 7-day free signing.
+- [x] **T8.5 Build scripts** (S) — `make apk`, `make ios-device` with notes on 7-day free signing.
+  Note: `make apk`, `make install-apk`, `make ios-device [IOS_DEVICE=id]`, `make doctor`; docs/INSTALL.md (both phones, free-signing 7-day / 3-app limits, trust + Developer Mode, troubleshooting). Not buildable in the CI container (no Android SDK / Xcode): hardware check #25.
 
 ## Later (not v1)
 

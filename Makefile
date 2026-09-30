@@ -4,8 +4,10 @@ DART    ?= dart
 PYTHON  ?= python3
 APP     := app
 SIMS    ?= wiz
+IOS_DEVICE ?= ios
+APK     := $(APP)/build/app/outputs/flutter-apk/app-release.apk
 
-.PHONY: help deps fmt fmt-check analyze codegen codegen-check flutter-test sim-test test sim run-android run-ios clean
+.PHONY: help deps fmt fmt-check analyze codegen codegen-check flutter-test sim-test test sim run-android run-ios apk install-apk ios-device doctor clean
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
@@ -46,6 +48,19 @@ run-android: ## run on a connected Android phone
 
 run-ios: ## run on a connected iPhone (free Apple ID signing expires after 7 days)
 	cd $(APP) && $(FLUTTER) run -d ios
+
+apk: ## release APK for your own phone (signed with the debug key: fine for sideloading)
+	cd $(APP) && $(FLUTTER) build apk --release
+	@echo "APK: $(APK)  (copy to the phone, or: make install-apk)"
+
+install-apk: apk ## build + install the release APK on the USB-connected Android phone
+	adb install -r $(APK)
+
+ios-device: ## release build on the USB-connected iPhone (free Apple ID: re-run every 7 days)
+	cd $(APP) && $(FLUTTER) run --release -d $(IOS_DEVICE)
+
+doctor: ## check the local Flutter / Android / Xcode setup
+	$(FLUTTER) doctor -v
 
 clean: ## remove build outputs
 	cd $(APP) && $(FLUTTER) clean
