@@ -8,6 +8,7 @@ import '../../adapters/hue/hue_adapter.dart';
 import '../../adapters/kasa/kasa_adapter.dart';
 import '../../core/models.dart';
 import '../../core/result.dart';
+import '../../discovery/categorizer.dart';
 import '../../discovery/discovery_service.dart';
 import '../../onboarding/badges.dart';
 import '../../onboarding/hue_pairing.dart';
@@ -111,10 +112,18 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
           'Not supported yet',
           'Found a ${c.brand.name} device (${c.protocol}); its adapter is not built yet.',
         );
+      case OnboardingBadge.unknown when c.category == DeviceCategory.camera:
+        _info(
+          'Camera',
+          '${c.name ?? 'A camera'} at ${c.ip}. Live view for Hikvision / EZVIZ cameras '
+              'is coming next; other cameras are listed only.\n\n${c.evidence.join('\n')}',
+        );
       case OnboardingBadge.unknown:
         _info(
-          'Unknown device',
-          'Something answered at ${c.ip} but it is not a device this app knows.\n${c.evidence.join('\n')}',
+          c.category == DeviceCategory.other
+              ? 'Unknown device'
+              : c.category.label,
+          'Something answered at ${c.ip} but this app cannot control it.\n${c.evidence.join('\n')}',
         );
     }
   }
@@ -328,6 +337,10 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
         .where((r) => r.isNew && !_added.contains(_key(r.candidate)))
         .toList();
     final known = results.where((r) => !r.isNew).toList();
+    final groups = <DeviceCategory, List<ScanResult>>{};
+    for (final r in fresh) {
+      (groups[Categorizer.of(r.candidate)] ??= []).add(r);
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add devices'),
@@ -360,21 +373,39 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
                 'Make sure they are powered and on this Wi-Fi, then scan again.',
               ),
             ),
-          for (final r in fresh)
-            Builder(
-              builder: (context) {
-                final c = r.candidate;
-                final badge = badgeFor(c, adapters);
-                return ListTile(
-                  title: Text(
-                    c.name ?? DiscoveryService.defaultName(c.brand, _key(c)),
-                  ),
-                  subtitle: Text('${c.brand.name} · ${c.protocol} · ${c.ip}'),
-                  trailing: Chip(label: Text(badge.label)),
-                  onTap: () => _resolve(c, badge),
-                );
-              },
-            ),
+          for (final cat in DeviceCategory.values)
+            if (groups[cat] case final rows?) ...[
+              ListTile(
+                key: ValueKey('section-${cat.name}'),
+                dense: true,
+                leading: Icon(categoryIcon(cat)),
+                title: Text(
+                  '${cat.label} (${rows.length})',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              for (final r in rows)
+                Builder(
+                  builder: (context) {
+                    final c = r.candidate;
+                    final badge = badgeFor(c, adapters);
+                    return ListTile(
+                      leading: const SizedBox(width: 24),
+                      title: Text(
+                        c.name ??
+                            DiscoveryService.defaultName(c.brand, _key(c)),
+                      ),
+                      subtitle: Text(
+                        c.brand == Brand.unknown
+                            ? [?c.model, c.ip].join(' · ')
+                            : '${c.brand.name} · ${c.protocol} · ${c.ip}',
+                      ),
+                      trailing: Chip(label: Text(badge.label)),
+                      onTap: () => _resolve(c, badge),
+                    );
+                  },
+                ),
+            ],
           if (known.isNotEmpty)
             ListTile(
               title: Text('Already added: ${known.length}'),
@@ -390,6 +421,18 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
     );
   }
 }
+
+/// Section icon per category (Material icons).
+IconData categoryIcon(DeviceCategory c) => switch (c) {
+  DeviceCategory.lightsPlugs => Icons.lightbulb_outline,
+  DeviceCategory.camera => Icons.videocam_outlined,
+  DeviceCategory.tv => Icons.tv,
+  DeviceCategory.speaker => Icons.speaker,
+  DeviceCategory.printer => Icons.print_outlined,
+  DeviceCategory.network => Icons.router_outlined,
+  DeviceCategory.computer => Icons.devices,
+  DeviceCategory.other => Icons.device_unknown_outlined,
+};
 
 class _NameResult {
   const _NameResult(this.name, this.roomId, this.newRoom, this.aliases);

@@ -338,8 +338,9 @@ writes clear instructions, then stops.
 - [x] **T9.2 Device categories** (S) — deps: T9.1
   Do: `DeviceCategory` (Lights & plugs, Cameras, TV & media, Speakers, Printers, Network, Phones & computers, Other) from known adapters, mDNS service types, ONVIF/SADP/RTSP, HTTP Server header; Candidate.category + model; more mDNS types (Android + iOS NSBonjourServices).
   Note: lib/discovery/categorizer.dart runs after the Fingerprinter; cameras from SADP > ONVIF video > RTSP 554 > Hikvision server name (named "<vendor> <model>"); Cast speakers vs TVs per pychromecast const.py CAST_TYPES audio models; 11 extra DNS-SD types (test keeps iOS NSBonjourServices in sync). VERIFY: Hikvision/EZVIZ Server header strings, router guess (.1/.254 with a web page), scan time with 16 mDNS types on Android 10–13.
-- [ ] **T9.3 Grouped Add devices screen** (S) — deps: T9.2
+- [x] **T9.3 Grouped Add devices screen** (S) — deps: T9.2
   Do: sections per category with icon + count, model/vendor in the subtitle, camera rows explain what is next.
+  Note: sections in DeviceCategory order (Lights & plugs first), unknown rows show "model · ip", tapping a camera / TV / printer explains it and shows the evidence lines. Hardware check #26.
 - [ ] **T9.4 Hikvision / EZVIZ camera adapter** (M) — deps: T9.1
   Do: Brand.hikvision, protocol `hik-rtsp`; credentials (EZVIZ: admin + sticker verification code; Hik-Connect: device password) in SecretStore, never reset/changed; RTSP DESCRIBE with digest auth to pick the first working stream path (main/sub); RtspSim contract test.
 - [ ] **T9.5 Live view + thumbnails** (M) — deps: T9.4
