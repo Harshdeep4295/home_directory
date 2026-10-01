@@ -1513,7 +1513,8 @@ as DateTime,
 /// @nodoc
 mixin _$Candidate {
 
- String get ip; String? get mac; int? get port; Brand get brand; String get protocol; String? get version; String? get deviceId; String? get name; bool get needsKey;/// Human-readable reasons for the identification, for diagnostics.
+ String get ip; String? get mac; int? get port; Brand get brand; String get protocol; String? get version; String? get deviceId; String? get name; bool get needsKey; DeviceCategory get category;/// Vendor model / hardware name when a probe reported one (SADP, ONVIF, mDNS).
+ String? get model;/// Human-readable reasons for the identification, for diagnostics.
  List<String> get evidence;
 /// Create a copy of Candidate
 /// with the given fields replaced by the non-null parameter values.
@@ -1528,20 +1529,20 @@ $CandidateCopyWith<Candidate> get copyWith => _$CandidateCopyWithImpl<Candidate>
 @override
 bool operator ==(Object other) {
   final _this = this as Candidate;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Candidate&&(identical(other.ip, _this.ip) || other.ip == _this.ip)&&(identical(other.mac, _this.mac) || other.mac == _this.mac)&&(identical(other.port, _this.port) || other.port == _this.port)&&(identical(other.brand, _this.brand) || other.brand == _this.brand)&&(identical(other.protocol, _this.protocol) || other.protocol == _this.protocol)&&(identical(other.version, _this.version) || other.version == _this.version)&&(identical(other.deviceId, _this.deviceId) || other.deviceId == _this.deviceId)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.needsKey, _this.needsKey) || other.needsKey == _this.needsKey)&&const DeepCollectionEquality().equals(other.evidence, _this.evidence));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Candidate&&(identical(other.ip, _this.ip) || other.ip == _this.ip)&&(identical(other.mac, _this.mac) || other.mac == _this.mac)&&(identical(other.port, _this.port) || other.port == _this.port)&&(identical(other.brand, _this.brand) || other.brand == _this.brand)&&(identical(other.protocol, _this.protocol) || other.protocol == _this.protocol)&&(identical(other.version, _this.version) || other.version == _this.version)&&(identical(other.deviceId, _this.deviceId) || other.deviceId == _this.deviceId)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.needsKey, _this.needsKey) || other.needsKey == _this.needsKey)&&(identical(other.category, _this.category) || other.category == _this.category)&&(identical(other.model, _this.model) || other.model == _this.model)&&const DeepCollectionEquality().equals(other.evidence, _this.evidence));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Candidate;
-  return Object.hash(runtimeType,_this.ip,_this.mac,_this.port,_this.brand,_this.protocol,_this.version,_this.deviceId,_this.name,_this.needsKey,const DeepCollectionEquality().hash(_this.evidence));
+  return Object.hash(runtimeType,_this.ip,_this.mac,_this.port,_this.brand,_this.protocol,_this.version,_this.deviceId,_this.name,_this.needsKey,_this.category,_this.model,const DeepCollectionEquality().hash(_this.evidence));
 }
 
 @override
 String toString() {
   final _this = this as Candidate;
-  return 'Candidate(ip: ${_this.ip}, mac: ${_this.mac}, port: ${_this.port}, brand: ${_this.brand}, protocol: ${_this.protocol}, version: ${_this.version}, deviceId: ${_this.deviceId}, name: ${_this.name}, needsKey: ${_this.needsKey}, evidence: ${_this.evidence})';
+  return 'Candidate(ip: ${_this.ip}, mac: ${_this.mac}, port: ${_this.port}, brand: ${_this.brand}, protocol: ${_this.protocol}, version: ${_this.version}, deviceId: ${_this.deviceId}, name: ${_this.name}, needsKey: ${_this.needsKey}, category: ${_this.category}, model: ${_this.model}, evidence: ${_this.evidence})';
 }
 
 
@@ -1552,7 +1553,7 @@ abstract mixin class $CandidateCopyWith<$Res>  {
   factory $CandidateCopyWith(Candidate value, $Res Function(Candidate) _then) = _$CandidateCopyWithImpl;
 @useResult
 $Res call({
- String ip, String? mac, int? port, Brand brand, String protocol, String? version, String? deviceId, String? name, bool needsKey, List<String> evidence
+ String ip, String? mac, int? port, Brand brand, String protocol, String? version, String? deviceId, String? name, bool needsKey, DeviceCategory category, String? model, List<String> evidence
 });
 
 
@@ -1569,7 +1570,7 @@ class _$CandidateCopyWithImpl<$Res>
 
 /// Create a copy of Candidate
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? ip = null,Object? mac = freezed,Object? port = freezed,Object? brand = null,Object? protocol = null,Object? version = freezed,Object? deviceId = freezed,Object? name = freezed,Object? needsKey = null,Object? evidence = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? ip = null,Object? mac = freezed,Object? port = freezed,Object? brand = null,Object? protocol = null,Object? version = freezed,Object? deviceId = freezed,Object? name = freezed,Object? needsKey = null,Object? category = null,Object? model = freezed,Object? evidence = null,}) {
   return _then(Candidate(
 ip: null == ip ? _self.ip : ip // ignore: cast_nullable_to_non_nullable
 as String,mac: freezed == mac ? _self.mac : mac // ignore: cast_nullable_to_non_nullable
@@ -1580,7 +1581,9 @@ as String,version: freezed == version ? _self.version : version // ignore: cast_
 as String?,deviceId: freezed == deviceId ? _self.deviceId : deviceId // ignore: cast_nullable_to_non_nullable
 as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,needsKey: null == needsKey ? _self.needsKey : needsKey // ignore: cast_nullable_to_non_nullable
-as bool,evidence: null == evidence ? _self.evidence : evidence // ignore: cast_nullable_to_non_nullable
+as bool,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as DeviceCategory,model: freezed == model ? _self.model : model // ignore: cast_nullable_to_non_nullable
+as String?,evidence: null == evidence ? _self.evidence : evidence // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }
@@ -1666,10 +1669,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String ip,  String? mac,  int? port,  Brand brand,  String protocol,  String? version,  String? deviceId,  String? name,  bool needsKey,  List<String> evidence)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String ip,  String? mac,  int? port,  Brand brand,  String protocol,  String? version,  String? deviceId,  String? name,  bool needsKey,  DeviceCategory category,  String? model,  List<String> evidence)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Candidate() when $default != null:
-return $default(_that.ip,_that.mac,_that.port,_that.brand,_that.protocol,_that.version,_that.deviceId,_that.name,_that.needsKey,_that.evidence);case _:
+return $default(_that.ip,_that.mac,_that.port,_that.brand,_that.protocol,_that.version,_that.deviceId,_that.name,_that.needsKey,_that.category,_that.model,_that.evidence);case _:
   return orElse();
 
 }
@@ -1687,10 +1690,10 @@ return $default(_that.ip,_that.mac,_that.port,_that.brand,_that.protocol,_that.v
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String ip,  String? mac,  int? port,  Brand brand,  String protocol,  String? version,  String? deviceId,  String? name,  bool needsKey,  List<String> evidence)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String ip,  String? mac,  int? port,  Brand brand,  String protocol,  String? version,  String? deviceId,  String? name,  bool needsKey,  DeviceCategory category,  String? model,  List<String> evidence)  $default,) {final _that = this;
 switch (_that) {
 case _Candidate():
-return $default(_that.ip,_that.mac,_that.port,_that.brand,_that.protocol,_that.version,_that.deviceId,_that.name,_that.needsKey,_that.evidence);case _:
+return $default(_that.ip,_that.mac,_that.port,_that.brand,_that.protocol,_that.version,_that.deviceId,_that.name,_that.needsKey,_that.category,_that.model,_that.evidence);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1707,10 +1710,10 @@ return $default(_that.ip,_that.mac,_that.port,_that.brand,_that.protocol,_that.v
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String ip,  String? mac,  int? port,  Brand brand,  String protocol,  String? version,  String? deviceId,  String? name,  bool needsKey,  List<String> evidence)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String ip,  String? mac,  int? port,  Brand brand,  String protocol,  String? version,  String? deviceId,  String? name,  bool needsKey,  DeviceCategory category,  String? model,  List<String> evidence)?  $default,) {final _that = this;
 switch (_that) {
 case _Candidate() when $default != null:
-return $default(_that.ip,_that.mac,_that.port,_that.brand,_that.protocol,_that.version,_that.deviceId,_that.name,_that.needsKey,_that.evidence);case _:
+return $default(_that.ip,_that.mac,_that.port,_that.brand,_that.protocol,_that.version,_that.deviceId,_that.name,_that.needsKey,_that.category,_that.model,_that.evidence);case _:
   return null;
 
 }
@@ -1722,7 +1725,7 @@ return $default(_that.ip,_that.mac,_that.port,_that.brand,_that.protocol,_that.v
 @JsonSerializable()
 
 class _Candidate implements Candidate {
-  const _Candidate({required this.ip, this.mac, this.port, required this.brand, required this.protocol, this.version, this.deviceId, this.name, this.needsKey = false,  List<String> evidence = const <String>[]}): _evidence = evidence;
+  const _Candidate({required this.ip, this.mac, this.port, required this.brand, required this.protocol, this.version, this.deviceId, this.name, this.needsKey = false, this.category = DeviceCategory.other, this.model,  List<String> evidence = const <String>[]}): _evidence = evidence;
   factory _Candidate.fromJson(Map<String, dynamic> json) => _$CandidateFromJson(json);
 
 @override final  String ip;
@@ -1734,6 +1737,9 @@ class _Candidate implements Candidate {
 @override final  String? deviceId;
 @override final  String? name;
 @override@JsonKey() final  bool needsKey;
+@override@JsonKey() final  DeviceCategory category;
+/// Vendor model / hardware name when a probe reported one (SADP, ONVIF, mDNS).
+@override final  String? model;
 /// Human-readable reasons for the identification, for diagnostics.
  final  List<String> _evidence;
 /// Human-readable reasons for the identification, for diagnostics.
@@ -1757,18 +1763,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Candidate&&(identical(other.ip, ip) || other.ip == ip)&&(identical(other.mac, mac) || other.mac == mac)&&(identical(other.port, port) || other.port == port)&&(identical(other.brand, brand) || other.brand == brand)&&(identical(other.protocol, protocol) || other.protocol == protocol)&&(identical(other.version, version) || other.version == version)&&(identical(other.deviceId, deviceId) || other.deviceId == deviceId)&&(identical(other.name, name) || other.name == name)&&(identical(other.needsKey, needsKey) || other.needsKey == needsKey)&&const DeepCollectionEquality().equals(other.evidence, _evidence));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Candidate&&(identical(other.ip, ip) || other.ip == ip)&&(identical(other.mac, mac) || other.mac == mac)&&(identical(other.port, port) || other.port == port)&&(identical(other.brand, brand) || other.brand == brand)&&(identical(other.protocol, protocol) || other.protocol == protocol)&&(identical(other.version, version) || other.version == version)&&(identical(other.deviceId, deviceId) || other.deviceId == deviceId)&&(identical(other.name, name) || other.name == name)&&(identical(other.needsKey, needsKey) || other.needsKey == needsKey)&&(identical(other.category, category) || other.category == category)&&(identical(other.model, model) || other.model == model)&&const DeepCollectionEquality().equals(other.evidence, _evidence));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,ip,mac,port,brand,protocol,version,deviceId,name,needsKey,const DeepCollectionEquality().hash(_evidence));
+    return Object.hash(runtimeType,ip,mac,port,brand,protocol,version,deviceId,name,needsKey,category,model,const DeepCollectionEquality().hash(_evidence));
 }
 
 @override
 String toString() {
-    return 'Candidate(ip: $ip, mac: $mac, port: $port, brand: $brand, protocol: $protocol, version: $version, deviceId: $deviceId, name: $name, needsKey: $needsKey, evidence: $evidence)';
+    return 'Candidate(ip: $ip, mac: $mac, port: $port, brand: $brand, protocol: $protocol, version: $version, deviceId: $deviceId, name: $name, needsKey: $needsKey, category: $category, model: $model, evidence: $evidence)';
 }
 
 
@@ -1779,7 +1785,7 @@ abstract mixin class _$CandidateCopyWith<$Res> implements $CandidateCopyWith<$Re
   factory _$CandidateCopyWith(_Candidate value, $Res Function(_Candidate) _then) = __$CandidateCopyWithImpl;
 @override @useResult
 $Res call({
- String ip, String? mac, int? port, Brand brand, String protocol, String? version, String? deviceId, String? name, bool needsKey, List<String> evidence
+ String ip, String? mac, int? port, Brand brand, String protocol, String? version, String? deviceId, String? name, bool needsKey, DeviceCategory category, String? model, List<String> evidence
 });
 
 
@@ -1796,7 +1802,7 @@ class __$CandidateCopyWithImpl<$Res>
 
 /// Create a copy of Candidate
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? ip = null,Object? mac = freezed,Object? port = freezed,Object? brand = null,Object? protocol = null,Object? version = freezed,Object? deviceId = freezed,Object? name = freezed,Object? needsKey = null,Object? evidence = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? ip = null,Object? mac = freezed,Object? port = freezed,Object? brand = null,Object? protocol = null,Object? version = freezed,Object? deviceId = freezed,Object? name = freezed,Object? needsKey = null,Object? category = null,Object? model = freezed,Object? evidence = null,}) {
   return _then(_Candidate(
 ip: null == ip ? _self.ip : ip // ignore: cast_nullable_to_non_nullable
 as String,mac: freezed == mac ? _self.mac : mac // ignore: cast_nullable_to_non_nullable
@@ -1807,7 +1813,9 @@ as String,version: freezed == version ? _self.version : version // ignore: cast_
 as String?,deviceId: freezed == deviceId ? _self.deviceId : deviceId // ignore: cast_nullable_to_non_nullable
 as String?,name: freezed == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String?,needsKey: null == needsKey ? _self.needsKey : needsKey // ignore: cast_nullable_to_non_nullable
-as bool,evidence: null == evidence ? _self._evidence : evidence // ignore: cast_nullable_to_non_nullable
+as bool,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as DeviceCategory,model: freezed == model ? _self.model : model // ignore: cast_nullable_to_non_nullable
+as String?,evidence: null == evidence ? _self._evidence : evidence // ignore: cast_nullable_to_non_nullable
 as List<String>,
   ));
 }

@@ -201,6 +201,10 @@ _Candidate _$CandidateFromJson(Map<String, dynamic> json) => _Candidate(
   deviceId: json['deviceId'] as String?,
   name: json['name'] as String?,
   needsKey: json['needsKey'] as bool? ?? false,
+  category:
+      $enumDecodeNullable(_$DeviceCategoryEnumMap, json['category']) ??
+      DeviceCategory.other,
+  model: json['model'] as String?,
   evidence:
       (json['evidence'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const <String>[],
@@ -217,5 +221,18 @@ Map<String, dynamic> _$CandidateToJson(_Candidate instance) =>
       'deviceId': ?instance.deviceId,
       'name': ?instance.name,
       'needsKey': instance.needsKey,
+      'category': _$DeviceCategoryEnumMap[instance.category]!,
+      'model': ?instance.model,
       'evidence': instance.evidence,
     };
+
+const _$DeviceCategoryEnumMap = {
+  DeviceCategory.lightsPlugs: 'lightsPlugs',
+  DeviceCategory.camera: 'camera',
+  DeviceCategory.tv: 'tv',
+  DeviceCategory.speaker: 'speaker',
+  DeviceCategory.printer: 'printer',
+  DeviceCategory.network: 'network',
+  DeviceCategory.computer: 'computer',
+  DeviceCategory.other: 'other',
+};

@@ -6,6 +6,7 @@ import '../adapters/kasa/kasa_xor.dart';
 import '../adapters/tuya/tuya_codec.dart';
 import '../core/models.dart';
 import '../net/lan_socket_factory.dart';
+import 'categorizer.dart';
 import 'evidence.dart';
 
 /// What discovery already knows about stored credentials (so badges can say "Ready").
@@ -27,7 +28,12 @@ abstract final class Fingerprinter {
   static Candidate? identify(
     HostEvidence e, {
     KnownSecrets known = const KnownSecrets(),
-  }) =>
+  }) {
+    final c = _identify(e, known);
+    return c == null ? null : Categorizer.apply(c, e);
+  }
+
+  static Candidate? _identify(HostEvidence e, KnownSecrets known) =>
       _tuyaBeacon(e, known) ??
       _wiz(e) ??
       _hue(e, known) ??
@@ -312,7 +318,11 @@ abstract final class Fingerprinter {
   }
 
   static Candidate? _unknown(HostEvidence e) {
-    if (!e.openPorts.contains(ScanPort.http) && e.mdns.isEmpty) return null;
+    if (!e.openPorts.contains(ScanPort.http) &&
+        e.mdns.isEmpty &&
+        Categorizer.camera(e) == null) {
+      return null;
+    }
     final server = e.http['/']?.headers['server'];
     return Candidate(
       ip: e.ip,

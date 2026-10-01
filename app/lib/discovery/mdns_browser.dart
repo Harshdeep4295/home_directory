@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bonsoir/bonsoir.dart';
 
 import '../core/log.dart';
+import 'categorizer.dart';
 import 'evidence.dart';
 
 /// mDNS service types browsed during a scan (PLAN §5). Must match iOS NSBonjourServices.
@@ -12,6 +13,7 @@ const mdnsServiceTypes = [
   '_http._tcp',
   '_ewelink._tcp',
   '_esphomelib._tcp',
+  ...Categorizer.mdnsTypes,
 ];
 
 abstract interface class MdnsBrowser {

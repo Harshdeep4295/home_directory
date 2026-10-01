@@ -335,8 +335,9 @@ writes clear instructions, then stops.
 - [x] **T9.1 Camera discovery probes** (S) — deps: T3.*
   Do: ONVIF WS-Discovery Probe (3702) and Hikvision SADP inquiry (37020) multicast to 239.255.255.250, TCP 554 in the port scan, RTSP OPTIONS `Server` header; sims `onvif`, `sadp`, `rtsp`.
   Note: messages per WSDiscovery 2.1.2 (actions/probe.py, namespaces.py) and hiktools 1.2.2 (sadp/message.py fromdict, byte-exact test); sims checked with WSDiscovery's parser and hiktools' unmarshal; RtspSim does OPTIONS + digest DESCRIBE (RFC 2326/2617). VERIFY: SADP reply root/port on EZVIZ firmware, unicast inquiry on iOS. Hardware check #26.
-- [ ] **T9.2 Device categories** (S) — deps: T9.1
+- [x] **T9.2 Device categories** (S) — deps: T9.1
   Do: `DeviceCategory` (Lights & plugs, Cameras, TV & media, Speakers, Printers, Network, Phones & computers, Other) from known adapters, mDNS service types, ONVIF/SADP/RTSP, HTTP Server header; Candidate.category + model; more mDNS types (Android + iOS NSBonjourServices).
+  Note: lib/discovery/categorizer.dart runs after the Fingerprinter; cameras from SADP > ONVIF video > RTSP 554 > Hikvision server name (named "<vendor> <model>"); Cast speakers vs TVs per pychromecast const.py CAST_TYPES audio models; 11 extra DNS-SD types (test keeps iOS NSBonjourServices in sync). VERIFY: Hikvision/EZVIZ Server header strings, router guess (.1/.254 with a web page), scan time with 16 mDNS types on Android 10–13.
 - [ ] **T9.3 Grouped Add devices screen** (S) — deps: T9.2
   Do: sections per category with icon + count, model/vendor in the subtitle, camera rows explain what is next.
 - [ ] **T9.4 Hikvision / EZVIZ camera adapter** (M) — deps: T9.1
