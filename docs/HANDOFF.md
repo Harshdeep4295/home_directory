@@ -1,4 +1,4 @@
-# Handoff — Offline Home (state as of 2026-09-30, end of M8)
+# Handoff — Offline Home (state as of 2026-10-01, end of M9)
 
 Read `CLAUDE.md` first (rules are non-negotiable), then this file, then `docs/TASKS.md`.
 This note says where the work stands, how to run things, and what is left.
@@ -7,14 +7,31 @@ This note says where the work stands, how to run things, and what is left.
 
 | Milestone | State |
 |---|---|
-| M0–M7 | **Merged into `main`** (M5 = PR #6 App UI, M6 = PR #7 Key import, M7 = PR #8 Remaining adapters). |
-| M8 Hardening | T8.1 error UX, T8.2 performance, T8.4 README, T8.5 build scripts done on `claude/sweet-thompson-fba2km` → **M8 PR**. T8.3 is the owner's offline checklist (hardware check #24). |
+| M0–M8 | **Merged into `main`** (M5 = PR #6, M6 = PR #7, M7 = PR #8, M8 = PR #9). |
+| M9 Device categories + camera view | **Merged into `main`** (PR #10, merge commit `6376eb0`). T9.1–T9.5 done; T9.6 = owner's hardware checks #26–#28. |
 
-- v1 is feature-complete. What remains is **real-hardware validation** by the owner: every row of
-  "Pending hardware checks" in `docs/HARDWARE_LOG.md` (#1–#25), plus the open `VERIFY` notes per task in
-  `docs/TASKS.md`. Fix whatever those checks report.
-- Deferred / optional: T4.9 real-voice test (hardware), T5.10 iOS widget, Later list L1–L5.
-- Latest full local run: 513 Flutter tests + 49 simulator tests green.
+- The owner has **installed the APK on Android and confirmed it works end to end**: the scan lists devices,
+  including ones the app does not control, such as a Hikvision/EZVIZ camera. That led to M9.
+- What remains is **real-hardware feedback**: every row of "Pending hardware checks" in `docs/HARDWARE_LOG.md`
+  (#1–#28), especially #26–#28 (EZVIZ camera). Fix whatever they report, adding a regression test for each fix.
+- Deferred / optional: T4.9 real-voice test, T5.10 iOS widget, Later list L1–L5.
+- Latest full local run: 538 Flutter tests + 52 simulator tests green.
+- **Owner's camera**: EZVIZ / Hik-Connect consumer camera. Owner rule: **never reset or change any device's
+  password or settings**. Credentials = user `admin` + the 6-letter sticker verification code (EZVIZ) or the
+  Hik-Connect device password, entered in the app's Add camera dialog.
+
+### Test APK pipeline (how the owner gets builds)
+
+- The cloud container **cannot build Android**: dl.google.com is blocked, so there is no Android SDK.
+  APKs are built by `.github/workflows/apk.yml` on GitHub Actions.
+- The workflow runs on every push to `claude/sweet-thompson-fba2km`, or by hand (workflow_dispatch), never on `main`.
+  It publishes the APK to the **`apk-latest` pre-release**. Stable link for the owner:
+  https://github.com/Harshdeep4295/home_directory/releases/download/apk-latest/offline-home.apk
+  (the release notes name the commit it was built from).
+- The owner authorised pushing to get APKs built. Each build is signed with a fresh debug key, so the owner must
+  **uninstall before installing** a new build (this wipes app data). A fixed signing key was offered but not yet requested.
+- APK size is ~108 MB (universal, with libmpv for camera video). A per-ABI (arm64) build was offered but not yet requested.
+- Check builds with the GitHub MCP tools: `actions_list` (list_workflow_runs, resource_id `apk.yml`) and `get_release_by_tag apk-latest`.
 
 ## 2. Workflow the owner agreed to
 
@@ -32,7 +49,7 @@ This note says where the work stands, how to run things, and what is left.
 ## 3. Environment (cloud container) — how to run things
 
 - Flutter: `export PATH=/opt/flutter/bin:$PATH` (Flutter 3.47.5 / Dart 3.13.4; runs as root, ignore the warning).
-- Python for simulators: a venv with `pytest pytest-asyncio tinytuya==1.20.0` (`sim/requirements-dev.txt`). The previous session's venv lived in its scratchpad and is **gone** in a new container — recreate:
+- Python for simulators: a venv from `sim/requirements-dev.txt`. Venvs do not survive into a new container, so recreate it:
   ```
   python3 -m venv /tmp/venv && /tmp/venv/bin/pip install -r sim/requirements-dev.txt
   # requirements-dev now also pins aioshelly, python-kasa and tzdata (reference clients)
@@ -56,14 +73,27 @@ This note says where the work stands, how to run things, and what is left.
 
 ## 5. What is left
 
-All planned milestones are implemented (adapters in `app/lib/adapters/{tuya,wiz,shelly,kasa,hue,yeelight,sonoff,tasmota,esphome}`,
-sims in `sim/ohsim/devices/`, each sim checked in `sim/tests` against the reference client).
-Next work comes from the owner's hardware runs:
-- Work through `docs/HARDWARE_LOG.md` → *Pending hardware checks* results as the owner reports them; fix and add a
-  regression test (sim or vector) for every real-device difference, then resolve the matching `VERIFY` note.
-- Known gaps: TP-Link AES / HTTPS devices (Tapo cameras, hubs) show "Not supported yet"; Sonoff state on eWeLink
-  firmware may need mDNS TXT parsing; ESPHome entity listing; iOS widget (T5.10); Later list L1–L5.
-- Builds were never run in the cloud container (no Android SDK / Xcode): first real build is hardware check #25.
+All planned milestones (M0–M9) are implemented. Next work comes from the owner's hardware runs:
+- Work through `docs/HARDWARE_LOG.md` → *Pending hardware checks* as the owner reports results. Fix each
+  real-device difference, add a regression test (sim or vector), and resolve the matching `VERIFY` note.
+- **Cameras (M9)**:
+  - Code lives in `app/lib/cameras/`: `Camera` stored as JSON in the settings table, `CameraService`, and
+    `RtspClient` (DESCRIBE with digest auth from `lib/net/digest_auth.dart`, to find the main/sub stream paths).
+  - Video uses `CameraPlayer`, a seam implemented by `MediaKitCameraPlayer`: libmpv, muted, protocol whitelist
+    rtsp/rtp/udp/tcp only.
+  - UI: `ui/screens/camera_view_screen.dart`, `ui/widgets/camera_tile.dart` (Home "Cameras" row).
+  - Discovery: `discovery/camera_probes.dart` (ONVIF WS-Discovery 3702, Hikvision SADP 37020, RTSP OPTIONS on 554)
+    and `discovery/categorizer.dart` (DeviceCategory per host). Simulators: `onvif`, `sadp`, `rtsp` in
+    `sim/ohsim/devices/camera.py`.
+  - Cameras are **not** DeviceAdapters (they have no power control) and stay out of voice and timers.
+- Known gaps:
+  - TP-Link AES/HTTPS devices show "Not supported yet".
+  - Sonoff on eWeLink firmware may need mDNS TXT parsing.
+  - ESPHome has no entity listing yet.
+  - No iOS widget yet (T5.10).
+  - media_kit has never been built for iOS.
+  - Later list L1–L5 (Fire TV / TV control is L1).
+- Builds: Android is now built in CI (see §1). iOS has never been built; that needs the owner's Mac (`make ios-device`).
 
 ## 6. Open VERIFY items (need real hardware or official docs)
 
@@ -72,6 +102,14 @@ Next work comes from the owner's hardware runs:
 - Tuya cloud import: token call without tinytuya's `secret` header; auth error codes 1004/1010/1011.
 - WiZ reply port on broadcast; KLAP static discovery query answered by devices.
 - Android foreground-service type on 14/15; STT error strings; home-screen widget + quick-settings tile never run on a device.
+- Cameras (M9):
+  - SADP reply format and port on EZVIZ firmware.
+  - EZVIZ RTSP paths (tried in order: `/Streaming/Channels/101|102`, `/h264/ch1/main|sub/av_stream`, `/H.264`).
+  - Video encryption must be off.
+  - Hikvision `Server` header strings.
+  - Router guess: a `.1`/`.254` host with a web page is labelled Network.
+  - Scan time with 16 mDNS types on Android 10–13.
+  - Live-view latency.
 
 ## 7. Gotchas learned
 
@@ -80,3 +118,6 @@ Next work comes from the owner's hardware runs:
 - Lazily built lists in widget tests: `scrollUntilVisible(..., scrollable: find.byType(Scrollable).first)`.
 - `flutter analyze` needs `--fatal-infos` to fail on infos (Makefile already does this).
 - Merging a PR via the GitHub tool: pass the full 40-char head SHA from `git rev-parse HEAD`.
+- media_kit in widget tests: use the `cameraPlayerFactoryProvider` override with a fake player. `grabFrame`
+  waits on fake time, so call `tester.pump(Duration)`. `Image.memory` needs real image bytes, e.g. a 1×1 PNG.
+- Reference clients for the camera sims are pinned in `sim/requirements-dev.txt` (WSDiscovery 2.1.2, hiktools 1.2.2).
