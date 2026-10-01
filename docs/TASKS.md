@@ -330,6 +330,21 @@ writes clear instructions, then stops.
 - [x] **T8.5 Build scripts** (S) — `make apk`, `make ios-device` with notes on 7-day free signing.
   Note: `make apk`, `make install-apk`, `make ios-device [IOS_DEVICE=id]`, `make doctor`; docs/INSTALL.md (both phones, free-signing 7-day / 3-app limits, trust + Developer Mode, troubleshooting). Not buildable in the CI container (no Android SDK / Xcode): hardware check #25.
 
+## M9 — Device categories and camera view (owner request after the first APK run)
+
+- [x] **T9.1 Camera discovery probes** (S) — deps: T3.*
+  Do: ONVIF WS-Discovery Probe (3702) and Hikvision SADP inquiry (37020) multicast to 239.255.255.250, TCP 554 in the port scan, RTSP OPTIONS `Server` header; sims `onvif`, `sadp`, `rtsp`.
+  Note: messages per WSDiscovery 2.1.2 (actions/probe.py, namespaces.py) and hiktools 1.2.2 (sadp/message.py fromdict, byte-exact test); sims checked with WSDiscovery's parser and hiktools' unmarshal; RtspSim does OPTIONS + digest DESCRIBE (RFC 2326/2617). VERIFY: SADP reply root/port on EZVIZ firmware, unicast inquiry on iOS. Hardware check #26.
+- [ ] **T9.2 Device categories** (S) — deps: T9.1
+  Do: `DeviceCategory` (Lights & plugs, Cameras, TV & media, Speakers, Printers, Network, Phones & computers, Other) from known adapters, mDNS service types, ONVIF/SADP/RTSP, HTTP Server header; Candidate.category + model; more mDNS types (Android + iOS NSBonjourServices).
+- [ ] **T9.3 Grouped Add devices screen** (S) — deps: T9.2
+  Do: sections per category with icon + count, model/vendor in the subtitle, camera rows explain what is next.
+- [ ] **T9.4 Hikvision / EZVIZ camera adapter** (M) — deps: T9.1
+  Do: Brand.hikvision, protocol `hik-rtsp`; credentials (EZVIZ: admin + sticker verification code; Hik-Connect: device password) in SecretStore, never reset/changed; RTSP DESCRIBE with digest auth to pick the first working stream path (main/sub); RtspSim contract test.
+- [ ] **T9.5 Live view + thumbnails** (M) — deps: T9.4
+  Do: media_kit player full-screen (main/sub toggle, snapshot), Home "Cameras" section with periodic frame thumbnails while visible; no audio.
+- [ ] **T9.6 👤 Camera checks** (S) — hardware checks #26–#28.
+
 ## Later (not v1)
 
 - [ ] L1 Smart TVs: Fire TV (ADB), Android TV Remote v2, Samsung, LG

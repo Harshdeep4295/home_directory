@@ -10,6 +10,7 @@ import '../core/result.dart';
 import '../net/ipv4.dart';
 import '../net/lan_socket_factory.dart';
 import '../net/platform_bridge.dart';
+import 'camera_probes.dart';
 import 'discovery_service.dart';
 import 'evidence.dart';
 import 'mdns_browser.dart';
@@ -24,6 +25,8 @@ class DiscoveryPorts {
     this.yeelight = 1982,
     this.tuyaBeacons = tuyaBeaconPorts,
     this.tuyaApp = tuyaAppPort,
+    this.onvif = CameraProbes.onvifPort,
+    this.sadp = CameraProbes.sadpPort,
     this.tcp = const {
       ScanPort.tuya: ScanPort.tuya,
       ScanPort.kasa: ScanPort.kasa,
@@ -31,6 +34,7 @@ class DiscoveryPorts {
       ScanPort.sonoffDiy: ScanPort.sonoffDiy,
       ScanPort.yeelight: ScanPort.yeelight,
       ScanPort.esphomeApi: ScanPort.esphomeApi,
+      ScanPort.rtsp: ScanPort.rtsp,
     },
   });
 
@@ -48,6 +52,10 @@ class DiscoveryPorts {
   /// tinytuya scanner: REQ_DEVINFO is broadcast to UDPPORTAPP (7000) every
   /// BROADCASTTIME (6 s) so 3.5 devices announce themselves.
   final int tuyaApp;
+
+  /// ONVIF WS-Discovery (3702) and Hikvision SADP (37020), multicast to 239.255.255.250.
+  final int onvif;
+  final int sadp;
 
   /// logical ScanPort → actual port to connect to.
   final Map<int, int> tcp;
@@ -130,11 +138,31 @@ class CandidateCollector implements EvidenceSource {
         at,
       ),
       _yeelight(udpWindow, at),
+      _probe(
+        UdpProbe.onvif,
+        ports.onvif,
+        CameraProbes.onvifProbe(),
+        targets,
+        udpWindow,
+        at,
+        group: CameraProbes.multicastGroup,
+      ),
+      _probe(
+        UdpProbe.sadp,
+        ports.sadp,
+        CameraProbes.sadpInquiry(),
+        targets,
+        udpWindow,
+        at,
+        group: CameraProbes.multicastGroup,
+        // VERIFY: whether EZVIZ / Hikvision answer a unicast inquiry (iOS path).
+      ),
       _tcpScan(targets, at),
     ]);
-    await _httpProbes(
-      ev.values.where((e) => e.openPorts.contains(ScanPort.http)),
-    );
+    await Future.wait([
+      _httpProbes(ev.values.where((e) => e.openPorts.contains(ScanPort.http))),
+      _rtspProbes(ev.values.where((e) => e.openPorts.contains(ScanPort.rtsp))),
+    ]);
     log.i(_tag, 'collected ${ev.length} hosts from ${targets.length} targets');
     return ev;
   }
@@ -210,7 +238,8 @@ class CandidateCollector implements EvidenceSource {
     }
   }
 
-  /// Broadcast where possible; otherwise (iOS) the same datagram to every host.
+  /// Broadcast (or multicast to [group]) where possible; otherwise (iOS) the same
+  /// datagram to every host.
   Future<void> _probe(
     UdpProbe probe,
     int port,
@@ -219,13 +248,14 @@ class CandidateCollector implements EvidenceSource {
     Duration window,
     HostEvidence Function(String) at, {
     int bindPort = 0,
+    String? group,
   }) async {
     if (_platform.canBroadcast) {
       final r = await _sockets.broadcast(
         port,
         payload,
         window: window,
-        broadcastAddress: broadcastAddress,
+        broadcastAddress: broadcastAddress ?? group,
         bindPort: bindPort,
       );
       for (final reply in r.valueOrNull ?? const <UdpReply>[]) {
@@ -285,6 +315,35 @@ class CandidateCollector implements EvidenceSource {
       }
     });
   }
+
+  /// RTSP OPTIONS on hosts with 554 open, to read the `Server` header (vendor hint).
+  Future<void> _rtspProbes(Iterable<HostEvidence> hosts) =>
+      pooled(hosts.toList(), 16, (e) async {
+        final port = ports.tcp[ScanPort.rtsp] ?? CameraProbes.rtspPort;
+        final r = await _sockets.tcp(e.ip, port, timeout: httpTimeout);
+        if (r case Ok(value: final s)) {
+          try {
+            s.add(ascii.encode(CameraProbes.rtspOptions(e.ip, port)));
+            final head = StringBuffer();
+            await for (final chunk in s.timeout(httpTimeout)) {
+              head.write(latin1.decode(chunk));
+              if (head.toString().contains('\r\n\r\n')) break;
+            }
+            final m = RegExp(
+              r'^server:\s*(.+?)\s*$',
+              caseSensitive: false,
+              multiLine: true,
+            ).firstMatch(head.toString());
+            if (head.toString().startsWith('RTSP/1.0')) {
+              e.rtspServer = m?.group(1) ?? '';
+            }
+          } on Object catch (err) {
+            log.d(_tag, 'rtsp ${e.ip}: $err');
+          } finally {
+            s.destroy();
+          }
+        }
+      });
 
   /// PSEUDOCODE §5: GET /shelly, /cm?cmnd=Status 0, / on hosts with port 80 open, plus
   /// the unauthenticated Hue bridge /api/config (Hue API v1).

@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:offline_home/adapters/tuya/tuya_codec.dart';
+import 'package:offline_home/discovery/camera_probes.dart';
 import 'package:offline_home/discovery/collectors.dart';
 import 'package:offline_home/discovery/evidence.dart';
 import 'package:offline_home/discovery/mdns_browser.dart';
@@ -117,6 +118,49 @@ void main() {
       expect(ev['10.0.0.9']!.hasMdns('_hue._tcp'), isTrue);
       expect(mdns.browsedTypes, mdnsServiceTypes);
       expect(platform.locksHeld, 0, reason: 'multicast lock released');
+      await platform.dispose();
+    },
+  );
+
+  test(
+    'camera probes: ONVIF match, SADP reply and RTSP Server header',
+    () async {
+      final cams = await SimProcess.start(
+        'onvif:model=CS-C6N:vendor=EZVIZ,sadp:model=CS-C6N-A0-1C2WFR,rtsp',
+      );
+      addTearDown(cams.stop);
+      final platform = FakePlatformBridge();
+      final ev = await CandidateCollector(
+        LanSocketFactory(platform),
+        platform,
+        FakeMdns(const []),
+        hosts: const ['127.0.0.1'],
+        broadcastAddress: '127.0.0.1',
+        ports: DiscoveryPorts(
+          wiz: closedPort,
+          wizBind: 0,
+          kasa: closedPort,
+          klap: closedPort,
+          yeelight: closedPort,
+          tuyaBeacons: const [],
+          tuyaApp: closedPort,
+          onvif: cams['onvif'].port,
+          sadp: cams['sadp'].port,
+          tcp: {ScanPort.rtsp: cams['rtsp'].port},
+        ),
+      ).collect(window: const Duration(milliseconds: 1200));
+      final local = ev['127.0.0.1']!;
+      final onvif = OnvifMatch.parse(local.udp[UdpProbe.onvif]!.first)!;
+      expect(onvif.isVideo, isTrue);
+      expect(onvif.vendor, 'EZVIZ');
+      expect(onvif.model, 'CS-C6N');
+      expect(onvif.ip, '127.0.0.1');
+      final sadp = SadpReply.parse(local.udp[UdpProbe.sadp]!.first)!;
+      expect(sadp.model, 'CS-C6N-A0-1C2WFR');
+      expect(sadp.mac, 'c056e3123456');
+      expect(sadp.activated, isTrue);
+      expect(local.openPorts, contains(ScanPort.rtsp));
+      expect(local.rtspServer, 'Hikvision RTSP Server');
       await platform.dispose();
     },
   );
