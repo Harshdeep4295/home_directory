@@ -6,3 +6,5 @@ python-kasa==0.10.2
 tzdata
 aiohue==4.9.0
 yeelight==0.7.16
+WSDiscovery==2.1.2
+hiktools==1.2.2

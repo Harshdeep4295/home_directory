@@ -39,6 +39,9 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 23 | T8.2 | After a day of normal use: Settings → Diagnostics → Performance — note p50 / p95 and cold start for each phone (targets: p95 < 500 ms, cold start < 2 s) | both phones |
 | 24 | T8.3 | Offline validation: WAN cable unplugged, mobile data ON, both phones — run the checklist under T8.3 in docs/TASKS.md | both phones, router, devices |
 | 25 | T8.5 | On the Mac: `make doctor`, `make install-apk` (Android), `make ios-device` (iPhone) per docs/INSTALL.md; tell me any build error verbatim | Mac, both phones |
+| 26 | T9.1 | Add devices → Scan with the EZVIZ camera on: does it show up as a camera with its model? Long-press is not needed; tap the row and send me the evidence lines it shows | Android phone, EZVIZ camera |
+| 27 | T9.4 | Add the EZVIZ camera with user `admin` + the sticker verification code (no reset). Tell me whether it says "Stream works" and which path it picked; if "Video encryption" is on in the EZVIZ app, note it | Android phone, EZVIZ camera |
+| 28 | T9.5 | Open the camera full screen: live video? delay vs reality? main/sub toggle, snapshot; Home thumbnail refreshes | Android phone, EZVIZ camera |
 
 ## Device survey (T0.6)
 

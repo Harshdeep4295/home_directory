@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import '../net/lan_socket_factory.dart';
 
 /// Which discovery probe produced a UDP reply (logical, independent of the port used).
-enum UdpProbe { wiz, kasa, klap, yeelight, tuyaBeacon }
+enum UdpProbe { wiz, kasa, klap, yeelight, tuyaBeacon, onvif, sadp }
 
 /// Well-known TCP ports the scan looks for (logical; tests may map them elsewhere).
 abstract final class ScanPort {
@@ -13,7 +13,10 @@ abstract final class ScanPort {
   static const sonoffDiy = 8081;
   static const yeelight = 55443;
   static const esphomeApi = 6053;
-  static const all = [tuya, kasa, http, sonoffDiy, yeelight, esphomeApi];
+
+  /// RFC 2326 §3.2 RTSP: cameras and video recorders (T9.1 categories).
+  static const rtsp = 554;
+  static const all = [tuya, kasa, http, sonoffDiy, yeelight, esphomeApi, rtsp];
 }
 
 /// One mDNS service instance.
@@ -46,6 +49,9 @@ class HostEvidence {
 
   /// HTTP probe results keyed by path (`/shelly`, `/cm?cmnd=Status%200`, `/`).
   final Map<String, HttpReply> http = {};
+
+  /// `Server` header of an RTSP OPTIONS reply (hosts with [ScanPort.rtsp] open).
+  String? rtspServer;
 
   bool hasMdns(String type) => mdns.any((r) => r.type == type);
 

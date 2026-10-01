@@ -165,4 +165,74 @@ void main() {
     );
     await t.tearDown(tester);
   });
+
+  testWidgets('devices are grouped by category with camera details', (
+    tester,
+  ) async {
+    final t = await TestServices.inTester(tester);
+    t.evidence.next = {
+      '192.168.1.31': HostEvidence('192.168.1.31')
+        ..addUdp(
+          UdpProbe.wiz,
+          b('{"method":"registration","result":{"mac":"a8bb5006033d"}}'),
+        ),
+      '192.168.1.40': HostEvidence('192.168.1.40')
+        ..addUdp(
+          UdpProbe.sadp,
+          b(
+            '<ProbeMatch><Types>inquiry</Types><DeviceDescription>CS-C6N</DeviceDescription>'
+            '<MAC>c0-56-e3-12-34-56</MAC></ProbeMatch>',
+          ),
+        ),
+      '192.168.1.50': HostEvidence('192.168.1.50')
+        ..mdns.add(
+          const MdnsRecord(
+            type: '_googlecast._tcp',
+            name: 'x',
+            port: 8009,
+            attributes: {'md': 'Chromecast', 'fn': 'Living room TV'},
+          ),
+        ),
+    };
+    await tester.pumpWidget(
+      t.wrap(const MaterialApp(home: AddDevicesScreen())),
+    );
+    await TestServices.settle(tester, ms: 100);
+
+    expect(find.text('Lights & plugs (1)'), findsOneWidget);
+    expect(find.text('Cameras (1)'), findsOneWidget);
+    expect(find.text('TV & media (1)'), findsOneWidget);
+    expect(find.text('Hikvision CS-C6N'), findsOneWidget);
+    expect(find.text('CS-C6N · 192.168.1.40'), findsOneWidget);
+    expect(find.text('Living room TV'), findsOneWidget);
+    // Sections follow the category order: lights first, then cameras, then TV.
+    final y = [
+      'Lights & plugs (1)',
+      'Cameras (1)',
+      'TV & media (1)',
+    ].map((s) => tester.getTopLeft(find.text(s)).dy).toList();
+    expect(y, orderedEquals([...y]..sort()));
+
+    expect(find.text('Needs password'), findsOneWidget);
+    await tester.tap(find.text('Hikvision CS-C6N'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add camera'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'admin'), findsOneWidget);
+    final add = find.widgetWithText(FilledButton, 'Check and add');
+    expect(
+      tester.widget<FilledButton>(add).onPressed,
+      isNull,
+      reason: 'needs the code first',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Verification code / password'),
+      'ABCDEF',
+    );
+    await tester.pump();
+    expect(tester.widget<FilledButton>(add).onPressed, isNotNull);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add camera'), findsNothing);
+    await t.tearDown(tester);
+  });
 }

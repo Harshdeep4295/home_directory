@@ -8,6 +8,9 @@ enum OnboardingBadge {
   needsPairing('Needs pairing'),
   cloudOnly('Cloud-only'),
   notSupportedYet('Not supported yet'),
+
+  /// A camera: add it with its own login (EZVIZ sticker code / device password).
+  cameraLogin('Needs password'),
   unknown('Unknown');
 
   const OnboardingBadge(this.label);
@@ -15,7 +18,11 @@ enum OnboardingBadge {
 }
 
 OnboardingBadge badgeFor(Candidate c, AdapterRegistry adapters) {
-  if (c.brand == Brand.unknown) return OnboardingBadge.unknown;
+  if (c.brand == Brand.unknown) {
+    return c.category == DeviceCategory.camera
+        ? OnboardingBadge.cameraLogin
+        : OnboardingBadge.unknown;
+  }
   if (!adapters.supportsProtocol(c.protocol)) {
     return OnboardingBadge.notSupportedYet;
   }

@@ -16,7 +16,11 @@ class FakeFileAccess implements FileAccess {
   Future<(String, Uint8List)?> pick({List<String>? extensions}) async =>
       bytes == null ? null : ('devices.json', bytes!);
   @override
-  Future<String?> save(String name, Uint8List bytes) async => null;
+  Future<String?> save(
+    String name,
+    Uint8List bytes, {
+    String mimeType = 'application/json',
+  }) async => null;
 }
 
 void main() {

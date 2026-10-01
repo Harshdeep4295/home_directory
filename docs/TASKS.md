@@ -330,6 +330,25 @@ writes clear instructions, then stops.
 - [x] **T8.5 Build scripts** (S) — `make apk`, `make ios-device` with notes on 7-day free signing.
   Note: `make apk`, `make install-apk`, `make ios-device [IOS_DEVICE=id]`, `make doctor`; docs/INSTALL.md (both phones, free-signing 7-day / 3-app limits, trust + Developer Mode, troubleshooting). Not buildable in the CI container (no Android SDK / Xcode): hardware check #25.
 
+## M9 — Device categories and camera view (owner request after the first APK run)
+
+- [x] **T9.1 Camera discovery probes** (S) — deps: T3.*
+  Do: ONVIF WS-Discovery Probe (3702) and Hikvision SADP inquiry (37020) multicast to 239.255.255.250, TCP 554 in the port scan, RTSP OPTIONS `Server` header; sims `onvif`, `sadp`, `rtsp`.
+  Note: messages per WSDiscovery 2.1.2 (actions/probe.py, namespaces.py) and hiktools 1.2.2 (sadp/message.py fromdict, byte-exact test); sims checked with WSDiscovery's parser and hiktools' unmarshal; RtspSim does OPTIONS + digest DESCRIBE (RFC 2326/2617). VERIFY: SADP reply root/port on EZVIZ firmware, unicast inquiry on iOS. Hardware check #26.
+- [x] **T9.2 Device categories** (S) — deps: T9.1
+  Do: `DeviceCategory` (Lights & plugs, Cameras, TV & media, Speakers, Printers, Network, Phones & computers, Other) from known adapters, mDNS service types, ONVIF/SADP/RTSP, HTTP Server header; Candidate.category + model; more mDNS types (Android + iOS NSBonjourServices).
+  Note: lib/discovery/categorizer.dart runs after the Fingerprinter; cameras from SADP > ONVIF video > RTSP 554 > Hikvision server name (named "<vendor> <model>"); Cast speakers vs TVs per pychromecast const.py CAST_TYPES audio models; 11 extra DNS-SD types (test keeps iOS NSBonjourServices in sync). VERIFY: Hikvision/EZVIZ Server header strings, router guess (.1/.254 with a web page), scan time with 16 mDNS types on Android 10–13.
+- [x] **T9.3 Grouped Add devices screen** (S) — deps: T9.2
+  Do: sections per category with icon + count, model/vendor in the subtitle, camera rows explain what is next.
+  Note: sections in DeviceCategory order (Lights & plugs first), unknown rows show "model · ip", tapping a camera / TV / printer explains it and shows the evidence lines. Hardware check #26.
+- [x] **T9.4 Hikvision / EZVIZ camera adapter** (M) — deps: T9.1
+  Do: credentials (EZVIZ: admin + sticker verification code; Hik-Connect: device password) in SecretStore, never reset/changed; RTSP DESCRIBE with digest auth to pick the first working stream path (main/sub); RtspSim test.
+  Note: cameras are not DeviceAdapters (no power): lib/cameras/ (Camera JSON in the settings table, CameraService, RtspClient with RFC 2617 DigestAuth — RFC example vector); badge "Needs password" → Add camera dialog (name, user admin, code). Paths: /Streaming/Channels/101|102, then /h264/ch1/main|sub/av_stream, /H.264. VERIFY: EZVIZ paths and RTSP availability on the owner's model; video encryption must be off. Hardware check #27.
+- [x] **T9.5 Live view + thumbnails** (M) — deps: T9.4
+  Do: media_kit player full-screen (main/sub toggle, snapshot), Home "Cameras" section with periodic frame thumbnails while visible; no audio.
+  Note: CameraPlayer seam (MediaKitCameraPlayer: muted, protocol whitelist rtsp/rtp/udp/tcp only, mpv rtsp_transport=tcp, cache off); CameraViewScreen (HD/SD, snapshot saved via the file picker, remove, "no video" hint after 12 s); CameraTile grabs one sub-stream frame every 20 s while Home is visible. libmpv adds to the APK size. VERIFY: latency and decoder support on the owner's phone (hardware check #28); iOS build of media_kit untested.
+- [ ] **T9.6 👤 Camera checks** (S) — hardware checks #26–#28.
+
 ## Later (not v1)
 
 - [ ] L1 Smart TVs: Fire TV (ADB), Android TV Remote v2, Samsung, LG

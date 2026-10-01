@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from .base import SimDevice
+from .devices.camera import OnvifSim, RtspSim, SadpSim
 from .devices.esphome import EspHomeSim
 from .devices.hue import HueSim
 from .devices.kasa import KasaSim
@@ -27,6 +28,9 @@ SIM_TYPES: dict[str, type[SimDevice]] = {
     SonoffSim.kind: SonoffSim,
     TasmotaSim.kind: TasmotaSim,
     EspHomeSim.kind: EspHomeSim,
+    OnvifSim.kind: OnvifSim,
+    SadpSim.kind: SadpSim,
+    RtspSim.kind: RtspSim,
 }
 
 

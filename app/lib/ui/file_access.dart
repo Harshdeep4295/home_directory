@@ -8,7 +8,11 @@ abstract interface class FileAccess {
   Future<(String, Uint8List)?> pick({List<String>? extensions});
 
   /// Returns where the file went (for the confirmation message), or null if cancelled.
-  Future<String?> save(String name, Uint8List bytes);
+  Future<String?> save(
+    String name,
+    Uint8List bytes, {
+    String mimeType = 'application/json',
+  });
 }
 
 class PluginFileAccess implements FileAccess {
@@ -24,12 +28,15 @@ class PluginFileAccess implements FileAccess {
   }
 
   @override
-  Future<String?> save(String name, Uint8List bytes) async =>
-      (await FilePicker.saveFile(
-        fileName: name,
-        bytes: bytes,
-        mimeType: 'application/json',
-      ))?.toString();
+  Future<String?> save(
+    String name,
+    Uint8List bytes, {
+    String mimeType = 'application/json',
+  }) async => (await FilePicker.saveFile(
+    fileName: name,
+    bytes: bytes,
+    mimeType: mimeType,
+  ))?.toString();
 }
 
 final fileAccessProvider = Provider<FileAccess>((ref) => PluginFileAccess());

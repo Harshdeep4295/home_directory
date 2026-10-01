@@ -20,6 +20,21 @@ enum Brand {
   unknown,
 }
 
+/// What kind of thing a discovered host is (T9.2), used to group the Add devices list.
+enum DeviceCategory {
+  lightsPlugs('Lights & plugs'),
+  camera('Cameras'),
+  tv('TV & media'),
+  speaker('Speakers'),
+  printer('Printers'),
+  network('Network'),
+  computer('Phones & computers'),
+  other('Other');
+
+  const DeviceCategory(this.label);
+  final String label;
+}
+
 enum Capability { power, brightness, colorTemp, rgb, nativeCountdown }
 
 enum TimerTier { native, phone }
@@ -141,6 +156,10 @@ abstract class Candidate with _$Candidate {
     String? deviceId,
     String? name,
     @Default(false) bool needsKey,
+    @Default(DeviceCategory.other) DeviceCategory category,
+
+    /// Vendor model / hardware name when a probe reported one (SADP, ONVIF, mDNS).
+    String? model,
 
     /// Human-readable reasons for the identification, for diagnostics.
     @Default(<String>[]) List<String> evidence,

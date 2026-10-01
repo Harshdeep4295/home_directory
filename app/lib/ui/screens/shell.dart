@@ -7,6 +7,7 @@ import '../home_widget_sync.dart';
 import '../providers.dart';
 import '../widgets/net_banner.dart';
 import 'add_devices_screen.dart';
+import 'camera_view_screen.dart';
 import 'device_detail_screen.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
@@ -88,6 +89,11 @@ class _ShellState extends ConsumerState<Shell> {
           onOpenDevice: (d) => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => DeviceDetailScreen(deviceId: d.id),
+            ),
+          ),
+          onOpenCamera: (c) => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => CameraViewScreen(camera: c),
             ),
           ),
         ),

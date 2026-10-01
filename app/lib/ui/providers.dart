@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/services.dart';
+import '../cameras/camera.dart';
+import '../cameras/camera_player.dart';
 import '../core/models.dart';
 import '../net/platform_bridge.dart';
 import '../voice/voice_controller.dart';
@@ -84,4 +86,16 @@ final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 /// Home-screen widget bridge (T5.9); a no-op off Android and in tests.
 final homeWidgetBridgeProvider = Provider<HomeWidgetBridge>(
   (ref) => HomeWidgetBridge.forPlatform(),
+);
+
+/// Cameras (T9.5): the stored list, then every change.
+final camerasProvider = StreamProvider<List<Camera>>((ref) async* {
+  final c = ref.watch(servicesProvider).cameras;
+  yield await c.all();
+  yield* c.changes;
+});
+
+/// Video player for cameras (a fake in widget tests).
+final cameraPlayerFactoryProvider = Provider<CameraPlayerFactory>(
+  (ref) => MediaKitCameraPlayer.new,
 );

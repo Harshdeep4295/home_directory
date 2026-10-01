@@ -75,6 +75,17 @@
 		<string>_http._tcp</string>
 		<string>_ewelink._tcp</string>
 		<string>_esphomelib._tcp</string>
+		<string>_googlecast._tcp</string>
+		<string>_airplay._tcp</string>
+		<string>_amzn-wplay._tcp</string>
+		<string>_androidtvremote2._tcp</string>
+		<string>_spotify-connect._tcp</string>
+		<string>_raop._tcp</string>
+		<string>_ipp._tcp</string>
+		<string>_printer._tcp</string>
+		<string>_companion-link._tcp</string>
+		<string>_device-info._tcp</string>
+		<string>_smb._tcp</string>
 		<string>_matter._tcp</string>
 		<string>_offlinehome._tcp</string>
 	</array>
