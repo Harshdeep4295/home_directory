@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../cameras/camera.dart';
 import '../../core/intent.dart';
 import '../../core/models.dart';
 import '../../core/perf.dart';
 import '../providers.dart';
+import '../widgets/camera_tile.dart';
 import '../widgets/device_tile.dart';
 
 /// Rooms → device tiles; tap toggles, long-press opens the detail screen (T5.2).
@@ -16,9 +18,11 @@ class HomeScreen extends ConsumerWidget {
     this.onOpenDevice,
     this.onAddDevices,
     this.onMic,
+    this.onOpenCamera,
   });
 
   final void Function(Device)? onOpenDevice;
+  final void Function(Camera)? onOpenCamera;
   final VoidCallback? onAddDevices;
   final VoidCallback? onMic;
 
@@ -43,9 +47,10 @@ class HomeScreen extends ConsumerWidget {
         j.deviceId: j,
     };
     final now = ref.watch(clockProvider)();
+    final cameras = ref.watch(camerasProvider).value ?? const <Camera>[];
 
     Widget body;
-    if (devices.isEmpty) {
+    if (devices.isEmpty && cameras.isEmpty) {
       body = Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -80,6 +85,38 @@ class HomeScreen extends ConsumerWidget {
       ].where((s) => s.$2.isNotEmpty).toList();
       body = CustomScrollView(
         slivers: [
+          if (cameras.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  'Cameras',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 132,
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: cameras.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, i) => SizedBox(
+                    width: 220,
+                    child: CameraTile(
+                      key: ValueKey('camera-${cameras[i].id}'),
+                      camera: cameras[i],
+                      onTap: onOpenCamera == null
+                          ? null
+                          : () => onOpenCamera!(cameras[i]),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
           for (final (name, list) in sections) ...[
             SliverToBoxAdapter(
               child: Padding(

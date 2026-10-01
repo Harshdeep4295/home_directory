@@ -344,8 +344,9 @@ writes clear instructions, then stops.
 - [x] **T9.4 Hikvision / EZVIZ camera adapter** (M) — deps: T9.1
   Do: credentials (EZVIZ: admin + sticker verification code; Hik-Connect: device password) in SecretStore, never reset/changed; RTSP DESCRIBE with digest auth to pick the first working stream path (main/sub); RtspSim test.
   Note: cameras are not DeviceAdapters (no power): lib/cameras/ (Camera JSON in the settings table, CameraService, RtspClient with RFC 2617 DigestAuth — RFC example vector); badge "Needs password" → Add camera dialog (name, user admin, code). Paths: /Streaming/Channels/101|102, then /h264/ch1/main|sub/av_stream, /H.264. VERIFY: EZVIZ paths and RTSP availability on the owner's model; video encryption must be off. Hardware check #27.
-- [ ] **T9.5 Live view + thumbnails** (M) — deps: T9.4
+- [x] **T9.5 Live view + thumbnails** (M) — deps: T9.4
   Do: media_kit player full-screen (main/sub toggle, snapshot), Home "Cameras" section with periodic frame thumbnails while visible; no audio.
+  Note: CameraPlayer seam (MediaKitCameraPlayer: muted, protocol whitelist rtsp/rtp/udp/tcp only, mpv rtsp_transport=tcp, cache off); CameraViewScreen (HD/SD, snapshot saved via the file picker, remove, "no video" hint after 12 s); CameraTile grabs one sub-stream frame every 20 s while Home is visible. libmpv adds to the APK size. VERIFY: latency and decoder support on the owner's phone (hardware check #28); iOS build of media_kit untested.
 - [ ] **T9.6 👤 Camera checks** (S) — hardware checks #26–#28.
 
 ## Later (not v1)

@@ -100,8 +100,7 @@ class CameraService {
     );
     await _secrets.set(cam.id, SecretName.username, user);
     await _secrets.set(cam.id, SecretName.password, password);
-    final cams = [...(await all()).where((x) => x.id != cam.id), cam];
-    await _save(cams);
+    await put(cam);
     log.i(_tag, 'added ${cam.name} (${cam.mainPath}, sub ${cam.subPath})');
     return Ok(cam);
   }
@@ -111,8 +110,9 @@ class CameraService {
     await _secrets.deleteDevice(id);
   }
 
-  Future<void> update(Camera cam) async =>
-      _save([for (final c in await all()) c.id == cam.id ? cam : c]);
+  /// Inserts or replaces [cam] (credentials are not touched).
+  Future<void> put(Camera cam) async =>
+      _save([...(await all()).where((c) => c.id != cam.id), cam]);
 
   /// RTSP URL with stored credentials, for the player only. Never log it.
   Future<String?> streamUrl(Camera cam, {bool sub = false}) async {

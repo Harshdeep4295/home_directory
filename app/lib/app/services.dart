@@ -225,6 +225,7 @@ class AppServices {
     await engine.dispose();
     await adapters.disposeAll();
     await network.dispose();
+    await cameras.dispose();
     await db.close();
   }
 }
