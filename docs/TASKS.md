@@ -341,8 +341,9 @@ writes clear instructions, then stops.
 - [x] **T9.3 Grouped Add devices screen** (S) — deps: T9.2
   Do: sections per category with icon + count, model/vendor in the subtitle, camera rows explain what is next.
   Note: sections in DeviceCategory order (Lights & plugs first), unknown rows show "model · ip", tapping a camera / TV / printer explains it and shows the evidence lines. Hardware check #26.
-- [ ] **T9.4 Hikvision / EZVIZ camera adapter** (M) — deps: T9.1
-  Do: Brand.hikvision, protocol `hik-rtsp`; credentials (EZVIZ: admin + sticker verification code; Hik-Connect: device password) in SecretStore, never reset/changed; RTSP DESCRIBE with digest auth to pick the first working stream path (main/sub); RtspSim contract test.
+- [x] **T9.4 Hikvision / EZVIZ camera adapter** (M) — deps: T9.1
+  Do: credentials (EZVIZ: admin + sticker verification code; Hik-Connect: device password) in SecretStore, never reset/changed; RTSP DESCRIBE with digest auth to pick the first working stream path (main/sub); RtspSim test.
+  Note: cameras are not DeviceAdapters (no power): lib/cameras/ (Camera JSON in the settings table, CameraService, RtspClient with RFC 2617 DigestAuth — RFC example vector); badge "Needs password" → Add camera dialog (name, user admin, code). Paths: /Streaming/Channels/101|102, then /h264/ch1/main|sub/av_stream, /H.264. VERIFY: EZVIZ paths and RTSP availability on the owner's model; video encryption must be off. Hardware check #27.
 - [ ] **T9.5 Live view + thumbnails** (M) — deps: T9.4
   Do: media_kit player full-screen (main/sub toggle, snapshot), Home "Cameras" section with periodic frame thumbnails while visible; no audio.
 - [ ] **T9.6 👤 Camera checks** (S) — hardware checks #26–#28.

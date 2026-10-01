@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../adapters/esphome/esphome_adapter.dart';
 import '../../adapters/hue/hue_adapter.dart';
 import '../../adapters/kasa/kasa_adapter.dart';
+import '../../cameras/camera_service.dart';
 import '../../core/models.dart';
 import '../../core/result.dart';
 import '../../discovery/categorizer.dart';
@@ -42,11 +43,19 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
 
   Future<void> _scan() async {
     setState(() => _scanning = true);
-    final r = await ref.read(servicesProvider).discovery.scan();
+    final s = ref.read(servicesProvider);
+    final r = await s.discovery.scan();
+    final cams = await s.cameras.knownKeys();
     if (!mounted) return;
     setState(() {
       _scanning = false;
       _report = r;
+      _added.addAll([
+        for (final x in r.results)
+          if (x.candidate.category == DeviceCategory.camera &&
+              (cams.contains(x.candidate.ip) || cams.contains(x.candidate.mac)))
+            _key(x.candidate),
+      ]);
     });
   }
 
@@ -112,12 +121,8 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
           'Not supported yet',
           'Found a ${c.brand.name} device (${c.protocol}); its adapter is not built yet.',
         );
-      case OnboardingBadge.unknown when c.category == DeviceCategory.camera:
-        _info(
-          'Camera',
-          '${c.name ?? 'A camera'} at ${c.ip}. Live view for Hikvision / EZVIZ cameras '
-              'is coming next; other cameras are listed only.\n\n${c.evidence.join('\n')}',
-        );
+      case OnboardingBadge.cameraLogin:
+        await _addCamera(c);
       case OnboardingBadge.unknown:
         _info(
           c.category == DeviceCategory.other
@@ -125,6 +130,53 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
               : c.category.label,
           'Something answered at ${c.ip} but this app cannot control it.\n${c.evidence.join('\n')}',
         );
+    }
+  }
+
+  /// Camera: its own login (EZVIZ: user admin + the verification code on the sticker;
+  /// Hik-Connect: the device password). Checked over RTSP, stored in SecretStore; the
+  /// camera itself is never changed.
+  Future<void> _addCamera(Candidate c) async {
+    final login = await showDialog<_CameraLogin>(
+      context: context,
+      builder: (_) => _CameraLoginDialog(candidate: c),
+    );
+    if (login == null || !mounted) return;
+    final s = ref.read(servicesProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Checking the camera…')),
+    );
+    final r = await s.cameras.add(
+      c,
+      name: login.name,
+      user: login.user,
+      password: login.password,
+    );
+    if (!mounted) return;
+    messenger.hideCurrentSnackBar();
+    switch (r) {
+      case Ok(:final value):
+        setState(() => _added.add(_key(c)));
+        messenger.showSnackBar(
+          SnackBar(content: Text('${value.name} added. Stream works.')),
+        );
+      case Err(:final error):
+        _info('Could not add the camera', switch (error.kind) {
+          DeviceErrorKind.auth =>
+            'The camera did not accept this user and code/password. For EZVIZ use '
+                'user "admin" and the 6-letter verification code on the camera '
+                'sticker (also in the EZVIZ app under device settings). Nothing on '
+                'the camera was changed.',
+          DeviceErrorKind.unsupported =>
+            'The camera answered but has no local stream this app knows. In the '
+                'EZVIZ / Hik-Connect app check that local (RTSP / LAN) live view is '
+                'allowed and video encryption is off. Some newer models do not '
+                'offer a local stream at all.',
+          _ =>
+            'No answer on the camera\'s video port (554). Is it on this Wi-Fi? '
+                '(${error.kind.name})',
+        });
     }
   }
 
@@ -433,6 +485,101 @@ IconData categoryIcon(DeviceCategory c) => switch (c) {
   DeviceCategory.computer => Icons.devices,
   DeviceCategory.other => Icons.device_unknown_outlined,
 };
+
+class _CameraLogin {
+  const _CameraLogin(this.name, this.user, this.password);
+  final String name;
+  final String user;
+  final String password;
+}
+
+class _CameraLoginDialog extends StatefulWidget {
+  const _CameraLoginDialog({required this.candidate});
+  final Candidate candidate;
+
+  @override
+  State<_CameraLoginDialog> createState() => _CameraLoginDialogState();
+}
+
+class _CameraLoginDialogState extends State<_CameraLoginDialog> {
+  late final _name = TextEditingController(
+    text: widget.candidate.name ?? 'Camera',
+  );
+  final _user = TextEditingController(text: CameraService.defaultUser);
+  final _password = TextEditingController();
+  bool _show = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _user.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Add camera'),
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'EZVIZ: user "admin" and the 6-letter verification code on the '
+            'camera sticker. Hik-Connect: the password set when the camera was '
+            'activated. The app only reads the video; it never changes or resets '
+            'anything on the camera.',
+          ),
+          TextField(
+            controller: _name,
+            decoration: const InputDecoration(labelText: 'Name'),
+          ),
+          TextField(
+            controller: _user,
+            decoration: const InputDecoration(labelText: 'User'),
+          ),
+          TextField(
+            controller: _password,
+            obscureText: !_show,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              labelText: 'Verification code / password',
+              suffixIcon: IconButton(
+                tooltip: _show ? 'Hide' : 'Show',
+                icon: Icon(_show ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() => _show = !_show),
+              ),
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _password.text.isEmpty || _name.text.trim().isEmpty
+            ? null
+            : () => Navigator.pop(
+                context,
+                _CameraLogin(
+                  _name.text.trim(),
+                  _user.text.trim().isEmpty
+                      ? CameraService.defaultUser
+                      : _user.text.trim(),
+                  _password.text,
+                ),
+              ),
+        child: const Text('Check and add'),
+      ),
+    ],
+  );
+}
 
 class _NameResult {
   const _NameResult(this.name, this.roomId, this.newRoom, this.aliases);

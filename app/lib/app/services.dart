@@ -11,6 +11,8 @@ import '../adapters/tasmota/tasmota_adapter.dart';
 import '../adapters/tuya/tuya_adapter.dart';
 import '../adapters/wiz/wiz_adapter.dart';
 import '../adapters/yeelight/yeelight_adapter.dart';
+import '../cameras/camera_service.dart';
+import '../cameras/rtsp_client.dart';
 import '../core/log.dart';
 import '../discovery/auto_rescan.dart';
 import '../discovery/collectors.dart';
@@ -105,6 +107,13 @@ class AppServices {
   MemorySink logSink = MemorySink();
 
   late final AppSettings appSettings = AppSettings(settings);
+
+  /// Cameras (T9.4): RTSP checks over the Wi-Fi-bound sockets.
+  late final CameraService cameras = CameraService(
+    RtspClient(LanSocketFactory(platform)),
+    secrets,
+    settings,
+  );
   late final ConfigExporter configExporter = ConfigExporter(
     devices,
     rooms,

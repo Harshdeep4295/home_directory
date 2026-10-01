@@ -213,10 +213,26 @@ void main() {
     ].map((s) => tester.getTopLeft(find.text(s)).dy).toList();
     expect(y, orderedEquals([...y]..sort()));
 
+    expect(find.text('Needs password'), findsOneWidget);
     await tester.tap(find.text('Hikvision CS-C6N'));
     await tester.pumpAndSettle();
-    expect(find.text('Camera'), findsOneWidget);
-    expect(find.textContaining('sadp CS-C6N'), findsOneWidget);
+    expect(find.text('Add camera'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'admin'), findsOneWidget);
+    final add = find.widgetWithText(FilledButton, 'Check and add');
+    expect(
+      tester.widget<FilledButton>(add).onPressed,
+      isNull,
+      reason: 'needs the code first',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Verification code / password'),
+      'ABCDEF',
+    );
+    await tester.pump();
+    expect(tester.widget<FilledButton>(add).onPressed, isNotNull);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add camera'), findsNothing);
     await t.tearDown(tester);
   });
 }
