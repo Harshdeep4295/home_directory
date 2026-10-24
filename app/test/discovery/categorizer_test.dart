@@ -135,4 +135,36 @@ void main() {
       expect(plist, contains('<string>$t</string>'), reason: t);
     }
   });
+
+  test('Fire TV: TXT n= gives the name, not the opaque instance id', () {
+    // Recorded TXT from a Fire TV Stick (spike/scans/single-subnet-2026-10-24.md).
+    final c = id(
+      HostEvidence('192.168.1.4')
+        ..openPorts.add(ScanPort.yeelight)
+        ..mdns.add(
+          const MdnsRecord(
+            type: '_amzn-wplay._tcp',
+            name: 'amzn.dmgr:29496F77039F6E53015DDDDE54EAF3D2:xnVDMM+4u1:63790',
+            port: 35574,
+            attributes: {'n': "Harshdeep's FireTVStick", 'mv': '2'},
+          ),
+        ),
+    )!;
+    expect(c.brand, Brand.unknown);
+    expect(c.category, DeviceCategory.tv);
+    expect(c.name, "Harshdeep's FireTVStick");
+  });
+
+  test('router admin page title → network, even off .1', () {
+    final c = id(
+      HostEvidence('192.168.1.2')
+        ..openPorts.add(ScanPort.http)
+        ..http['/'] = HttpReply(
+          200,
+          const {},
+          b('<html><head><title>小米路由器</title></head></html>'),
+        ),
+    )!;
+    expect(c.category, DeviceCategory.network);
+  });
 }

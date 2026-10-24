@@ -323,7 +323,7 @@ abstract final class Fingerprinter {
       ip: e.ip,
       brand: Brand.unknown,
       protocol: 'unknown',
-      name: e.mdns.isNotEmpty ? e.mdns.first.name : null,
+      name: e.mdns.isNotEmpty ? Categorizer.friendlyName(e.mdns.first) : null,
       evidence: [
         if (e.openPorts.isNotEmpty) 'open ${e.openPorts.join(',')}',
         for (final m in e.mdns) 'mdns ${m.type}',

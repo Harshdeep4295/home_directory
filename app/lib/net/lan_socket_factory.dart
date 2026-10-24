@@ -117,6 +117,7 @@ class LanSocketFactory {
     Duration window = const Duration(seconds: 2),
     String? broadcastAddress,
     int bindPort = 0,
+    Duration? resendEvery,
   }) async {
     if (!platform.canBroadcast) {
       return Err(DeviceError.unsupported('broadcast not available'));
@@ -138,6 +139,7 @@ class LanSocketFactory {
         expectMany: true,
         broadcast: true,
         bindPort: bindPort,
+        resendEvery: resendEvery,
       );
     } finally {
       await platform.releaseMulticastLock();
@@ -152,6 +154,7 @@ class LanSocketFactory {
     required bool expectMany,
     required bool broadcast,
     int bindPort = 0,
+    Duration? resendEvery,
   }) async {
     final bound = await udp(bindPort: bindPort, broadcast: broadcast);
     if (bound case Err(:final error)) return Err(error);
@@ -173,6 +176,7 @@ class LanSocketFactory {
         if (!done.isCompleted) done.complete();
       },
     );
+    Timer? resend;
     try {
       final sent = socket.send(payload, address, port);
       if (sent <= 0) {
@@ -180,10 +184,22 @@ class LanSocketFactory {
           DeviceError.offline('udp send to ${address.address} failed'),
         );
       }
+      // Lossy Wi-Fi: devices in power save miss single datagrams. Re-send until the
+      // window closes (send errors here are ignored; the first send already succeeded).
+      if (resendEvery != null) {
+        resend = Timer.periodic(resendEvery, (_) {
+          try {
+            socket.send(payload, address, port);
+          } on SocketException {
+            // ignore
+          }
+        });
+      }
       await done.future;
     } on SocketException catch (e) {
       return Err(mapSocketError(e, 'udp ${address.address}:$port'));
     } finally {
+      resend?.cancel();
       timer.cancel();
       await sub.cancel();
       socket.close();
