@@ -460,6 +460,9 @@ class _TuyaConn {
       cancelOnError: true,
     );
     _heartbeat = Timer.periodic(heartbeatEvery, (_) => _beat());
+    // A failed write (device reset the connection) fails pending requests now
+    // instead of waiting for their timeout.
+    _socket.done.then((_) {}, onError: (Object _) => close());
   }
 
   final Socket _socket;

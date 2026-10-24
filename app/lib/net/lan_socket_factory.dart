@@ -56,11 +56,19 @@ class LanSocketFactory {
         timeout: timeout,
       ).timeout(timeout + const Duration(milliseconds: 100));
       s.setOption(SocketOption.tcpNoDelay, true);
+      // Write errors (e.g. a reset by a device that allows one client) are reported on
+      // `done`; without a listener they become unhandled and crash the isolate. Readers
+      // still see the reset through their own stream listener.
+      s.done.ignore();
       return Ok(s);
     } on TimeoutException {
       return Err(DeviceError.timeout('tcp $host:$port'));
     } on SocketException catch (e) {
       return Err(mapSocketError(e, 'tcp $host:$port'));
+    } on OSError catch (e) {
+      // Some connect failures (e.g. errno 104, reset during the handshake) surface as a
+      // bare OSError on Android; seen on hardware.
+      return Err(DeviceError.offline('tcp $host:$port: ${e.message}'));
     }
   }
 

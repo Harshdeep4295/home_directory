@@ -66,7 +66,7 @@ class BonsoirMdnsBrowser implements MdnsBrowser {
               default:
                 break;
             }
-          }),
+          }, onError: (Object e) => log.w(_tag, 'browse $type failed', e)),
         );
         await d.start();
         discoveries.add(d);

@@ -33,6 +33,20 @@ void main() {
   tearDown(() => platform.dispose());
 
   group('tcp', () {
+    test('peer reset during writes is not an unhandled error', () async {
+      // Tuya plugs that already serve a client accept, then reset (seen on hardware).
+      final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      server.listen((c) => c.destroy());
+      final s = (await f.tcp('127.0.0.1', server.port)).valueOrNull!;
+      for (var i = 0; i < 50; i++) {
+        s.add(List.filled(64 * 1024, 1));
+        await Future<void>.delayed(const Duration(milliseconds: 2));
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      s.destroy();
+      await server.close();
+    });
+
     test('connects to an echo server', () async {
       final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
       server.listen((c) => c.listen(c.add, onDone: c.close));
