@@ -349,6 +349,20 @@ writes clear instructions, then stops.
   Note: CameraPlayer seam (MediaKitCameraPlayer: muted, protocol whitelist rtsp/rtp/udp/tcp only, mpv rtsp_transport=tcp, cache off); CameraViewScreen (HD/SD, snapshot saved via the file picker, remove, "no video" hint after 12 s); CameraTile grabs one sub-stream frame every 20 s while Home is visible. libmpv adds to the APK size. VERIFY: latency and decoder support on the owner's phone (hardware check #28); iOS build of media_kit untested.
 - [ ] **T9.6 👤 Camera checks** (S) — hardware checks #26–#28.
 
+## M10 — Places and phone-to-phone setup sharing (owner request after the first on-device run)
+
+- [x] **T10.0 Hardware fixes from the first on-device run** (S)
+  Note: WiZ registration re-broadcast every 1 s (pywizlight); TCP 55443 alone is not Yeelight (Fire TV/Echo TLS); mDNS TXT `fn`/`n` names; router admin title → Network; connect/write resets and Bonsoir errors no longer crash scans or polling; Tuya bulbs without a stored DP map are switched on their detected DPs.
+- [ ] **T10.1 Place label** (S) — deps: T5.*
+  Do: `Device.place` and `Camera.place` (default "Home"), registry schema v2 (column with default), config export carries places and now also cameras + camera credentials.
+- [ ] **T10.2 Ask for the place on add, edit on the detail page** (S) — deps: T10.1
+  Do: place chips (existing places + "New place…", default = the Home filter or the last used place) in the add sheet and the Add camera dialog; change place on the device page.
+- [ ] **T10.3 Home place filter** (S) — deps: T10.1
+  Do: chips "All · <places>" on Home when more than one place exists, selection kept in settings; cameras filtered too; banner when every device of the selected place is offline ("can't reach <place> from this Wi-Fi — control needs the same network").
+- [ ] **T10.4 Share setup via QR (LAN only)** (M) — deps: T10.1
+  Do: sender serves the encrypted config (with secrets) once over HTTP on its Wi-Fi address with a random one-time 256-bit key; QR = `ohsetup:1?h=<ip>&p=<port>&k=<key>`; receiver scans (bundled on-device ML Kit scanner), accepts only private LAN addresses, GETs and imports. Server closes after one transfer, on cancel, or after 5 min.
+- [ ] **T10.5 👤 Share setup check** (S) — copy the setup from the main phone to the spare phone; hardware check #29.
+
 ## Later (not v1)
 
 - [ ] L1 Smart TVs: Fire TV (ADB), Android TV Remote v2, Samsung, LG
