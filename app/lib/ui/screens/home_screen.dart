@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/app_settings.dart';
 import '../../cameras/camera.dart';
 import '../../core/intent.dart';
 import '../../core/models.dart';
@@ -37,9 +38,29 @@ class HomeScreen extends ConsumerWidget {
     }
   }
 
+  /// The place Home shows: the stored filter if that place still exists and there is
+  /// more than one place, else all (PSEUDOCODE §15).
+  static String effectivePlace(String selected, List<String> places) =>
+      places.length > 1 && places.any((p) => Places.same(p, selected))
+      ? places.firstWhere((p) => Places.same(p, selected))
+      : AppSettings.allPlaces;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final devices = ref.watch(devicesProvider).value ?? const <Device>[];
+    final allDevices = ref.watch(devicesProvider).value ?? const <Device>[];
+    final allCameras = ref.watch(camerasProvider).value ?? const <Camera>[];
+    final places = ref.watch(placesProvider);
+    final place = effectivePlace(ref.watch(homePlaceProvider), places);
+    bool shown(String p) =>
+        place == AppSettings.allPlaces || Places.same(p, place);
+    final devices = [
+      for (final d in allDevices)
+        if (shown(d.place)) d,
+    ];
+    final cameras = [
+      for (final c in allCameras)
+        if (shown(c.place)) c,
+    ];
     final rooms = ref.watch(roomsProvider).value ?? const <Room>[];
     final states = ref.watch(deviceStatesProvider).value ?? const {};
     final timers = {
@@ -47,10 +68,15 @@ class HomeScreen extends ConsumerWidget {
         j.deviceId: j,
     };
     final now = ref.watch(clockProvider)();
-    final cameras = ref.watch(camerasProvider).value ?? const <Camera>[];
+    // Every device of the chosen place is unreachable: most likely the phone is on
+    // another Wi-Fi (LAN control only).
+    final unreachable =
+        place != AppSettings.allPlaces &&
+        devices.isNotEmpty &&
+        devices.every((d) => states[d.id]?.online == false);
 
     Widget body;
-    if (devices.isEmpty && cameras.isEmpty) {
+    if (allDevices.isEmpty && allCameras.isEmpty) {
       body = Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -85,6 +111,47 @@ class HomeScreen extends ConsumerWidget {
       ].where((s) => s.$2.isNotEmpty).toList();
       body = CustomScrollView(
         slivers: [
+          if (places.length > 1)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 56,
+                child: ListView(
+                  key: const ValueKey('place-filter'),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    for (final p in [AppSettings.allPlaces, ...places])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          key: ValueKey('home-place-$p'),
+                          label: Text(p),
+                          selected: p == place,
+                          onSelected: (_) => unawaited(
+                            ref.read(homePlaceProvider.notifier).select(p),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          if (unreachable)
+            SliverToBoxAdapter(
+              child: Card(
+                key: const ValueKey('place-unreachable'),
+                margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                color: Theme.of(context).colorScheme.errorContainer,
+                child: ListTile(
+                  leading: const Icon(Icons.wifi_off),
+                  title: Text("Can't reach $place from this Wi-Fi"),
+                  subtitle: const Text(
+                    'Devices are controlled over the local network only. '
+                    'Connect to the Wi-Fi at this place.',
+                  ),
+                ),
+              ),
+            ),
           if (cameras.isNotEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(

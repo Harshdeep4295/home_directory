@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app/app_settings.dart';
 import '../app/services.dart';
 import '../cameras/camera.dart';
 import '../cameras/camera_player.dart';
@@ -103,10 +104,36 @@ final cameraPlayerFactoryProvider = Provider<CameraPlayerFactory>(
 /// Every place label in use (devices ∪ cameras), Home first (T10.2, PSEUDOCODE §15).
 final placesProvider = Provider<List<String>>(
   (ref) => Places.distinct([
-    Places.home,
     for (final d in ref.watch(devicesProvider).value ?? const <Device>[])
       d.place,
     for (final c in ref.watch(camerasProvider).value ?? const <Camera>[])
       c.place,
   ]),
 );
+
+/// Place filter on Home (T10.3): [AppSettings.allPlaces] or one place; kept in
+/// settings `home.place`.
+final homePlaceProvider = NotifierProvider<HomePlaceNotifier, String>(
+  HomePlaceNotifier.new,
+);
+
+class HomePlaceNotifier extends Notifier<String> {
+  bool _chosen = false;
+
+  @override
+  String build() {
+    final settings = ref.watch(servicesProvider).appSettings;
+    unawaited(
+      settings.homePlace().then((p) {
+        if (ref.mounted && !_chosen) state = p;
+      }),
+    );
+    return AppSettings.allPlaces;
+  }
+
+  Future<void> select(String place) async {
+    _chosen = true;
+    state = place;
+    await ref.read(servicesProvider).appSettings.setHomePlace(place);
+  }
+}

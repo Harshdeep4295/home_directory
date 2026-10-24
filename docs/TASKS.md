@@ -359,8 +359,9 @@ writes clear instructions, then stops.
 - [x] **T10.2 Ask for the place on add, edit on the detail page** (S) — deps: T10.1
   Do: place chips (existing places + "New place…", default = the Home filter or the last used place) in the add sheet and the Add camera dialog; change place on the device page.
   Note: `PlacePicker` + `pickPlace` dialog; settings `home.place` / `place.last`; camera view menu "Place: …". Typing an existing place in another case reuses its spelling.
-- [ ] **T10.3 Home place filter** (S) — deps: T10.1
+- [x] **T10.3 Home place filter** (S) — deps: T10.1
   Do: chips "All · <places>" on Home when more than one place exists, selection kept in settings; cameras filtered too; banner when every device of the selected place is offline ("can't reach <place> from this Wi-Fi — control needs the same network").
+  Note: `homePlaceProvider` (settings `home.place`); a stored place that no longer exists falls back to All. Voice commands still see every device.
 - [ ] **T10.4 Share setup via QR (LAN only)** (M) — deps: T10.1
   Do: sender serves the encrypted config (with secrets) once over HTTP on its Wi-Fi address with a random one-time 256-bit key; QR = `ohsetup:1?h=<ip>&p=<port>&k=<key>`; receiver scans (bundled on-device ML Kit scanner), accepts only private LAN addresses, GETs and imports. Server closes after one transfer, on cancel, or after 5 min.
 - [ ] **T10.5 👤 Share setup check** (S) — copy the setup from the main phone to the spare phone; hardware check #29.

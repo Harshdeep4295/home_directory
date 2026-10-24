@@ -72,6 +72,64 @@ void main() {
     await t.tearDown(tester);
   });
 
+  testWidgets('place filter: chips, kept in settings, unreachable banner', (
+    tester,
+  ) async {
+    final geyser = testDevice('geyser', 'Geyser');
+    final pump = testDevice('pump', 'Pump').copyWith(place: 'Village');
+    final t = await TestServices.inTester(tester, devices: [geyser, pump]);
+    await tester.runAsync(
+      () => t.services.engine.remember(
+        'pump',
+        DeviceState(online: false, at: DateTime.now()),
+      ),
+    );
+    await tester.pumpWidget(t.wrap(const MaterialApp(home: HomeScreen())));
+    await TestServices.settle(tester);
+
+    for (final p in ['All', 'Home', 'Village']) {
+      expect(find.byKey(ValueKey('home-place-$p')), findsOne);
+    }
+    expect(find.text('Geyser'), findsOne);
+    expect(find.text('Pump'), findsOne);
+    expect(find.byKey(const ValueKey('place-unreachable')), findsNothing);
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('home-place-Village')));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump();
+    expect(find.text('Geyser'), findsNothing);
+    expect(find.text('Pump'), findsOne);
+    expect(find.text("Can't reach Village from this Wi-Fi"), findsOne);
+    expect(await tester.runAsync(t.services.appSettings.homePlace), 'Village');
+
+    await tester.runAsync(() async {
+      await tester.tap(find.byKey(const ValueKey('home-place-Home')));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pump();
+    expect(find.text('Geyser'), findsOne);
+    expect(find.text('Pump'), findsNothing);
+    expect(find.byKey(const ValueKey('place-unreachable')), findsNothing);
+    await t.tearDown(tester);
+  });
+
+  testWidgets('one place: no filter chips; stale filter shows all', (
+    tester,
+  ) async {
+    final t = await TestServices.inTester(
+      tester,
+      devices: [testDevice('geyser', 'Geyser')],
+    );
+    await tester.runAsync(() => t.services.appSettings.setHomePlace('Gone'));
+    await tester.pumpWidget(t.wrap(const MaterialApp(home: HomeScreen())));
+    await TestServices.settle(tester);
+    expect(find.byKey(const ValueKey('place-filter')), findsNothing);
+    expect(find.text('Geyser'), findsOne);
+    await t.tearDown(tester);
+  });
+
   testWidgets('empty state offers Add devices', (tester) async {
     final t = await TestServices.inTester(tester);
     var added = false;
