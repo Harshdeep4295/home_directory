@@ -99,3 +99,14 @@ final camerasProvider = StreamProvider<List<Camera>>((ref) async* {
 final cameraPlayerFactoryProvider = Provider<CameraPlayerFactory>(
   (ref) => MediaKitCameraPlayer.new,
 );
+
+/// Every place label in use (devices ∪ cameras), Home first (T10.2, PSEUDOCODE §15).
+final placesProvider = Provider<List<String>>(
+  (ref) => Places.distinct([
+    Places.home,
+    for (final d in ref.watch(devicesProvider).value ?? const <Device>[])
+      d.place,
+    for (final c in ref.watch(camerasProvider).value ?? const <Camera>[])
+      c.place,
+  ]),
+);

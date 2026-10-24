@@ -356,8 +356,9 @@ writes clear instructions, then stops.
 - [x] **T10.1 Place label** (S) — deps: T5.*
   Do: `Device.place` and `Camera.place` (default "Home"), registry schema v2 (column with default), config export carries places and now also cameras + camera credentials.
   Note: `Places` helper (case-insensitive distinct, Home first); drift v1→v2 addColumn with a step test (schema dumps in drift_schemas/app); export now includes every SecretStore id (Hue bridges, cameras) and the `cameras` setting.
-- [ ] **T10.2 Ask for the place on add, edit on the detail page** (S) — deps: T10.1
+- [x] **T10.2 Ask for the place on add, edit on the detail page** (S) — deps: T10.1
   Do: place chips (existing places + "New place…", default = the Home filter or the last used place) in the add sheet and the Add camera dialog; change place on the device page.
+  Note: `PlacePicker` + `pickPlace` dialog; settings `home.place` / `place.last`; camera view menu "Place: …". Typing an existing place in another case reuses its spelling.
 - [ ] **T10.3 Home place filter** (S) — deps: T10.1
   Do: chips "All · <places>" on Home when more than one place exists, selection kept in settings; cameras filtered too; banner when every device of the selected place is offline ("can't reach <place> from this Wi-Fi — control needs the same network").
 - [ ] **T10.4 Share setup via QR (LAN only)** (M) — deps: T10.1

@@ -90,6 +90,40 @@ void main() {
     await t.tearDown(tester);
   });
 
+  testWidgets('place: move to an existing or a new place', (tester) async {
+    final t = await open(tester, [
+      testDevice('fan', 'Bedroom Fan'),
+      testDevice('geyser', 'Geyser').copyWith(place: 'Office'),
+    ]);
+    final tile = find.byKey(const ValueKey('place-tile'));
+    await tester.ensureVisible(tile);
+    expect(find.descendant(of: tile, matching: find.text('Home')), findsOne);
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('place-Office')));
+    await tester.pump();
+    await tapAndWait(tester, find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    final d = (await tester.runAsync(() => t.services.devices.byId('fan')))!;
+    expect(d.place, 'Office');
+
+    await tester.tap(tile);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New place…'));
+    await tester.pump();
+    // Typing an existing place in another case reuses its spelling.
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Place name'),
+      'home',
+    );
+    await tester.pump();
+    await tapAndWait(tester, find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+    final d2 = (await tester.runAsync(() => t.services.devices.byId('fan')))!;
+    expect(d2.place, 'Home');
+    await t.tearDown(tester);
+  });
+
   testWidgets('remove device asks, then deletes', (tester) async {
     final t = await open(tester, [testDevice('tv', 'TV')]);
     await tester.scrollUntilVisible(
@@ -97,6 +131,8 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(find.text('Remove device'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Remove device'));
     await tester.pumpAndSettle();
     await tapAndWait(tester, find.widgetWithText(FilledButton, 'Remove'));

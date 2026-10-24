@@ -54,6 +54,7 @@ class CameraService {
     String user = defaultUser,
     required String password,
     String? roomId,
+    String place = Places.home,
     int port = 554,
   }) async {
     final main = await _rtsp.probe(
@@ -97,6 +98,7 @@ class CameraService {
       mainPath: main.valueOrNull!.working.first,
       subPath: sub.valueOrNull?.working.firstOrNull,
       roomId: roomId,
+      place: place,
     );
     await _secrets.set(cam.id, SecretName.username, user);
     await _secrets.set(cam.id, SecretName.password, password);
