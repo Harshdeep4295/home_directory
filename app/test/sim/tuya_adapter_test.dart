@@ -232,6 +232,16 @@ void main() {
       expect((await a.getState(d)).valueOrNull?.on, isTrue);
     });
 
+    test('bulb without a stored dpMap is switched on its own DP 20', () async {
+      // devices.json without `mapping` (e.g. keys from the Smart Life QR login).
+      sim = await SimProcess.start('tuya:key=$key:profile=bulb');
+      a = await adapterFor(sim['tuya']);
+      final d = tuyaDevice(sim['tuya']);
+      expect(await a.setPower(d, true), isA<Ok<void>>());
+      expect((await a.queryDps(d)).valueOrNull?['20'], isTrue);
+      expect((await a.getState(d)).valueOrNull?.on, isTrue);
+    });
+
     test('reconnects after the device restarts', () async {
       final port = await freePort();
       sim = await SimProcess.start('tuya:key=$key:port=$port');
