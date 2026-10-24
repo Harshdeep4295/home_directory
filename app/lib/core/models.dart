@@ -60,6 +60,9 @@ abstract class Device with _$Device {
     int? port,
     required String name,
     String? roomId,
+
+    /// Where the device is ("Home", "Office", …); a free-text label (T10.1).
+    @Default(Places.home) String place,
     @Default(<String>[]) List<String> aliases,
     @Default(<Capability>{Capability.power}) Set<Capability> capabilities,
     Duration? nativeCountdownMax,
@@ -167,4 +170,28 @@ abstract class Candidate with _$Candidate {
 
   factory Candidate.fromJson(Map<String, dynamic> json) =>
       _$CandidateFromJson(json);
+}
+
+/// Place labels (T10.1): free text, matched case-insensitively.
+abstract final class Places {
+  static const home = 'Home';
+
+  /// Distinct places, "Home" first, then alphabetical; first spelling wins.
+  static List<String> distinct(Iterable<String> places) {
+    final seen = <String, String>{};
+    for (final p in places) {
+      final t = p.trim();
+      if (t.isNotEmpty) seen.putIfAbsent(t.toLowerCase(), () => t);
+    }
+    final out = seen.values.toList()
+      ..sort((a, b) {
+        if (same(a, home)) return -1;
+        if (same(b, home)) return 1;
+        return a.toLowerCase().compareTo(b.toLowerCase());
+      });
+    return out;
+  }
+
+  static bool same(String a, String b) =>
+      a.trim().toLowerCase() == b.trim().toLowerCase();
 }

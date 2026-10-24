@@ -28,6 +28,9 @@ class Devices extends Table {
   TextColumn get roomId =>
       text().nullable().references(Rooms, #id, onDelete: KeyAction.setNull)();
 
+  /// Place label (T10.1, schema v2).
+  TextColumn get place => text().withDefault(const Constant(Places.home))();
+
   /// JSON list of [Capability] names.
   TextColumn get capabilitiesJson => text()();
 

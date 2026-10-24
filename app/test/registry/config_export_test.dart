@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:offline_home/cameras/camera.dart';
 import 'package:offline_home/core/models.dart';
 import 'package:offline_home/registry/config_export.dart';
 import 'package:offline_home/registry/secret_store.dart';
@@ -83,6 +84,53 @@ void main() {
       );
 
       expect(() => exporter.export('short'), throwsA(isA<ConfigException>()));
+      await src.dispose();
+      await dst.dispose();
+    },
+  );
+
+  test(
+    'places, cameras and camera credentials travel with the secrets',
+    () async {
+      final src = await TestServices.create(
+        devices: [testDevice('lamp', 'Lamp').copyWith(place: 'Office')],
+      );
+      const cam = Camera(
+        id: 'cam1',
+        name: 'Door',
+        ip: '192.168.1.7',
+        mainPath: '/Streaming/Channels/101',
+        place: 'Office',
+      );
+      await src.services.settings.set('cameras', jsonEncode([cam.toJson()]));
+      await src.services.secrets.set('cam1', SecretName.username, 'admin');
+      await src.services.secrets.set('cam1', SecretName.password, 'ABCDEF');
+      await src.services.secrets.set('bridge1', SecretName.hueUser, 'hue-user');
+      ConfigExporter ex(TestServices t) => ConfigExporter(
+        t.services.devices,
+        t.services.rooms,
+        t.services.settings,
+        t.services.secrets,
+        iterations: 1000,
+      );
+      final file = await ex(src).export('passphrase', includeSecrets: true);
+
+      final dst = await TestServices.create();
+      await ex(dst).import(file, 'passphrase');
+      expect((await dst.services.devices.byId('lamp'))!.place, 'Office');
+      final cams = jsonDecode((await dst.services.settings.get('cameras'))!);
+      expect(
+        Camera.fromJson((cams as List).single as Map<String, Object?>).place,
+        'Office',
+      );
+      expect(
+        await dst.services.secrets.get('cam1', SecretName.password),
+        'ABCDEF',
+      );
+      expect(
+        await dst.services.secrets.get('bridge1', SecretName.hueUser),
+        'hue-user',
+      );
       await src.dispose();
       await dst.dispose();
     },
