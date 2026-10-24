@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/log.dart';
 import '../../core/result.dart';
 import '../../onboarding/devices_json_import.dart';
 import '../providers.dart';
@@ -40,7 +41,12 @@ class _ImportResultsState extends ConsumerState<ImportResults> {
 
   Future<void> _verify() async {
     final s = ref.read(servicesProvider);
-    await s.discovery.scan(window: const Duration(seconds: 3));
+    // A failed rescan must not leave every row on "Checking…": stored IPs still work.
+    try {
+      await s.discovery.scan(window: const Duration(seconds: 3));
+    } on Object catch (e) {
+      log.w('import', 'rescan before key check failed', e);
+    }
     for (final o in widget.outcomes.where((o) => o.status.stored)) {
       final d = await s.devices.byId(o.entry.id);
       final KeyCheck check;

@@ -56,11 +56,19 @@ class LanSocketFactory {
         timeout: timeout,
       ).timeout(timeout + const Duration(milliseconds: 100));
       s.setOption(SocketOption.tcpNoDelay, true);
+      // Write errors (e.g. a reset by a device that allows one client) are reported on
+      // `done`; without a listener they become unhandled and crash the isolate. Readers
+      // still see the reset through their own stream listener.
+      s.done.ignore();
       return Ok(s);
     } on TimeoutException {
       return Err(DeviceError.timeout('tcp $host:$port'));
     } on SocketException catch (e) {
       return Err(mapSocketError(e, 'tcp $host:$port'));
+    } on OSError catch (e) {
+      // Some connect failures (e.g. errno 104, reset during the handshake) surface as a
+      // bare OSError on Android; seen on hardware.
+      return Err(DeviceError.offline('tcp $host:$port: ${e.message}'));
     }
   }
 
@@ -117,6 +125,7 @@ class LanSocketFactory {
     Duration window = const Duration(seconds: 2),
     String? broadcastAddress,
     int bindPort = 0,
+    Duration? resendEvery,
   }) async {
     if (!platform.canBroadcast) {
       return Err(DeviceError.unsupported('broadcast not available'));
@@ -138,6 +147,7 @@ class LanSocketFactory {
         expectMany: true,
         broadcast: true,
         bindPort: bindPort,
+        resendEvery: resendEvery,
       );
     } finally {
       await platform.releaseMulticastLock();
@@ -152,6 +162,7 @@ class LanSocketFactory {
     required bool expectMany,
     required bool broadcast,
     int bindPort = 0,
+    Duration? resendEvery,
   }) async {
     final bound = await udp(bindPort: bindPort, broadcast: broadcast);
     if (bound case Err(:final error)) return Err(error);
@@ -173,6 +184,7 @@ class LanSocketFactory {
         if (!done.isCompleted) done.complete();
       },
     );
+    Timer? resend;
     try {
       final sent = socket.send(payload, address, port);
       if (sent <= 0) {
@@ -180,10 +192,22 @@ class LanSocketFactory {
           DeviceError.offline('udp send to ${address.address} failed'),
         );
       }
+      // Lossy Wi-Fi: devices in power save miss single datagrams. Re-send until the
+      // window closes (send errors here are ignored; the first send already succeeded).
+      if (resendEvery != null) {
+        resend = Timer.periodic(resendEvery, (_) {
+          try {
+            socket.send(payload, address, port);
+          } on SocketException {
+            // ignore
+          }
+        });
+      }
       await done.future;
     } on SocketException catch (e) {
       return Err(mapSocketError(e, 'udp ${address.address}:$port'));
     } finally {
+      resend?.cancel();
       timer.cancel();
       await sub.cancel();
       socket.close();
@@ -192,6 +216,15 @@ class LanSocketFactory {
       return Err(DeviceError.timeout('udp ${address.address}:$port'));
     }
     return Ok(replies);
+  }
+
+  /// HTTP server on one local address (setup sharing, T10.4). Port 0 = any free port.
+  Future<Result<HttpServer>> httpServer(String address, {int port = 0}) async {
+    try {
+      return Ok(await HttpServer.bind(address, port));
+    } on SocketException catch (e) {
+      return Err(mapSocketError(e, 'listen $address:$port'));
+    }
   }
 
   /// A plain HTTP request. Never uses a proxy: LAN traffic must stay on the LAN.

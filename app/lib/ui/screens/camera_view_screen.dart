@@ -7,6 +7,7 @@ import '../../cameras/camera.dart';
 import '../../cameras/camera_player.dart';
 import '../file_access.dart';
 import '../providers.dart';
+import '../widgets/place_picker.dart';
 
 /// Full-screen live view of one camera (T9.5): main (HD) or sub (SD) stream, snapshot,
 /// remove. Video only, muted.
@@ -117,6 +118,20 @@ class _CameraViewScreenState extends ConsumerState<CameraViewScreen> {
     }
   }
 
+  late Camera _camera = widget.camera;
+
+  Future<void> _movePlace() async {
+    final p = await pickPlace(
+      context,
+      places: ref.read(placesProvider),
+      initial: _camera.place,
+    );
+    if (p == null || p == _camera.place || !mounted) return;
+    final cam = _camera.copyWith(place: p);
+    await ref.read(servicesProvider).cameras.put(cam);
+    if (mounted) setState(() => _camera = cam);
+  }
+
   Future<void> _remove() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -167,9 +182,20 @@ class _CameraViewScreenState extends ConsumerState<CameraViewScreen> {
             icon: const Icon(Icons.photo_camera_outlined),
           ),
           PopupMenuButton<String>(
-            onSelected: (v) => v == 'remove' ? _remove() : null,
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'remove', child: Text('Remove camera')),
+            onSelected: (v) => switch (v) {
+              'remove' => _remove(),
+              'place' => _movePlace(),
+              _ => null,
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'place',
+                child: Text('Place: ${_camera.place}'),
+              ),
+              const PopupMenuItem(
+                value: 'remove',
+                child: Text('Remove camera'),
+              ),
             ],
           ),
         ],

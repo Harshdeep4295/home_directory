@@ -16,6 +16,7 @@ import '../../onboarding/hue_pairing.dart';
 import '../../registry/secret_store.dart';
 import '../alias_suggestions.dart';
 import '../providers.dart';
+import '../widgets/place_picker.dart';
 import '../widgets/prompt.dart';
 import 'devices_json_import_screen.dart';
 
@@ -137,13 +138,17 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
   /// Hik-Connect: the device password). Checked over RTSP, stored in SecretStore; the
   /// camera itself is never changed.
   Future<void> _addCamera(Candidate c) async {
+    final (places, place) = await _places();
+    if (!mounted) return;
     final login = await showDialog<_CameraLogin>(
       context: context,
-      builder: (_) => _CameraLoginDialog(candidate: c),
+      builder: (_) =>
+          _CameraLoginDialog(candidate: c, places: places, initialPlace: place),
     );
     if (login == null || !mounted) return;
     final s = ref.read(servicesProvider);
     final messenger = ScaffoldMessenger.of(context);
+    await s.appSettings.setLastPlace(login.place);
     messenger.showSnackBar(
       const SnackBar(content: Text('Checking the camera…')),
     );
@@ -152,6 +157,7 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
       name: login.name,
       user: login.user,
       password: login.password,
+      place: login.place,
     );
     if (!mounted) return;
     messenger.hideCurrentSnackBar();
@@ -330,20 +336,37 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
     return true;
   }
 
+  /// Places in use and the one to pre-select (PSEUDOCODE §15).
+  Future<(List<String>, String)> _places() async {
+    final s = ref.read(servicesProvider);
+    final places = Places.distinct([
+      for (final d in await s.devices.all()) d.place,
+      for (final c in await s.cameras.all()) c.place,
+    ]);
+    return (places, await s.appSettings.defaultPlace());
+  }
+
   Future<void> _nameAndAdd(
     Candidate c, {
     Map<String, Object?> meta = const {},
   }) async {
     final s = ref.read(servicesProvider);
     final rooms = await s.rooms.all();
+    final (places, place) = await _places();
     if (!mounted) return;
     final result = await showModalBottomSheet<_NameResult>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _NameSheet(candidate: c, rooms: rooms),
+      builder: (_) => _NameSheet(
+        candidate: c,
+        rooms: rooms,
+        places: places,
+        initialPlace: place,
+      ),
     );
     if (result == null) return;
+    await s.appSettings.setLastPlace(result.place);
     var roomId = result.roomId;
     if (result.newRoom != null) {
       roomId = 'room-${DateTime.now().microsecondsSinceEpoch}';
@@ -355,6 +378,7 @@ class _AddDevicesScreenState extends ConsumerState<AddDevicesScreen> {
       c,
       name: result.name,
       roomId: roomId,
+      place: result.place,
       aliases: result.aliases,
       meta: meta,
     );
@@ -487,15 +511,22 @@ IconData categoryIcon(DeviceCategory c) => switch (c) {
 };
 
 class _CameraLogin {
-  const _CameraLogin(this.name, this.user, this.password);
+  const _CameraLogin(this.name, this.user, this.password, this.place);
   final String name;
   final String user;
   final String password;
+  final String place;
 }
 
 class _CameraLoginDialog extends StatefulWidget {
-  const _CameraLoginDialog({required this.candidate});
+  const _CameraLoginDialog({
+    required this.candidate,
+    required this.places,
+    required this.initialPlace,
+  });
   final Candidate candidate;
+  final List<String> places;
+  final String initialPlace;
 
   @override
   State<_CameraLoginDialog> createState() => _CameraLoginDialogState();
@@ -508,6 +539,7 @@ class _CameraLoginDialogState extends State<_CameraLoginDialog> {
   final _user = TextEditingController(text: CameraService.defaultUser);
   final _password = TextEditingController();
   bool _show = false;
+  late String? _place = widget.initialPlace;
 
   @override
   void dispose() {
@@ -554,6 +586,12 @@ class _CameraLoginDialogState extends State<_CameraLoginDialog> {
             ),
             onChanged: (_) => setState(() {}),
           ),
+          const SizedBox(height: 12),
+          PlacePicker(
+            places: widget.places,
+            initial: widget.initialPlace,
+            onChanged: (p) => setState(() => _place = p),
+          ),
         ],
       ),
     ),
@@ -563,7 +601,10 @@ class _CameraLoginDialogState extends State<_CameraLoginDialog> {
         child: const Text('Cancel'),
       ),
       FilledButton(
-        onPressed: _password.text.isEmpty || _name.text.trim().isEmpty
+        onPressed:
+            _password.text.isEmpty ||
+                _name.text.trim().isEmpty ||
+                _place == null
             ? null
             : () => Navigator.pop(
                 context,
@@ -573,6 +614,7 @@ class _CameraLoginDialogState extends State<_CameraLoginDialog> {
                       ? CameraService.defaultUser
                       : _user.text.trim(),
                   _password.text,
+                  _place!,
                 ),
               ),
         child: const Text('Check and add'),
@@ -582,17 +624,31 @@ class _CameraLoginDialogState extends State<_CameraLoginDialog> {
 }
 
 class _NameResult {
-  const _NameResult(this.name, this.roomId, this.newRoom, this.aliases);
+  const _NameResult(
+    this.name,
+    this.roomId,
+    this.newRoom,
+    this.aliases,
+    this.place,
+  );
   final String name;
   final String? roomId;
   final String? newRoom;
   final List<String> aliases;
+  final String place;
 }
 
 class _NameSheet extends StatefulWidget {
-  const _NameSheet({required this.candidate, required this.rooms});
+  const _NameSheet({
+    required this.candidate,
+    required this.rooms,
+    required this.places,
+    required this.initialPlace,
+  });
   final Candidate candidate;
   final List<Room> rooms;
+  final List<String> places;
+  final String initialPlace;
 
   @override
   State<_NameSheet> createState() => _NameSheetState();
@@ -613,6 +669,7 @@ class _NameSheetState extends State<_NameSheet> {
   String? _roomId;
   bool _creatingRoom = false;
   final Set<String> _aliases = {};
+  late String? _place = widget.initialPlace;
 
   @override
   void dispose() {
@@ -641,6 +698,12 @@ class _NameSheetState extends State<_NameSheet> {
               labelText: 'Name (what you will say)',
             ),
             onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          PlacePicker(
+            places: widget.places,
+            initial: widget.initialPlace,
+            onChanged: (p) => setState(() => _place = p),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -686,7 +749,7 @@ class _NameSheetState extends State<_NameSheet> {
           ],
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: _name.text.trim().isEmpty
+            onPressed: _name.text.trim().isEmpty || _place == null
                 ? null
                 : () => Navigator.pop(
                     context,
@@ -697,6 +760,7 @@ class _NameSheetState extends State<_NameSheet> {
                           ? _newRoom.text.trim()
                           : null,
                       _aliases.toList(),
+                      _place!,
                     ),
                   ),
             child: const Text('Add device'),

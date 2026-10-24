@@ -128,8 +128,28 @@ void main() {
     expect(log, ['open ${log.first.substring(5)}', 'dispose', isA<String>()]);
     expect(log.last, endsWith('/h264/ch1/sub/av_stream'));
 
+    // Move to another place (T10.2).
     await tester.tap(find.byType(PopupMenuButton<String>));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Place: Home'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New place…'));
+    await tester.pump();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Place name'),
+      'Shop',
+    );
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await TestServices.settle(tester, ms: 100);
+    expect(
+      (await tester.runAsync(t.services.cameras.all))!.single.place,
+      'Shop',
+    );
+
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    expect(find.text('Place: Shop'), findsOne);
     await tester.tap(find.text('Remove camera'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Remove'));

@@ -15,6 +15,7 @@ _Device _$DeviceFromJson(Map<String, dynamic> json) => _Device(
   port: (json['port'] as num?)?.toInt(),
   name: json['name'] as String,
   roomId: json['roomId'] as String?,
+  place: json['place'] as String? ?? Places.home,
   aliases:
       (json['aliases'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const <String>[],
@@ -47,6 +48,7 @@ Map<String, dynamic> _$DeviceToJson(_Device instance) => <String, dynamic>{
   'port': ?instance.port,
   'name': instance.name,
   'roomId': ?instance.roomId,
+  'place': instance.place,
   'aliases': instance.aliases,
   'capabilities': instance.capabilities
       .map((e) => _$CapabilityEnumMap[e]!)

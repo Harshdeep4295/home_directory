@@ -41,3 +41,12 @@ List<String> subnetHosts(String ip, int prefix, {int minPrefix = 22}) {
       if (h != v) formatIpv4(h),
   ];
 }
+
+/// RFC 1918 private IPv4 (10/8, 172.16/12, 192.168/16).
+bool isPrivateIpv4(String ip) {
+  final v = parseIpv4(ip);
+  if (v == null) return false;
+  return (v >> 24) == 10 ||
+      (v >> 20) == (172 << 4 | 1) ||
+      (v >> 16) == (192 << 8 | 168);
+}

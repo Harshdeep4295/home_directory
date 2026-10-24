@@ -16,6 +16,7 @@ import '../alias_suggestions.dart';
 import '../home_widget_sync.dart';
 import '../providers.dart';
 import '../widgets/device_tile.dart';
+import '../widgets/place_picker.dart';
 import '../widgets/prompt.dart';
 import 'devices_json_import_screen.dart';
 
@@ -87,6 +88,15 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
   Future<void> _rename(Device d) async {
     final name = await promptText(context, title: 'Name', initial: d.name);
     if (name != null && name.isNotEmpty) await _save(d.copyWith(name: name));
+  }
+
+  Future<void> _movePlace(Device d) async {
+    final p = await pickPlace(
+      context,
+      places: ref.read(placesProvider),
+      initial: d.place,
+    );
+    if (p != null && p != d.place) await _save(d.copyWith(place: p));
   }
 
   Future<void> _addAlias(Device d, [String? preset]) async {
@@ -302,7 +312,14 @@ class _DeviceDetailScreenState extends ConsumerState<DeviceDetailScreen> {
             ),
           ),
           const Divider(height: 32),
-          Text('Room and names', style: theme.textTheme.titleMedium),
+          Text('Place, room and names', style: theme.textTheme.titleMedium),
+          ListTile(
+            key: const ValueKey('place-tile'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Place'),
+            trailing: Text(d.place),
+            onTap: () => _movePlace(d),
+          ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Room'),

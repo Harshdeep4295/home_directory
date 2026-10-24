@@ -330,6 +330,16 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, DeviceRow> {
       'REFERENCES rooms (id) ON DELETE SET NULL',
     ),
   );
+  static const VerificationMeta _placeMeta = const VerificationMeta('place');
+  @override
+  late final GeneratedColumn<String> place = GeneratedColumn<String>(
+    'place',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(Places.home),
+  );
   static const VerificationMeta _capabilitiesJsonMeta = const VerificationMeta(
     'capabilitiesJson',
   );
@@ -406,6 +416,7 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, DeviceRow> {
     port,
     name,
     roomId,
+    place,
     capabilitiesJson,
     dpMapJson,
     nativeCountdownMaxS,
@@ -467,6 +478,12 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, DeviceRow> {
       context.handle(
         _roomIdMeta,
         roomId.isAcceptableOrUnknown(data['room_id']!, _roomIdMeta),
+      );
+    }
+    if (data.containsKey('place')) {
+      context.handle(
+        _placeMeta,
+        place.isAcceptableOrUnknown(data['place']!, _placeMeta),
       );
     }
     if (data.containsKey('capabilities_json')) {
@@ -561,6 +578,10 @@ class $DevicesTable extends Devices with TableInfo<$DevicesTable, DeviceRow> {
         DriftSqlType.string,
         data['${effectivePrefix}room_id'],
       ),
+      place: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}place'],
+      )!,
       capabilitiesJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}capabilities_json'],
@@ -607,6 +628,9 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
   final String name;
   final String? roomId;
 
+  /// Place label (T10.1, schema v2).
+  final String place;
+
   /// JSON list of [Capability] names.
   final String capabilitiesJson;
 
@@ -625,6 +649,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
     this.port,
     required this.name,
     this.roomId,
+    required this.place,
     required this.capabilitiesJson,
     this.dpMapJson,
     this.nativeCountdownMaxS,
@@ -653,6 +678,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
     if (!nullToAbsent || roomId != null) {
       map['room_id'] = Variable<String>(roomId);
     }
+    map['place'] = Variable<String>(place);
     map['capabilities_json'] = Variable<String>(capabilitiesJson);
     if (!nullToAbsent || dpMapJson != null) {
       map['dp_map_json'] = Variable<String>(dpMapJson);
@@ -680,6 +706,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
       roomId: roomId == null && nullToAbsent
           ? const Value.absent()
           : Value(roomId),
+      place: Value(place),
       capabilitiesJson: Value(capabilitiesJson),
       dpMapJson: dpMapJson == null && nullToAbsent
           ? const Value.absent()
@@ -711,6 +738,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
       port: serializer.fromJson<int?>(json['port']),
       name: serializer.fromJson<String>(json['name']),
       roomId: serializer.fromJson<String?>(json['roomId']),
+      place: serializer.fromJson<String>(json['place']),
       capabilitiesJson: serializer.fromJson<String>(json['capabilitiesJson']),
       dpMapJson: serializer.fromJson<String?>(json['dpMapJson']),
       nativeCountdownMaxS: serializer.fromJson<int?>(
@@ -735,6 +763,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
       'port': serializer.toJson<int?>(port),
       'name': serializer.toJson<String>(name),
       'roomId': serializer.toJson<String?>(roomId),
+      'place': serializer.toJson<String>(place),
       'capabilitiesJson': serializer.toJson<String>(capabilitiesJson),
       'dpMapJson': serializer.toJson<String?>(dpMapJson),
       'nativeCountdownMaxS': serializer.toJson<int?>(nativeCountdownMaxS),
@@ -753,6 +782,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
     Value<int?> port = const Value.absent(),
     String? name,
     Value<String?> roomId = const Value.absent(),
+    String? place,
     String? capabilitiesJson,
     Value<String?> dpMapJson = const Value.absent(),
     Value<int?> nativeCountdownMaxS = const Value.absent(),
@@ -768,6 +798,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
     port: port.present ? port.value : this.port,
     name: name ?? this.name,
     roomId: roomId.present ? roomId.value : this.roomId,
+    place: place ?? this.place,
     capabilitiesJson: capabilitiesJson ?? this.capabilitiesJson,
     dpMapJson: dpMapJson.present ? dpMapJson.value : this.dpMapJson,
     nativeCountdownMaxS: nativeCountdownMaxS.present
@@ -789,6 +820,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
       port: data.port.present ? data.port.value : this.port,
       name: data.name.present ? data.name.value : this.name,
       roomId: data.roomId.present ? data.roomId.value : this.roomId,
+      place: data.place.present ? data.place.value : this.place,
       capabilitiesJson: data.capabilitiesJson.present
           ? data.capabilitiesJson.value
           : this.capabilitiesJson,
@@ -815,6 +847,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
           ..write('port: $port, ')
           ..write('name: $name, ')
           ..write('roomId: $roomId, ')
+          ..write('place: $place, ')
           ..write('capabilitiesJson: $capabilitiesJson, ')
           ..write('dpMapJson: $dpMapJson, ')
           ..write('nativeCountdownMaxS: $nativeCountdownMaxS, ')
@@ -835,6 +868,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
     port,
     name,
     roomId,
+    place,
     capabilitiesJson,
     dpMapJson,
     nativeCountdownMaxS,
@@ -854,6 +888,7 @@ class DeviceRow extends DataClass implements Insertable<DeviceRow> {
           other.port == this.port &&
           other.name == this.name &&
           other.roomId == this.roomId &&
+          other.place == this.place &&
           other.capabilitiesJson == this.capabilitiesJson &&
           other.dpMapJson == this.dpMapJson &&
           other.nativeCountdownMaxS == this.nativeCountdownMaxS &&
@@ -871,6 +906,7 @@ class DevicesCompanion extends UpdateCompanion<DeviceRow> {
   final Value<int?> port;
   final Value<String> name;
   final Value<String?> roomId;
+  final Value<String> place;
   final Value<String> capabilitiesJson;
   final Value<String?> dpMapJson;
   final Value<int?> nativeCountdownMaxS;
@@ -887,6 +923,7 @@ class DevicesCompanion extends UpdateCompanion<DeviceRow> {
     this.port = const Value.absent(),
     this.name = const Value.absent(),
     this.roomId = const Value.absent(),
+    this.place = const Value.absent(),
     this.capabilitiesJson = const Value.absent(),
     this.dpMapJson = const Value.absent(),
     this.nativeCountdownMaxS = const Value.absent(),
@@ -904,6 +941,7 @@ class DevicesCompanion extends UpdateCompanion<DeviceRow> {
     this.port = const Value.absent(),
     required String name,
     this.roomId = const Value.absent(),
+    this.place = const Value.absent(),
     required String capabilitiesJson,
     this.dpMapJson = const Value.absent(),
     this.nativeCountdownMaxS = const Value.absent(),
@@ -927,6 +965,7 @@ class DevicesCompanion extends UpdateCompanion<DeviceRow> {
     Expression<int>? port,
     Expression<String>? name,
     Expression<String>? roomId,
+    Expression<String>? place,
     Expression<String>? capabilitiesJson,
     Expression<String>? dpMapJson,
     Expression<int>? nativeCountdownMaxS,
@@ -944,6 +983,7 @@ class DevicesCompanion extends UpdateCompanion<DeviceRow> {
       if (port != null) 'port': port,
       if (name != null) 'name': name,
       if (roomId != null) 'room_id': roomId,
+      if (place != null) 'place': place,
       if (capabilitiesJson != null) 'capabilities_json': capabilitiesJson,
       if (dpMapJson != null) 'dp_map_json': dpMapJson,
       if (nativeCountdownMaxS != null)
@@ -964,6 +1004,7 @@ class DevicesCompanion extends UpdateCompanion<DeviceRow> {
     Value<int?>? port,
     Value<String>? name,
     Value<String?>? roomId,
+    Value<String>? place,
     Value<String>? capabilitiesJson,
     Value<String?>? dpMapJson,
     Value<int?>? nativeCountdownMaxS,
@@ -981,6 +1022,7 @@ class DevicesCompanion extends UpdateCompanion<DeviceRow> {
       port: port ?? this.port,
       name: name ?? this.name,
       roomId: roomId ?? this.roomId,
+      place: place ?? this.place,
       capabilitiesJson: capabilitiesJson ?? this.capabilitiesJson,
       dpMapJson: dpMapJson ?? this.dpMapJson,
       nativeCountdownMaxS: nativeCountdownMaxS ?? this.nativeCountdownMaxS,
@@ -1020,6 +1062,9 @@ class DevicesCompanion extends UpdateCompanion<DeviceRow> {
     if (roomId.present) {
       map['room_id'] = Variable<String>(roomId.value);
     }
+    if (place.present) {
+      map['place'] = Variable<String>(place.value);
+    }
     if (capabilitiesJson.present) {
       map['capabilities_json'] = Variable<String>(capabilitiesJson.value);
     }
@@ -1055,6 +1100,7 @@ class DevicesCompanion extends UpdateCompanion<DeviceRow> {
           ..write('port: $port, ')
           ..write('name: $name, ')
           ..write('roomId: $roomId, ')
+          ..write('place: $place, ')
           ..write('capabilitiesJson: $capabilitiesJson, ')
           ..write('dpMapJson: $dpMapJson, ')
           ..write('nativeCountdownMaxS: $nativeCountdownMaxS, ')
@@ -2706,6 +2752,7 @@ typedef $$DevicesTableCreateCompanionBuilder = DevicesCompanion Function({
   Value<int?> port,
   required String name,
   Value<String?> roomId,
+  Value<String> place,
   required String capabilitiesJson,
   Value<String?> dpMapJson,
   Value<int?> nativeCountdownMaxS,
@@ -2723,6 +2770,7 @@ typedef $$DevicesTableUpdateCompanionBuilder = DevicesCompanion Function({
   Value<int?> port,
   Value<String> name,
   Value<String?> roomId,
+  Value<String> place,
   Value<String> capabilitiesJson,
   Value<String?> dpMapJson,
   Value<int?> nativeCountdownMaxS,
@@ -2853,6 +2901,11 @@ class $$DevicesTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get place => $composableBuilder(
+    column: $table.place,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3029,6 +3082,11 @@ class $$DevicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get place => $composableBuilder(
+    column: $table.place,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get capabilitiesJson => $composableBuilder(
     column: $table.capabilitiesJson,
     builder: (column) => ColumnOrderings(column),
@@ -3112,6 +3170,9 @@ class $$DevicesTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get place =>
+      $composableBuilder(column: $table.place, builder: (column) => column);
 
   GeneratedColumn<String> get capabilitiesJson => $composableBuilder(
     column: $table.capabilitiesJson,
@@ -3277,6 +3338,7 @@ class $$DevicesTableTableManager
                 Value<int?> port = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> roomId = const Value.absent(),
+                Value<String> place = const Value.absent(),
                 Value<String> capabilitiesJson = const Value.absent(),
                 Value<String?> dpMapJson = const Value.absent(),
                 Value<int?> nativeCountdownMaxS = const Value.absent(),
@@ -3293,6 +3355,7 @@ class $$DevicesTableTableManager
                 port: port,
                 name: name,
                 roomId: roomId,
+                place: place,
                 capabilitiesJson: capabilitiesJson,
                 dpMapJson: dpMapJson,
                 nativeCountdownMaxS: nativeCountdownMaxS,
@@ -3311,6 +3374,7 @@ class $$DevicesTableTableManager
                 Value<int?> port = const Value.absent(),
                 required String name,
                 Value<String?> roomId = const Value.absent(),
+                Value<String> place = const Value.absent(),
                 required String capabilitiesJson,
                 Value<String?> dpMapJson = const Value.absent(),
                 Value<int?> nativeCountdownMaxS = const Value.absent(),
@@ -3327,6 +3391,7 @@ class $$DevicesTableTableManager
                 port: port,
                 name: name,
                 roomId: roomId,
+                place: place,
                 capabilitiesJson: capabilitiesJson,
                 dpMapJson: dpMapJson,
                 nativeCountdownMaxS: nativeCountdownMaxS,

@@ -10,6 +10,7 @@ import '../providers.dart';
 import 'add_devices_screen.dart';
 import 'debug_menu.dart';
 import 'devices_json_import_screen.dart';
+import 'share_setup_screen.dart';
 
 /// Settings (T5.7): voice language + TTS, polling, backup, diagnostics.
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -163,6 +164,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ),
         header('Backup'),
+        ListTile(
+          leading: const Icon(Icons.qr_code_2),
+          title: const Text('Share setup'),
+          subtitle: const Text(
+            'Show a QR; another phone on this Wi-Fi copies everything',
+          ),
+          onTap: () => _push(const ShareSetupScreen()),
+        ),
+        ListTile(
+          leading: const Icon(Icons.qr_code_scanner),
+          title: const Text('Receive setup'),
+          subtitle: const Text('Scan the QR from your other phone'),
+          onTap: () => _push(const ReceiveSetupScreen()),
+        ),
         ListTile(
           leading: const Icon(Icons.upload),
           title: const Text('Export configuration'),

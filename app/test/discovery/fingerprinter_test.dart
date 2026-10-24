@@ -335,4 +335,10 @@ void main() {
     final wiz = cases[1].evidence();
     expect(Fingerprinter.identify(wiz)!.brand, Brand.wiz);
   });
+
+  test('TCP 55443 alone is not a Yeelight (Fire TV / Echo TLS port)', () {
+    final fireTv = HostEvidence('192.168.1.4')
+      ..openPorts.add(ScanPort.yeelight);
+    expect(Fingerprinter.identify(fireTv), isNull);
+  });
 }

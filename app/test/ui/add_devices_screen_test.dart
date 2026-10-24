@@ -76,6 +76,7 @@ void main() {
       final rooms = (await tester.runAsync(t.services.rooms.all))!;
       expect(rooms.single.name, 'Bedroom');
       expect(wiz.roomId, rooms.single.id);
+      expect(wiz.place, 'Home', reason: 'default place');
       expect(
         find.text('WiZ 033d'),
         findsNothing,
@@ -91,11 +92,38 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 60));
       });
       await tester.pumpAndSettle();
+      // New place for this one; the button waits for a name.
+      await tester.tap(find.text('New place…'));
+      await tester.pump();
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Add device'),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Place name'),
+        'Office',
+      );
+      await tester.pump();
       await tester.runAsync(() async {
         await tester.tap(find.text('Add device'));
         await Future<void>.delayed(const Duration(milliseconds: 150));
       });
       await tester.pumpAndSettle();
+      expect(
+        (await tester.runAsync(
+          () => t.services.devices.byId('bf0123456789abcdefgh'),
+        ))!.place,
+        'Office',
+      );
+      expect(
+        await tester.runAsync(t.services.appSettings.defaultPlace),
+        'Office',
+        reason: 'the last place used is pre-selected next time',
+      );
       expect(
         await tester.runAsync(
           () => t.services.secrets.get(

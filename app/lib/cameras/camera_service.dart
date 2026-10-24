@@ -54,6 +54,7 @@ class CameraService {
     String user = defaultUser,
     required String password,
     String? roomId,
+    String place = Places.home,
     int port = 554,
   }) async {
     final main = await _rtsp.probe(
@@ -97,6 +98,7 @@ class CameraService {
       mainPath: main.valueOrNull!.working.first,
       subPath: sub.valueOrNull?.working.firstOrNull,
       roomId: roomId,
+      place: place,
     );
     await _secrets.set(cam.id, SecretName.username, user);
     await _secrets.set(cam.id, SecretName.password, password);
@@ -104,6 +106,9 @@ class CameraService {
     log.i(_tag, 'added ${cam.name} (${cam.mainPath}, sub ${cam.subPath})');
     return Ok(cam);
   }
+
+  /// Re-reads the stored list and tells listeners (after a config import).
+  Future<void> reload() async => _changes.add(await all());
 
   Future<void> remove(String id) async {
     await _save([...(await all()).where((c) => c.id != id)]);

@@ -120,6 +120,10 @@ class CandidateCollector implements EvidenceSource {
         udpWindow,
         at,
         bindPort: ports.wizBind,
+        // pywizlight/discovery.py BroadcastProtocol.broadcast_registration re-sends
+        // REGISTER_MESSAGE every 1 s; single broadcasts are often missed (hardware,
+        // spike/scans/single-subnet-2026-10-24.md).
+        resendEvery: const Duration(seconds: 1),
       ),
       _probe(
         UdpProbe.kasa,
@@ -249,6 +253,7 @@ class CandidateCollector implements EvidenceSource {
     HostEvidence Function(String) at, {
     int bindPort = 0,
     String? group,
+    Duration? resendEvery,
   }) async {
     if (_platform.canBroadcast) {
       final r = await _sockets.broadcast(
@@ -257,6 +262,7 @@ class CandidateCollector implements EvidenceSource {
         window: window,
         broadcastAddress: broadcastAddress ?? group,
         bindPort: bindPort,
+        resendEvery: resendEvery,
       );
       for (final reply in r.valueOrNull ?? const <UdpReply>[]) {
         at(reply.address).addUdp(probe, reply.data);

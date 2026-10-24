@@ -30,11 +30,15 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.memory() => AppDatabase(NativeDatabase.memory());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      // v2 (T10.1): place label; existing devices become "Home".
+      if (from < 2) await m.addColumn(devices, devices.place);
+    },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
       // The timer foreground service opens the same file from a second engine (T3.4);

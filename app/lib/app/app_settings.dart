@@ -1,3 +1,4 @@
+import '../core/models.dart';
 import '../registry/repositories.dart';
 
 enum VoiceLanguage {
@@ -22,6 +23,11 @@ class AppSettings {
   static const kTts = 'voice.tts';
   static const kPoll = 'poll.seconds';
   static const kOnboarded = 'onboarded';
+  static const kHomePlace = 'home.place';
+  static const kLastPlace = 'place.last';
+
+  /// Value of [kHomePlace] that shows every place.
+  static const allPlaces = 'All';
 
   Future<VoiceLanguage> language() async =>
       VoiceLanguage.values.asNameMap()[await _repo.get(kLanguage)] ??
@@ -37,4 +43,18 @@ class AppSettings {
 
   Future<bool> onboarded() => _repo.getBool(kOnboarded);
   Future<void> setOnboarded(bool v) => _repo.setBool(kOnboarded, v);
+
+  /// Place filter on Home (PSEUDOCODE §15); [allPlaces] when unset.
+  Future<String> homePlace() async => await _repo.get(kHomePlace) ?? allPlaces;
+  Future<void> setHomePlace(String p) => _repo.set(kHomePlace, p);
+
+  Future<void> setLastPlace(String p) => _repo.set(kLastPlace, p);
+
+  /// Pre-selected place when adding: the Home filter, else the last one used, else
+  /// Home.
+  Future<String> defaultPlace() async {
+    final filter = await homePlace();
+    if (filter != allPlaces) return filter;
+    return await _repo.get(kLastPlace) ?? Places.home;
+  }
 }

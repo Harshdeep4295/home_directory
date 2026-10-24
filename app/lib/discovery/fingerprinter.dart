@@ -274,14 +274,9 @@ abstract final class Fingerprinter {
         evidence: ['ssdp wifi_bulb model ${headers['model'] ?? '?'}'],
       );
     }
-    if (e.openPorts.contains(ScanPort.yeelight)) {
-      return Candidate(
-        ip: e.ip,
-        brand: Brand.yeelight,
-        protocol: 'yeelight',
-        evidence: const ['tcp 55443 open'],
-      );
-    }
+    // No port-only match: Fire TV and Echo also listen on TCP 55443 (TLS, not Yeelight
+    // JSON), seen on hardware (spike/scans/router1-2026-10-24.md). Yeelight bulbs with LAN
+    // control on always answer the SSDP search above.
     return null;
   }
 
@@ -328,7 +323,7 @@ abstract final class Fingerprinter {
       ip: e.ip,
       brand: Brand.unknown,
       protocol: 'unknown',
-      name: e.mdns.isNotEmpty ? e.mdns.first.name : null,
+      name: e.mdns.isNotEmpty ? Categorizer.friendlyName(e.mdns.first) : null,
       evidence: [
         if (e.openPorts.isNotEmpty) 'open ${e.openPorts.join(',')}',
         for (final m in e.mdns) 'mdns ${m.type}',

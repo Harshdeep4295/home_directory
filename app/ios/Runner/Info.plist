@@ -66,6 +66,8 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Scan the setup QR shown by your other phone. The camera is used only while scanning; nothing is recorded or sent.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Offline Home finds and controls the smart plugs, switches and bulbs on your home Wi-Fi directly, without the internet.</string>
 	<key>NSBonjourServices</key>

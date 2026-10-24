@@ -35,7 +35,14 @@ class ConfigExporter {
   final Random _random;
 
   static const format = 'offline-home-config';
-  static const settingKeys = ['voice.language', 'voice.tts', 'poll.seconds'];
+
+  /// `cameras` is the camera list (CameraService, T9.4; places since T10.1).
+  static const settingKeys = [
+    'voice.language',
+    'voice.tts',
+    'poll.seconds',
+    'cameras',
+  ];
 
   Future<Uint8List> export(
     String passphrase, {
@@ -47,7 +54,14 @@ class ConfigExporter {
     final devices = await _devices.all();
     final secrets = <String, Map<String, String>>{};
     if (includeSecrets) {
-      for (final d in [...devices.map((d) => d.id), 'tplink']) {
+      // Every id with a stored secret: devices, the TP-Link account, Hue bridges and
+      // cameras (T10.1), so a restored or shared setup works without re-entry.
+      final ids = {
+        ...devices.map((d) => d.id),
+        'tplink',
+        ...await _secrets.deviceIdsWithSecrets(),
+      };
+      for (final d in ids) {
         for (final n in SecretName.values) {
           final v = await _secrets.get(d, n);
           if (v != null) (secrets[d] ??= {})[n.key] = v;

@@ -148,7 +148,19 @@ class TuyaAdapter extends DeviceAdapter {
       d.protocol.startsWith('tuya-') ? d.protocol.substring(5) : '3.3';
 
   Map<String, int> dpMapOf(Device d) =>
-      d.dpMap ?? (gangOf(d) > 1 ? TuyaDp.gang(gangOf(d)) : TuyaDp.plug);
+      d.dpMap ??
+      (gangOf(d) > 1 ? TuyaDp.gang(gangOf(d)) : _detected[d.id] ?? TuyaDp.plug);
+
+  /// Profiles detected from reported DPs for devices without a stored dpMap (e.g. a
+  /// devices.json without `mapping`), so commands hit the same DPs that state is read
+  /// from. Before this a bulb read DP 20 but was switched on DP 1 (seen on hardware).
+  final Map<String, Map<String, int>> _detected = {};
+
+  /// Learns the profile once (one status query) before the first command.
+  Future<void> _ensureProfile(Device d) async {
+    if (d.dpMap != null || gangOf(d) > 1 || _detected.containsKey(d.id)) return;
+    await queryDps(d);
+  }
 
   /// The Tuya device id (key, session, devId). Gangs 2..N of a multi-gang switch are
   /// separate app devices `<tuyaId>#<n>` with `meta.tuyaId` set; gang 1 keeps the id.
@@ -234,7 +246,11 @@ class TuyaAdapter extends DeviceAdapter {
           if (r case Err(:final error)) return Err(error);
           switch ((r as Ok<TuyaDecoded>).value) {
             case TuyaJson(:final json) when json['dps'] is Map:
-              return Ok((json['dps']! as Map).cast<String, Object?>());
+              final dps = (json['dps']! as Map).cast<String, Object?>();
+              if (d.dpMap == null && gangOf(d) == 1) {
+                _detected[d.id] = TuyaDp.detect(dps);
+              }
+              return Ok(dps);
             case TuyaDevice22():
               log.i(_tag, '${d.id}: device22 detected, retrying query');
               conn.payloads = TuyaPayloads(
@@ -303,18 +319,21 @@ class TuyaAdapter extends DeviceAdapter {
       });
 
   @override
-  Future<Result<void>> setPower(Device d, bool on) =>
-      setDps(d, {dpMapOf(d)[TuyaDp.switch_]!: on});
+  Future<Result<void>> setPower(Device d, bool on) async {
+    await _ensureProfile(d);
+    return setDps(d, {dpMapOf(d)[TuyaDp.switch_]!: on});
+  }
 
   /// tinytuya BulbDevice.set_white(): mode "white" + brightness (+ switch on), value =
   /// int(value_max * pct // 100) as in set_brightness_percentage(), not below value_min.
   @override
-  Future<Result<void>> setBrightness(Device d, int pct) {
+  Future<Result<void>> setBrightness(Device d, int pct) async {
+    await _ensureProfile(d);
     final map = dpMapOf(d);
     final dp = map[TuyaDp.brightness];
     final max = map[TuyaDp.valueMax];
     if (dp == null || max == null) {
-      return Future.value(Err(DeviceError.unsupported('brightness')));
+      return Err(DeviceError.unsupported('brightness'));
     }
     final v = (max * pct.clamp(0, 100) ~/ 100).clamp(
       map[TuyaDp.valueMin] ?? 0,
@@ -460,6 +479,9 @@ class _TuyaConn {
       cancelOnError: true,
     );
     _heartbeat = Timer.periodic(heartbeatEvery, (_) => _beat());
+    // A failed write (device reset the connection) fails pending requests now
+    // instead of waiting for their timeout.
+    _socket.done.then((_) {}, onError: (Object _) => close());
   }
 
   final Socket _socket;

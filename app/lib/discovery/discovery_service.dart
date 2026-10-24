@@ -153,6 +153,7 @@ class DiscoveryService {
     Candidate c, {
     String? name,
     String? roomId,
+    String place = Places.home,
     List<String> aliases = const [],
     Map<String, Object?> meta = const {},
   }) async {
@@ -166,6 +167,7 @@ class DiscoveryService {
       port: c.port,
       name: name ?? c.name ?? defaultName(c.brand, id),
       roomId: roomId,
+      place: place,
       aliases: aliases,
       capabilities: {
         ...defaultCapabilities(c.brand),

@@ -22,9 +22,11 @@ import '../engine/command_engine.dart';
 import '../engine/state_poller.dart';
 import '../net/android_platform_bridge.dart';
 import '../net/ios_platform_bridge.dart';
+import '../net/ipv4.dart';
 import '../net/lan_socket_factory.dart';
 import '../net/network_monitor.dart';
 import '../net/platform_bridge.dart';
+import '../onboarding/share_setup/share_setup.dart';
 import '../registry/config_export.dart';
 import '../registry/database.dart';
 import '../registry/repositories.dart';
@@ -121,8 +123,24 @@ class AppServices {
     secrets,
   );
 
+  /// Which addresses setup sharing accepts (T10.4): private LAN only; tests widen it
+  /// to loopback.
+  bool Function(String host) shareHostCheck = isPrivateIpv4;
+
+  SetupSender get setupSender => SetupSender(
+    LanSocketFactory(platform),
+    configExporter,
+    allowHost: shareHostCheck,
+  );
+  SetupReceiver get setupReceiver => SetupReceiver(
+    LanSocketFactory(platform),
+    configExporter,
+    allowHost: shareHostCheck,
+  );
+
   /// Pushes stored settings into the running services.
   Future<void> applySettings() async {
+    await cameras.reload();
     poller.interval = Duration(seconds: await appSettings.pollSeconds());
     final v = voice;
     if (v != null) {

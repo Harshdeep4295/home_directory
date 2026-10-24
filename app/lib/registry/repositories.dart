@@ -100,6 +100,7 @@ class DeviceRepository {
     port: Value(d.port),
     name: d.name,
     roomId: Value(d.roomId),
+    place: Value(d.place),
     capabilitiesJson: jsonEncode(
       d.capabilities.map((c) => c.name).toList()..sort(),
     ),
@@ -121,6 +122,7 @@ class DeviceRepository {
       port: r.port,
       name: r.name,
       roomId: r.roomId,
+      place: r.place,
       aliases: aliases,
       capabilities: {
         for (final n in (jsonDecode(r.capabilitiesJson) as List<Object?>))

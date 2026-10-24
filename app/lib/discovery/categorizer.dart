@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import '../core/models.dart';
@@ -104,10 +105,15 @@ abstract final class Categorizer {
           return c.copyWith(
             category: cat,
             model: r.attributes['model'] ?? r.attributes['ty'],
-            name: c.name ?? r.name,
+            name: c.name ?? friendlyName(r),
           );
         }
       }
+    }
+    // A router or access point anywhere on the subnet (e.g. a mesh/AP node) usually says
+    // so in its admin page title.
+    if (_routerTitle.hasMatch(_title(e) ?? '')) {
+      return c.copyWith(category: DeviceCategory.network);
     }
     // Home routers sit on .1 (or .254) and serve a web admin page.
     // VERIFY: heuristic; the gateway address is not available to the app.
@@ -117,6 +123,34 @@ abstract final class Categorizer {
       return c.copyWith(category: DeviceCategory.network);
     }
     return c.copyWith(category: DeviceCategory.other);
+  }
+
+  /// Admin-page titles of routers/APs. Heuristic, seen on hardware: Xiaomi
+  /// "小米路由器" (= "Xiaomi router"), spike/scans/router2-2026-10-24.md.
+  static final _routerTitle = RegExp(
+    r'router|路由器|miwifi|access point|gateway|mesh',
+    caseSensitive: false,
+  );
+
+  static String? _title(HostEvidence e) {
+    final body = e.http['/']?.body;
+    if (body == null) return null;
+    final m = RegExp(
+      r'<title[^>]*>([^<]*)</title>',
+      caseSensitive: false,
+    ).firstMatch(utf8.decode(body, allowMalformed: true));
+    return m?.group(1)?.trim();
+  }
+
+  /// Human name from mDNS TXT when the instance name is an opaque id: Google Cast
+  /// `fn` (pychromecast discovery.py), Amazon Fire TV `n` (seen on hardware,
+  /// spike/scans/single-subnet-2026-10-24.md).
+  static String friendlyName(MdnsRecord r) {
+    for (final key in const ['fn', 'n']) {
+      final v = r.attributes[key];
+      if (v != null && v.trim().isNotEmpty) return v.trim();
+    }
+    return r.name;
   }
 
   /// Camera evidence, strongest first: SADP (Hikvision), ONVIF video device, RTSP port,

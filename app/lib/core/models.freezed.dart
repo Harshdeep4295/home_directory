@@ -18,7 +18,8 @@ mixin _$Device {
 
 /// Stable id: vendor device id, else MAC, else `ip:<ip>`.
  String get id; Brand get brand;/// Protocol id including version, e.g. `tuya-3.3`, `wiz`, `klap-smart`.
- String get protocol; String get ip; String? get mac; int? get port; String get name; String? get roomId; List<String> get aliases; Set<Capability> get capabilities; Duration? get nativeCountdownMax;/// Tuya data-point map, e.g. `{"switch": 1, "countdown": 9}`.
+ String get protocol; String get ip; String? get mac; int? get port; String get name; String? get roomId;/// Where the device is ("Home", "Office", …); a free-text label (T10.1).
+ String get place; List<String> get aliases; Set<Capability> get capabilities; Duration? get nativeCountdownMax;/// Tuya data-point map, e.g. `{"switch": 1, "countdown": 9}`.
  Map<String, int>? get dpMap; Duration? get defaultAutoOff;/// Adapter-specific extras: model, firmware, Shelly gen, Hue light id, ...
  Map<String, Object?> get meta; DateTime get lastSeen;
 /// Create a copy of Device
@@ -34,20 +35,20 @@ $DeviceCopyWith<Device> get copyWith => _$DeviceCopyWithImpl<Device>(this as Dev
 @override
 bool operator ==(Object other) {
   final _this = this as Device;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Device&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.brand, _this.brand) || other.brand == _this.brand)&&(identical(other.protocol, _this.protocol) || other.protocol == _this.protocol)&&(identical(other.ip, _this.ip) || other.ip == _this.ip)&&(identical(other.mac, _this.mac) || other.mac == _this.mac)&&(identical(other.port, _this.port) || other.port == _this.port)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.roomId, _this.roomId) || other.roomId == _this.roomId)&&const DeepCollectionEquality().equals(other.aliases, _this.aliases)&&const DeepCollectionEquality().equals(other.capabilities, _this.capabilities)&&(identical(other.nativeCountdownMax, _this.nativeCountdownMax) || other.nativeCountdownMax == _this.nativeCountdownMax)&&const DeepCollectionEquality().equals(other.dpMap, _this.dpMap)&&(identical(other.defaultAutoOff, _this.defaultAutoOff) || other.defaultAutoOff == _this.defaultAutoOff)&&const DeepCollectionEquality().equals(other.meta, _this.meta)&&(identical(other.lastSeen, _this.lastSeen) || other.lastSeen == _this.lastSeen));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Device&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.brand, _this.brand) || other.brand == _this.brand)&&(identical(other.protocol, _this.protocol) || other.protocol == _this.protocol)&&(identical(other.ip, _this.ip) || other.ip == _this.ip)&&(identical(other.mac, _this.mac) || other.mac == _this.mac)&&(identical(other.port, _this.port) || other.port == _this.port)&&(identical(other.name, _this.name) || other.name == _this.name)&&(identical(other.roomId, _this.roomId) || other.roomId == _this.roomId)&&(identical(other.place, _this.place) || other.place == _this.place)&&const DeepCollectionEquality().equals(other.aliases, _this.aliases)&&const DeepCollectionEquality().equals(other.capabilities, _this.capabilities)&&(identical(other.nativeCountdownMax, _this.nativeCountdownMax) || other.nativeCountdownMax == _this.nativeCountdownMax)&&const DeepCollectionEquality().equals(other.dpMap, _this.dpMap)&&(identical(other.defaultAutoOff, _this.defaultAutoOff) || other.defaultAutoOff == _this.defaultAutoOff)&&const DeepCollectionEquality().equals(other.meta, _this.meta)&&(identical(other.lastSeen, _this.lastSeen) || other.lastSeen == _this.lastSeen));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as Device;
-  return Object.hash(runtimeType,_this.id,_this.brand,_this.protocol,_this.ip,_this.mac,_this.port,_this.name,_this.roomId,const DeepCollectionEquality().hash(_this.aliases),const DeepCollectionEquality().hash(_this.capabilities),_this.nativeCountdownMax,const DeepCollectionEquality().hash(_this.dpMap),_this.defaultAutoOff,const DeepCollectionEquality().hash(_this.meta),_this.lastSeen);
+  return Object.hash(runtimeType,_this.id,_this.brand,_this.protocol,_this.ip,_this.mac,_this.port,_this.name,_this.roomId,_this.place,const DeepCollectionEquality().hash(_this.aliases),const DeepCollectionEquality().hash(_this.capabilities),_this.nativeCountdownMax,const DeepCollectionEquality().hash(_this.dpMap),_this.defaultAutoOff,const DeepCollectionEquality().hash(_this.meta),_this.lastSeen);
 }
 
 @override
 String toString() {
   final _this = this as Device;
-  return 'Device(id: ${_this.id}, brand: ${_this.brand}, protocol: ${_this.protocol}, ip: ${_this.ip}, mac: ${_this.mac}, port: ${_this.port}, name: ${_this.name}, roomId: ${_this.roomId}, aliases: ${_this.aliases}, capabilities: ${_this.capabilities}, nativeCountdownMax: ${_this.nativeCountdownMax}, dpMap: ${_this.dpMap}, defaultAutoOff: ${_this.defaultAutoOff}, meta: ${_this.meta}, lastSeen: ${_this.lastSeen})';
+  return 'Device(id: ${_this.id}, brand: ${_this.brand}, protocol: ${_this.protocol}, ip: ${_this.ip}, mac: ${_this.mac}, port: ${_this.port}, name: ${_this.name}, roomId: ${_this.roomId}, place: ${_this.place}, aliases: ${_this.aliases}, capabilities: ${_this.capabilities}, nativeCountdownMax: ${_this.nativeCountdownMax}, dpMap: ${_this.dpMap}, defaultAutoOff: ${_this.defaultAutoOff}, meta: ${_this.meta}, lastSeen: ${_this.lastSeen})';
 }
 
 
@@ -58,7 +59,7 @@ abstract mixin class $DeviceCopyWith<$Res>  {
   factory $DeviceCopyWith(Device value, $Res Function(Device) _then) = _$DeviceCopyWithImpl;
 @useResult
 $Res call({
- String id, Brand brand, String protocol, String ip, String? mac, int? port, String name, String? roomId, List<String> aliases, Set<Capability> capabilities, Duration? nativeCountdownMax, Map<String, int>? dpMap, Duration? defaultAutoOff, Map<String, Object?> meta, DateTime lastSeen
+ String id, Brand brand, String protocol, String ip, String? mac, int? port, String name, String? roomId, String place, List<String> aliases, Set<Capability> capabilities, Duration? nativeCountdownMax, Map<String, int>? dpMap, Duration? defaultAutoOff, Map<String, Object?> meta, DateTime lastSeen
 });
 
 
@@ -75,7 +76,7 @@ class _$DeviceCopyWithImpl<$Res>
 
 /// Create a copy of Device
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? brand = null,Object? protocol = null,Object? ip = null,Object? mac = freezed,Object? port = freezed,Object? name = null,Object? roomId = freezed,Object? aliases = null,Object? capabilities = null,Object? nativeCountdownMax = freezed,Object? dpMap = freezed,Object? defaultAutoOff = freezed,Object? meta = null,Object? lastSeen = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? brand = null,Object? protocol = null,Object? ip = null,Object? mac = freezed,Object? port = freezed,Object? name = null,Object? roomId = freezed,Object? place = null,Object? aliases = null,Object? capabilities = null,Object? nativeCountdownMax = freezed,Object? dpMap = freezed,Object? defaultAutoOff = freezed,Object? meta = null,Object? lastSeen = null,}) {
   return _then(Device(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,brand: null == brand ? _self.brand : brand // ignore: cast_nullable_to_non_nullable
@@ -85,7 +86,8 @@ as String,mac: freezed == mac ? _self.mac : mac // ignore: cast_nullable_to_non_
 as String?,port: freezed == port ? _self.port : port // ignore: cast_nullable_to_non_nullable
 as int?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,roomId: freezed == roomId ? _self.roomId : roomId // ignore: cast_nullable_to_non_nullable
-as String?,aliases: null == aliases ? _self.aliases : aliases // ignore: cast_nullable_to_non_nullable
+as String?,place: null == place ? _self.place : place // ignore: cast_nullable_to_non_nullable
+as String,aliases: null == aliases ? _self.aliases : aliases // ignore: cast_nullable_to_non_nullable
 as List<String>,capabilities: null == capabilities ? _self.capabilities : capabilities // ignore: cast_nullable_to_non_nullable
 as Set<Capability>,nativeCountdownMax: freezed == nativeCountdownMax ? _self.nativeCountdownMax : nativeCountdownMax // ignore: cast_nullable_to_non_nullable
 as Duration?,dpMap: freezed == dpMap ? _self.dpMap : dpMap // ignore: cast_nullable_to_non_nullable
@@ -177,10 +179,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  Brand brand,  String protocol,  String ip,  String? mac,  int? port,  String name,  String? roomId,  List<String> aliases,  Set<Capability> capabilities,  Duration? nativeCountdownMax,  Map<String, int>? dpMap,  Duration? defaultAutoOff,  Map<String, Object?> meta,  DateTime lastSeen)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  Brand brand,  String protocol,  String ip,  String? mac,  int? port,  String name,  String? roomId,  String place,  List<String> aliases,  Set<Capability> capabilities,  Duration? nativeCountdownMax,  Map<String, int>? dpMap,  Duration? defaultAutoOff,  Map<String, Object?> meta,  DateTime lastSeen)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Device() when $default != null:
-return $default(_that.id,_that.brand,_that.protocol,_that.ip,_that.mac,_that.port,_that.name,_that.roomId,_that.aliases,_that.capabilities,_that.nativeCountdownMax,_that.dpMap,_that.defaultAutoOff,_that.meta,_that.lastSeen);case _:
+return $default(_that.id,_that.brand,_that.protocol,_that.ip,_that.mac,_that.port,_that.name,_that.roomId,_that.place,_that.aliases,_that.capabilities,_that.nativeCountdownMax,_that.dpMap,_that.defaultAutoOff,_that.meta,_that.lastSeen);case _:
   return orElse();
 
 }
@@ -198,10 +200,10 @@ return $default(_that.id,_that.brand,_that.protocol,_that.ip,_that.mac,_that.por
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  Brand brand,  String protocol,  String ip,  String? mac,  int? port,  String name,  String? roomId,  List<String> aliases,  Set<Capability> capabilities,  Duration? nativeCountdownMax,  Map<String, int>? dpMap,  Duration? defaultAutoOff,  Map<String, Object?> meta,  DateTime lastSeen)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  Brand brand,  String protocol,  String ip,  String? mac,  int? port,  String name,  String? roomId,  String place,  List<String> aliases,  Set<Capability> capabilities,  Duration? nativeCountdownMax,  Map<String, int>? dpMap,  Duration? defaultAutoOff,  Map<String, Object?> meta,  DateTime lastSeen)  $default,) {final _that = this;
 switch (_that) {
 case _Device():
-return $default(_that.id,_that.brand,_that.protocol,_that.ip,_that.mac,_that.port,_that.name,_that.roomId,_that.aliases,_that.capabilities,_that.nativeCountdownMax,_that.dpMap,_that.defaultAutoOff,_that.meta,_that.lastSeen);case _:
+return $default(_that.id,_that.brand,_that.protocol,_that.ip,_that.mac,_that.port,_that.name,_that.roomId,_that.place,_that.aliases,_that.capabilities,_that.nativeCountdownMax,_that.dpMap,_that.defaultAutoOff,_that.meta,_that.lastSeen);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -218,10 +220,10 @@ return $default(_that.id,_that.brand,_that.protocol,_that.ip,_that.mac,_that.por
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  Brand brand,  String protocol,  String ip,  String? mac,  int? port,  String name,  String? roomId,  List<String> aliases,  Set<Capability> capabilities,  Duration? nativeCountdownMax,  Map<String, int>? dpMap,  Duration? defaultAutoOff,  Map<String, Object?> meta,  DateTime lastSeen)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  Brand brand,  String protocol,  String ip,  String? mac,  int? port,  String name,  String? roomId,  String place,  List<String> aliases,  Set<Capability> capabilities,  Duration? nativeCountdownMax,  Map<String, int>? dpMap,  Duration? defaultAutoOff,  Map<String, Object?> meta,  DateTime lastSeen)?  $default,) {final _that = this;
 switch (_that) {
 case _Device() when $default != null:
-return $default(_that.id,_that.brand,_that.protocol,_that.ip,_that.mac,_that.port,_that.name,_that.roomId,_that.aliases,_that.capabilities,_that.nativeCountdownMax,_that.dpMap,_that.defaultAutoOff,_that.meta,_that.lastSeen);case _:
+return $default(_that.id,_that.brand,_that.protocol,_that.ip,_that.mac,_that.port,_that.name,_that.roomId,_that.place,_that.aliases,_that.capabilities,_that.nativeCountdownMax,_that.dpMap,_that.defaultAutoOff,_that.meta,_that.lastSeen);case _:
   return null;
 
 }
@@ -234,7 +236,7 @@ return $default(_that.id,_that.brand,_that.protocol,_that.ip,_that.mac,_that.por
 @DurationSecondsConverter()
 @UtcDateTimeConverter()
 class _Device implements Device {
-  const _Device({required this.id, required this.brand, required this.protocol, required this.ip, this.mac, this.port, required this.name, this.roomId,  List<String> aliases = const <String>[],  Set<Capability> capabilities = const <Capability>{Capability.power}, this.nativeCountdownMax,  Map<String, int>? dpMap, this.defaultAutoOff,  Map<String, Object?> meta = const <String, Object?>{}, required this.lastSeen}): _aliases = aliases,_capabilities = capabilities,_dpMap = dpMap,_meta = meta;
+  const _Device({required this.id, required this.brand, required this.protocol, required this.ip, this.mac, this.port, required this.name, this.roomId, this.place = Places.home,  List<String> aliases = const <String>[],  Set<Capability> capabilities = const <Capability>{Capability.power}, this.nativeCountdownMax,  Map<String, int>? dpMap, this.defaultAutoOff,  Map<String, Object?> meta = const <String, Object?>{}, required this.lastSeen}): _aliases = aliases,_capabilities = capabilities,_dpMap = dpMap,_meta = meta;
   factory _Device.fromJson(Map<String, dynamic> json) => _$DeviceFromJson(json);
 
 /// Stable id: vendor device id, else MAC, else `ip:<ip>`.
@@ -247,6 +249,8 @@ class _Device implements Device {
 @override final  int? port;
 @override final  String name;
 @override final  String? roomId;
+/// Where the device is ("Home", "Office", …); a free-text label (T10.1).
+@override@JsonKey() final  String place;
  final  List<String> _aliases;
 @override@JsonKey() List<String> get aliases {
   if (_aliases is EqualUnmodifiableListView) return _aliases;
@@ -298,18 +302,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Device&&(identical(other.id, id) || other.id == id)&&(identical(other.brand, brand) || other.brand == brand)&&(identical(other.protocol, protocol) || other.protocol == protocol)&&(identical(other.ip, ip) || other.ip == ip)&&(identical(other.mac, mac) || other.mac == mac)&&(identical(other.port, port) || other.port == port)&&(identical(other.name, name) || other.name == name)&&(identical(other.roomId, roomId) || other.roomId == roomId)&&const DeepCollectionEquality().equals(other.aliases, _aliases)&&const DeepCollectionEquality().equals(other.capabilities, _capabilities)&&(identical(other.nativeCountdownMax, nativeCountdownMax) || other.nativeCountdownMax == nativeCountdownMax)&&const DeepCollectionEquality().equals(other.dpMap, _dpMap)&&(identical(other.defaultAutoOff, defaultAutoOff) || other.defaultAutoOff == defaultAutoOff)&&const DeepCollectionEquality().equals(other.meta, _meta)&&(identical(other.lastSeen, lastSeen) || other.lastSeen == lastSeen));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Device&&(identical(other.id, id) || other.id == id)&&(identical(other.brand, brand) || other.brand == brand)&&(identical(other.protocol, protocol) || other.protocol == protocol)&&(identical(other.ip, ip) || other.ip == ip)&&(identical(other.mac, mac) || other.mac == mac)&&(identical(other.port, port) || other.port == port)&&(identical(other.name, name) || other.name == name)&&(identical(other.roomId, roomId) || other.roomId == roomId)&&(identical(other.place, place) || other.place == place)&&const DeepCollectionEquality().equals(other.aliases, _aliases)&&const DeepCollectionEquality().equals(other.capabilities, _capabilities)&&(identical(other.nativeCountdownMax, nativeCountdownMax) || other.nativeCountdownMax == nativeCountdownMax)&&const DeepCollectionEquality().equals(other.dpMap, _dpMap)&&(identical(other.defaultAutoOff, defaultAutoOff) || other.defaultAutoOff == defaultAutoOff)&&const DeepCollectionEquality().equals(other.meta, _meta)&&(identical(other.lastSeen, lastSeen) || other.lastSeen == lastSeen));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,id,brand,protocol,ip,mac,port,name,roomId,const DeepCollectionEquality().hash(_aliases),const DeepCollectionEquality().hash(_capabilities),nativeCountdownMax,const DeepCollectionEquality().hash(_dpMap),defaultAutoOff,const DeepCollectionEquality().hash(_meta),lastSeen);
+    return Object.hash(runtimeType,id,brand,protocol,ip,mac,port,name,roomId,place,const DeepCollectionEquality().hash(_aliases),const DeepCollectionEquality().hash(_capabilities),nativeCountdownMax,const DeepCollectionEquality().hash(_dpMap),defaultAutoOff,const DeepCollectionEquality().hash(_meta),lastSeen);
 }
 
 @override
 String toString() {
-    return 'Device(id: $id, brand: $brand, protocol: $protocol, ip: $ip, mac: $mac, port: $port, name: $name, roomId: $roomId, aliases: $aliases, capabilities: $capabilities, nativeCountdownMax: $nativeCountdownMax, dpMap: $dpMap, defaultAutoOff: $defaultAutoOff, meta: $meta, lastSeen: $lastSeen)';
+    return 'Device(id: $id, brand: $brand, protocol: $protocol, ip: $ip, mac: $mac, port: $port, name: $name, roomId: $roomId, place: $place, aliases: $aliases, capabilities: $capabilities, nativeCountdownMax: $nativeCountdownMax, dpMap: $dpMap, defaultAutoOff: $defaultAutoOff, meta: $meta, lastSeen: $lastSeen)';
 }
 
 
@@ -320,7 +324,7 @@ abstract mixin class _$DeviceCopyWith<$Res> implements $DeviceCopyWith<$Res> {
   factory _$DeviceCopyWith(_Device value, $Res Function(_Device) _then) = __$DeviceCopyWithImpl;
 @override @useResult
 $Res call({
- String id, Brand brand, String protocol, String ip, String? mac, int? port, String name, String? roomId, List<String> aliases, Set<Capability> capabilities, Duration? nativeCountdownMax, Map<String, int>? dpMap, Duration? defaultAutoOff, Map<String, Object?> meta, DateTime lastSeen
+ String id, Brand brand, String protocol, String ip, String? mac, int? port, String name, String? roomId, String place, List<String> aliases, Set<Capability> capabilities, Duration? nativeCountdownMax, Map<String, int>? dpMap, Duration? defaultAutoOff, Map<String, Object?> meta, DateTime lastSeen
 });
 
 
@@ -337,7 +341,7 @@ class __$DeviceCopyWithImpl<$Res>
 
 /// Create a copy of Device
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? brand = null,Object? protocol = null,Object? ip = null,Object? mac = freezed,Object? port = freezed,Object? name = null,Object? roomId = freezed,Object? aliases = null,Object? capabilities = null,Object? nativeCountdownMax = freezed,Object? dpMap = freezed,Object? defaultAutoOff = freezed,Object? meta = null,Object? lastSeen = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? brand = null,Object? protocol = null,Object? ip = null,Object? mac = freezed,Object? port = freezed,Object? name = null,Object? roomId = freezed,Object? place = null,Object? aliases = null,Object? capabilities = null,Object? nativeCountdownMax = freezed,Object? dpMap = freezed,Object? defaultAutoOff = freezed,Object? meta = null,Object? lastSeen = null,}) {
   return _then(_Device(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,brand: null == brand ? _self.brand : brand // ignore: cast_nullable_to_non_nullable
@@ -347,7 +351,8 @@ as String,mac: freezed == mac ? _self.mac : mac // ignore: cast_nullable_to_non_
 as String?,port: freezed == port ? _self.port : port // ignore: cast_nullable_to_non_nullable
 as int?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,roomId: freezed == roomId ? _self.roomId : roomId // ignore: cast_nullable_to_non_nullable
-as String?,aliases: null == aliases ? _self._aliases : aliases // ignore: cast_nullable_to_non_nullable
+as String?,place: null == place ? _self.place : place // ignore: cast_nullable_to_non_nullable
+as String,aliases: null == aliases ? _self._aliases : aliases // ignore: cast_nullable_to_non_nullable
 as List<String>,capabilities: null == capabilities ? _self._capabilities : capabilities // ignore: cast_nullable_to_non_nullable
 as Set<Capability>,nativeCountdownMax: freezed == nativeCountdownMax ? _self.nativeCountdownMax : nativeCountdownMax // ignore: cast_nullable_to_non_nullable
 as Duration?,dpMap: freezed == dpMap ? _self._dpMap : dpMap // ignore: cast_nullable_to_non_nullable

@@ -9,6 +9,7 @@ import '../../onboarding/permissions.dart';
 import '../../voice/stt_service.dart';
 import '../providers.dart';
 import 'add_devices_screen.dart';
+import 'share_setup_screen.dart';
 
 final permissionsProvider = Provider<PermissionsService>((ref) {
   final s = ref.watch(servicesProvider);
@@ -156,6 +157,21 @@ class _FirstRunFlowState extends ConsumerState<FirstRunFlow> {
             ),
             icon: const Icon(Icons.radar),
             label: const Text('Scan for devices'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (ctx) => ReceiveSetupScreen(
+                  onDone: () {
+                    Navigator.of(ctx).pop();
+                    unawaited(_finish());
+                  },
+                ),
+              ),
+            ),
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text('Copy from another phone (QR)'),
           ),
         ],
       ),

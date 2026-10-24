@@ -1,3 +1,5 @@
+import '../core/models.dart';
+
 /// A camera the user added (T9.4). Stored as JSON in the settings table; credentials
 /// live in SecretStore under [id] (username / password), never here.
 class Camera {
@@ -11,6 +13,7 @@ class Camera {
     required this.mainPath,
     this.subPath,
     this.roomId,
+    this.place = Places.home,
   });
 
   /// Stable id: MAC from SADP when known, else `ip:<ip>`.
@@ -28,6 +31,9 @@ class Camera {
   final String? subPath;
   final String? roomId;
 
+  /// Place label (T10.1).
+  final String place;
+
   /// `rtsp://user:pass@ip:port/path`; credentials percent-encoded. Never log the result.
   String streamUrl(String user, String password, {bool sub = false}) {
     final path = sub ? (subPath ?? mainPath) : mainPath;
@@ -36,17 +42,19 @@ class Camera {
     return 'rtsp://$u:$p@$ip:$port$path';
   }
 
-  Camera copyWith({String? name, String? ip, String? roomId}) => Camera(
-    id: id,
-    name: name ?? this.name,
-    ip: ip ?? this.ip,
-    port: port,
-    vendor: vendor,
-    model: model,
-    mainPath: mainPath,
-    subPath: subPath,
-    roomId: roomId ?? this.roomId,
-  );
+  Camera copyWith({String? name, String? ip, String? roomId, String? place}) =>
+      Camera(
+        id: id,
+        name: name ?? this.name,
+        ip: ip ?? this.ip,
+        port: port,
+        vendor: vendor,
+        model: model,
+        mainPath: mainPath,
+        subPath: subPath,
+        roomId: roomId ?? this.roomId,
+        place: place ?? this.place,
+      );
 
   Map<String, Object?> toJson() => {
     'id': id,
@@ -58,6 +66,7 @@ class Camera {
     'mainPath': mainPath,
     'subPath': subPath,
     'roomId': roomId,
+    'place': place,
   };
 
   factory Camera.fromJson(Map<String, Object?> j) => Camera(
@@ -70,5 +79,6 @@ class Camera {
     mainPath: j['mainPath']! as String,
     subPath: j['subPath'] as String?,
     roomId: j['roomId'] as String?,
+    place: j['place'] as String? ?? Places.home,
   );
 }

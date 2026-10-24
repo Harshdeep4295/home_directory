@@ -760,3 +760,30 @@ sim/run.py --devices wiz,tuya33:key=0123456789abcdef,shelly2 --base-port 20000
   prints a JSON map {name: {protocol, host, port, id}} used by Flutter integration tests
 Flutter integration tests: start sims via Process.start(python sim/run.py ...) and point adapters at 127.0.0.1:<port>
 ```
+
+## 15. Places and setup sharing (M10)
+
+```
+Device.place, Camera.place : String = "Home"       # free text label, case-insensitive match
+places() = distinct(place of devices ∪ cameras) sorted, "Home" first
+
+AddSheet.placeDefault = settings["home.place"] if set and != "All" else lastUsedPlace or "Home"
+Home: if len(places()) > 1 → chips ["All"] + places(); selected stored in settings["home.place"]
+      visible = devices where selected == "All" or d.place == selected
+      if selected != "All" and visible non-empty and all(visible offline) → banner
+
+ShareSetup.sender():
+  key   = random 32 bytes; token = base64url(key)
+  body  = ConfigExporter.export(passphrase=token, includeSecrets=true)   # AES-256-GCM envelope
+  ip    = netInfo().ip  (must be private)            # no Wi-Fi → error "connect to Wi-Fi"
+  srv   = HttpServer.bind(ip, 0)
+  srv: GET /setup/<sha256(token)[0:16]> → 200 body once, then close; anything else → 404
+  close on first success, cancel, or 5 min
+  qr    = "ohsetup:1?h=<ip>&p=<port>&k=<token>"
+
+ShareSetup.receiver(qr):
+  parse; require scheme ohsetup, v=1, h private IPv4 (10/8, 172.16/12, 192.168/16), port 1..65535
+  GET http://h:p/setup/<sha256(token)[0:16]> via LanSocketFactory.http (no proxy, 5 s)
+  ConfigExporter.import(body, token)                  # wrong key → "QR expired or wrong"
+```
+

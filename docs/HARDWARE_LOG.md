@@ -42,6 +42,7 @@ Setup once on the MacBook: `make deps`, then `pip install tinytuya zeroconf` in 
 | 26 | T9.1 | Add devices → Scan with the EZVIZ camera on: does it show up as a camera with its model? Long-press is not needed; tap the row and send me the evidence lines it shows | Android phone, EZVIZ camera |
 | 27 | T9.4 | Add the EZVIZ camera with user `admin` + the sticker verification code (no reset). Tell me whether it says "Stream works" and which path it picked; if "Video encryption" is on in the EZVIZ app, note it | Android phone, EZVIZ camera |
 | 28 | T9.5 | Open the camera full screen: live video? delay vs reality? main/sub toggle, snapshot; Home thumbnail refreshes | Android phone, EZVIZ camera |
+| 29 | T10.5 | Both phones on the home Wi-Fi. Main phone: Settings → Share setup (QR). Spare phone: Settings → Receive setup → scan. Do all devices, places, cameras appear on the spare and switch without re-entering keys? Then: add a device with a new place (e.g. Office), pick it in the Home filter; turn the phone's Wi-Fi off — does the "Can't reach Office" banner show? | Both Android phones |
 
 ## Device survey (T0.6)
 
