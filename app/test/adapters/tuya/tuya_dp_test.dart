@@ -57,4 +57,20 @@ void main() {
     expect(TuyaAdapter.gangDeviceId('bfx', 1), 'bfx');
     expect(TuyaAdapter.gangDeviceId('bfx', 3), 'bfx#3');
   });
+
+  test('HDMI-sync TV backlight (DPs 101+): switch on DP 102', () {
+    // Reported by the owner's "HDMI Sync LED TV backlight" (2026-10-24).
+    final m = TuyaDp.detect({
+      '101': 'film_mode',
+      '102': true,
+      '103': 3,
+      '104': 100,
+      '111': '0000ff',
+      '115': false,
+      '126': true,
+    });
+    expect(m, TuyaDp.tvBacklight);
+    expect(m[TuyaDp.switch_], 102);
+    expect(TuyaDp.capabilities(m), {Capability.power});
+  });
 }
