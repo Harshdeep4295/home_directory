@@ -127,10 +127,35 @@ void main() {
       expect((await a.getState(d)).valueOrNull?.on, isTrue);
     });
 
+    test('idle sessions are released so other phones can connect', () async {
+      sim = await SimProcess.start('tuya:key=$key:version=3.4');
+      final secrets = SecretStore(MemorySecretBackend(), Redactor());
+      await secrets.set(sim['tuya'].id, SecretName.localKey, key);
+      a = TuyaAdapter(
+        sockets,
+        secrets,
+        timeout: timeout,
+        idleClose: const Duration(milliseconds: 200),
+      );
+      final d = tuyaDevice(sim['tuya']);
+      expect((await a.getState(d)).isOk, isTrue);
+      expect(a.isConnected(d), isTrue);
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(a.isConnected(d), isFalse);
+      expect(await a.setPower(d, true), isA<Ok<void>>(), reason: 'reconnects');
+      expect((await a.getState(d)).valueOrNull?.on, isTrue);
+    });
+
     test('3.4: wrong key → auth error from the session handshake', () async {
       sim = await SimProcess.start('tuya:key=$key:version=3.4');
       a = await adapterFor(sim['tuya'], k: 'fedcba9876543210');
-      final r = await a.getState(tuyaDevice(sim['tuya']));
+      // The device just hangs up: busy for the first tries, wrong key after
+      // TuyaAdapter.hangupsForAuth in a row with a never-working key.
+      var r = await a.getState(tuyaDevice(sim['tuya']));
+      expect(r.errorOrNull?.kind, DeviceErrorKind.offline, reason: '$r');
+      for (var i = 1; i < TuyaAdapter.hangupsForAuth; i++) {
+        r = await a.getState(tuyaDevice(sim['tuya']));
+      }
       expect(r.errorOrNull?.kind, DeviceErrorKind.auth, reason: '$r');
     });
 
@@ -149,7 +174,13 @@ void main() {
     test('3.5: wrong key → auth error', () async {
       sim = await SimProcess.start('tuya:key=$key:version=3.5');
       a = await adapterFor(sim['tuya'], k: 'fedcba9876543210');
-      final r = await a.getState(tuyaDevice(sim['tuya']));
+      // The device just hangs up: busy for the first tries, wrong key after
+      // TuyaAdapter.hangupsForAuth in a row with a never-working key.
+      var r = await a.getState(tuyaDevice(sim['tuya']));
+      expect(r.errorOrNull?.kind, DeviceErrorKind.offline, reason: '$r');
+      for (var i = 1; i < TuyaAdapter.hangupsForAuth; i++) {
+        r = await a.getState(tuyaDevice(sim['tuya']));
+      }
       expect(r.errorOrNull?.kind, DeviceErrorKind.auth, reason: '$r');
     });
 
@@ -240,6 +271,17 @@ void main() {
       expect(await a.setPower(d, true), isA<Ok<void>>());
       expect((await a.queryDps(d)).valueOrNull?['20'], isTrue);
       expect((await a.getState(d)).valueOrNull?.on, isTrue);
+    });
+
+    test('HDMI-sync TV backlight is switched on DP 102', () async {
+      sim = await SimProcess.start('tuya:key=$key:profile=tvbacklight');
+      a = await adapterFor(sim['tuya']);
+      final d = tuyaDevice(sim['tuya']);
+      expect(await a.setPower(d, true), isA<Ok<void>>());
+      expect((await a.queryDps(d)).valueOrNull?['102'], isTrue);
+      expect((await a.getState(d)).valueOrNull?.on, isTrue);
+      expect(await a.setPower(d, false), isA<Ok<void>>());
+      expect((await a.getState(d)).valueOrNull?.on, isFalse);
     });
 
     test('reconnects after the device restarts', () async {
