@@ -135,4 +135,98 @@ void main() {
       await dst.dispose();
     },
   );
+
+  test(
+    'partial export (T10.6): only chosen items, their rooms and keys',
+    () async {
+      final src = await TestServices.create(
+        devices: [
+          testDevice(
+            'geyser',
+            'Geyser',
+            room: 'bath',
+          ).copyWith(place: 'Village'),
+          testDevice('fan', 'Fan', room: 'bed'),
+          testDevice('strip-2', 'Strip 2').copyWith(meta: {'tuyaId': 'strip'}),
+          testDevice('tapo1', 'Tapo', brand: Brand.tapo),
+        ],
+        rooms: const [
+          Room(id: 'bath', name: 'Bathroom'),
+          Room(id: 'bed', name: 'Bedroom'),
+        ],
+      );
+      final sec = src.services.secrets;
+      await sec.set('geyser', SecretName.localKey, 'geyserkey0123456');
+      await sec.set('fan', SecretName.localKey, 'fankey0123456789');
+      await sec.set('strip', SecretName.localKey, 'stripkey01234567');
+      await sec.set('tplink', SecretName.email, 'me@example.com');
+      await sec.set('cam1', SecretName.password, 'ABCDEF');
+      await sec.set('cam2', SecretName.password, 'GHIJKL');
+      for (final c in const [
+        Camera(id: 'cam1', name: 'Door', ip: '192.168.1.7', mainPath: '/m'),
+        Camera(id: 'cam2', name: 'Shop', ip: '192.168.1.8', mainPath: '/m'),
+      ]) {
+        await src.services.cameras.put(c);
+      }
+      await src.services.appSettings.setTts(false);
+      ConfigExporter ex(TestServices t) => ConfigExporter(
+        t.services.devices,
+        t.services.rooms,
+        t.services.settings,
+        t.services.secrets,
+        iterations: 1000,
+      );
+      final file = await ex(src).export(
+        'passphrase',
+        includeSecrets: true,
+        only: {'geyser', 'strip-2', 'cam1'},
+      );
+
+      final dst = await TestServices.create(
+        devices: [testDevice('own', 'Own lamp')],
+      );
+      await dst.services.cameras.put(
+        const Camera(
+          id: 'cam9',
+          name: 'Mine',
+          ip: '192.168.1.9',
+          mainPath: '/m',
+        ),
+      );
+      expect(await ex(dst).import(file, 'passphrase'), 2);
+      final ids = {for (final d in await dst.services.devices.all()) d.id};
+      expect(ids, {'own', 'geyser', 'strip-2'});
+      expect((await dst.services.devices.byId('geyser'))!.place, 'Village');
+      expect([for (final r in await dst.services.rooms.all()) r.id], ['bath']);
+      final dsec = dst.services.secrets;
+      expect(await dsec.get('geyser', SecretName.localKey), 'geyserkey0123456');
+      expect(
+        await dsec.get('strip', SecretName.localKey),
+        'stripkey01234567',
+        reason: 'gang outlet needs its parent key',
+      );
+      expect(await dsec.get('fan', SecretName.localKey), isNull);
+      expect(await dsec.get('tplink', SecretName.email), isNull);
+      expect(await dsec.get('cam1', SecretName.password), 'ABCDEF');
+      expect(await dsec.get('cam2', SecretName.password), isNull);
+      expect(
+        {for (final c in await dst.services.cameras.all()) c.id},
+        {'cam9', 'cam1'},
+        reason: 'cameras merge; the receiver keeps its own',
+      );
+      expect(
+        await dst.services.appSettings.tts(),
+        isTrue,
+        reason: 'phone-wide settings stay out of a partial share',
+      );
+
+      // Choosing a Tapo device brings the TP-Link account along.
+      final tapo = await ex(src)
+          .export('passphrase', includeSecrets: true, only: {'tapo1'});
+      await ex(dst).import(tapo, 'passphrase');
+      expect(await dsec.get('tplink', SecretName.email), 'me@example.com');
+      await src.dispose();
+      await dst.dispose();
+    },
+  );
 }

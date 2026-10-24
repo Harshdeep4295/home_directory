@@ -44,23 +44,46 @@ class ConfigExporter {
     'cameras',
   ];
 
+  /// Settings key holding the camera list (CameraService).
+  static const camerasKey = 'cameras';
+
+  /// [only]: device and camera ids to include (T10.6); null = everything. A partial
+  /// export carries just those devices and cameras, the rooms they use and the secrets
+  /// they need, and leaves the phone-wide settings (voice, polling) out.
   Future<Uint8List> export(
     String passphrase, {
     bool includeSecrets = false,
+    Set<String>? only,
   }) async {
     if (passphrase.length < 6) {
       throw ConfigException('Use a passphrase of at least 6 characters.');
     }
-    final devices = await _devices.all();
+    bool picked(String id) => only == null || only.contains(id);
+    final devices = [
+      for (final d in await _devices.all())
+        if (picked(d.id)) d,
+    ];
+    final cameras = [
+      for (final c in _cameraList(await _settings.get(camerasKey)))
+        if (picked('${c['id']}')) c,
+    ];
     final secrets = <String, Map<String, String>>{};
     if (includeSecrets) {
-      // Every id with a stored secret: devices, the TP-Link account, Hue bridges and
-      // cameras (T10.1), so a restored or shared setup works without re-entry.
-      final ids = {
-        ...devices.map((d) => d.id),
-        'tplink',
-        ...await _secrets.deviceIdsWithSecrets(),
-      };
+      final stored = await _secrets.deviceIdsWithSecrets();
+      // Every id with a stored secret that the chosen items use: their own id, a
+      // parent they point to in meta (Tuya gang → tuyaId, Hue light → bridge), the
+      // TP-Link account for Kasa/Tapo, and cameras (T10.1, T10.6).
+      final ids = only == null
+          ? {...devices.map((d) => d.id), 'tplink', ...stored}
+          : {
+              for (final d in devices) ...[
+                d.id,
+                for (final v in d.meta.values)
+                  if (v is String && stored.contains(v)) v,
+                if (d.brand == Brand.kasa || d.brand == Brand.tapo) 'tplink',
+              ],
+              for (final c in cameras) '${c['id']}',
+            };
       for (final d in ids) {
         for (final n in SecretName.values) {
           final v = await _secrets.get(d, n);
@@ -70,13 +93,22 @@ class ConfigExporter {
     }
     final settings = <String, String>{};
     for (final k in settingKeys) {
+      if (k == camerasKey || (only != null)) continue;
       final v = await _settings.get(k);
       if (v != null) settings[k] = v;
     }
+    final roomIds = {
+      for (final d in devices) ?d.roomId,
+      for (final c in cameras) ?(c['roomId'] as String?),
+    };
     final body = {
       'version': 1,
-      'rooms': [for (final r in await _rooms.all()) r.toJson()],
+      'rooms': [
+        for (final r in await _rooms.all())
+          if (only == null || roomIds.contains(r.id)) r.toJson(),
+      ],
       'devices': [for (final d in devices) d.toJson()],
+      'cameras': cameras,
       'settings': settings,
       if (includeSecrets) 'secrets': secrets,
     };
@@ -136,9 +168,24 @@ class ConfigExporter {
     for (final d in devices) {
       await _devices.upsert(Device.fromJson(d! as Map<String, dynamic>));
     }
-    (body['settings'] as Map<String, Object?>? ?? const {}).forEach(
-      (k, v) => _settings.set(k, '$v'),
-    );
+    final settings = {...?body['settings'] as Map<String, Object?>?};
+    // Cameras merge by id so a partial share does not drop the receiver's own
+    // cameras. Older files carry them as the `cameras` setting.
+    final cams = [
+      ...?body['cameras'] as List<Object?>?,
+      ..._cameraList(settings.remove(camerasKey) as String?),
+    ];
+    for (final e in settings.entries) {
+      await _settings.set(e.key, '${e.value}');
+    }
+    if (cams.isNotEmpty) {
+      final merged = {
+        for (final c in _cameraList(await _settings.get(camerasKey)))
+          '${c['id']}': c,
+        for (final c in cams) '${(c! as Map)['id']}': c,
+      };
+      await _settings.set(camerasKey, jsonEncode(merged.values.toList()));
+    }
     final secrets = body['secrets'] as Map<String, Object?>? ?? const {};
     final names = {for (final n in SecretName.values) n.key: n};
     for (final e in secrets.entries) {
@@ -148,6 +195,18 @@ class ConfigExporter {
       }
     }
     return devices.length;
+  }
+
+  static List<Map<String, Object?>> _cameraList(String? raw) {
+    if (raw == null) return const [];
+    try {
+      return [
+        for (final c in jsonDecode(raw) as List<Object?>)
+          (c! as Map).cast<String, Object?>(),
+      ];
+    } on Object {
+      return const [];
+    }
   }
 
   Uint8List _bytes(int n) =>

@@ -93,7 +93,8 @@ class SetupSender {
   final Random _random;
 
   /// [ip] is this phone's Wi-Fi address; it must be private.
-  Future<Result<SetupOffer>> start(String? ip) async {
+  /// [only]: device / camera ids to share (null = everything, T10.6).
+  Future<Result<SetupOffer>> start(String? ip, {Set<String>? only}) async {
     if (ip == null || !allowHost(ip)) {
       return Err(
         DeviceError.unsupported(
@@ -106,7 +107,11 @@ class SetupSender {
           Uint8List.fromList(List.generate(32, (_) => _random.nextInt(256))),
         )
         .replaceAll('=', '');
-    final body = await _exporter.export(token, includeSecrets: true);
+    final body = await _exporter.export(
+      token,
+      includeSecrets: true,
+      only: only,
+    );
     final bound = await _lan.httpServer(ip);
     final HttpServer server;
     switch (bound) {

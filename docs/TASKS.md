@@ -365,6 +365,9 @@ writes clear instructions, then stops.
 - [x] **T10.4 Share setup via QR (LAN only)** (M) — deps: T10.1
   Do: sender serves the encrypted config (with secrets) once over HTTP on its Wi-Fi address with a random one-time 256-bit key; QR = `ohsetup:1?h=<ip>&p=<port>&k=<key>`; receiver scans (bundled on-device ML Kit scanner), accepts only private LAN addresses, GETs and imports. Server closes after one transfer, on cancel, or after 5 min.
   Note: `onboarding/share_setup/` (SetupQr, SetupSender, SetupReceiver) reusing ConfigExporter with the token as passphrase; mobile_scanner (bundled ML Kit / Apple Vision, offline) + qr_flutter. Settings → Share / Receive setup; first-run page 4 "Copy from another phone". iOS: NSCameraUsageDescription added.
+- [x] **T10.6 Choose what to share / export** (S) — deps: T10.4
+  Do: Share setup and Export configuration first ask what: everything, whole places, or single devices and cameras; a partial file carries only those items, the rooms they use and the keys they need (own key, Tuya parent / Hue bridge from meta, TP-Link account for Kasa/Tapo); cameras merge on import.
+  Note: `ChooseItemsScreen`; `ConfigExporter.export(only:)`; phone-wide settings only travel with "everything".
 - [ ] **T10.5 👤 Share setup check** (S) — copy the setup from the main phone to the spare phone; hardware check #29.
 
 ## Later (not v1)

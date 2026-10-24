@@ -13,7 +13,11 @@ import '../providers.dart';
 /// cameras, keys) to another phone on the same Wi-Fi (T10.4). Nothing goes to the
 /// internet: the other phone downloads it straight from this one.
 class ShareSetupScreen extends ConsumerStatefulWidget {
-  const ShareSetupScreen({super.key});
+  const ShareSetupScreen({super.key, this.only, this.count});
+
+  /// Device / camera ids to share; null = everything (T10.6).
+  final Set<String>? only;
+  final int? count;
 
   @override
   ConsumerState<ShareSetupScreen> createState() => _ShareSetupScreenState();
@@ -38,7 +42,7 @@ class _ShareSetupScreenState extends ConsumerState<ShareSetupScreen> {
     });
     final s = ref.read(servicesProvider);
     final ip = (await s.platform.netInfo()).ip;
-    final r = await s.setupSender.start(ip);
+    final r = await s.setupSender.start(ip, only: widget.only);
     if (!mounted) {
       r.valueOrNull?.cancel();
       return;
@@ -69,7 +73,7 @@ class _ShareSetupScreenState extends ConsumerState<ShareSetupScreen> {
     } else if (_end == ShareEnd.sent) {
       body = const _Message(
         icon: Icons.check_circle_outline,
-        text: 'Setup sent. The other phone now has all devices and keys.',
+        text: 'Setup sent. The other phone now has the devices and keys.',
       );
     } else if (_end != null) {
       body = _Message(
@@ -101,9 +105,9 @@ class _ShareSetupScreenState extends ConsumerState<ShareSetupScreen> {
             style: theme.textTheme.titleMedium,
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Both phones must be on this Wi-Fi. The code works once and for 5 '
-            'minutes. It copies every device, place, room, camera and key, '
+            'minutes. It copies ${widget.only == null ? 'every device, place, room, camera and key' : 'the ${widget.count ?? widget.only!.length} chosen devices / cameras with their keys'}, '
             'encrypted, straight from this phone. Nothing goes to the internet.',
           ),
           const SizedBox(height: 12),
@@ -168,7 +172,8 @@ class _ReceiveSetupScreenState extends ConsumerState<ReceiveSetupScreen> {
     if (_imported case final n?) {
       body = _Message(
         icon: Icons.check_circle_outline,
-        text: 'Received $n devices with their places, rooms, cameras and keys.',
+        text:
+            'Received $n devices (and any cameras) with their places and keys.',
         onDone: () {
           final cb = widget.onDone;
           cb != null ? cb() : Navigator.of(context).pop();
