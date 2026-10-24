@@ -218,6 +218,15 @@ class LanSocketFactory {
     return Ok(replies);
   }
 
+  /// HTTP server on one local address (setup sharing, T10.4). Port 0 = any free port.
+  Future<Result<HttpServer>> httpServer(String address, {int port = 0}) async {
+    try {
+      return Ok(await HttpServer.bind(address, port));
+    } on SocketException catch (e) {
+      return Err(mapSocketError(e, 'listen $address:$port'));
+    }
+  }
+
   /// A plain HTTP request. Never uses a proxy: LAN traffic must stay on the LAN.
   Future<Result<HttpReply>> http(
     String method,

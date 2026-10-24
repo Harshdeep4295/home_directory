@@ -362,8 +362,9 @@ writes clear instructions, then stops.
 - [x] **T10.3 Home place filter** (S) — deps: T10.1
   Do: chips "All · <places>" on Home when more than one place exists, selection kept in settings; cameras filtered too; banner when every device of the selected place is offline ("can't reach <place> from this Wi-Fi — control needs the same network").
   Note: `homePlaceProvider` (settings `home.place`); a stored place that no longer exists falls back to All. Voice commands still see every device.
-- [ ] **T10.4 Share setup via QR (LAN only)** (M) — deps: T10.1
+- [x] **T10.4 Share setup via QR (LAN only)** (M) — deps: T10.1
   Do: sender serves the encrypted config (with secrets) once over HTTP on its Wi-Fi address with a random one-time 256-bit key; QR = `ohsetup:1?h=<ip>&p=<port>&k=<key>`; receiver scans (bundled on-device ML Kit scanner), accepts only private LAN addresses, GETs and imports. Server closes after one transfer, on cancel, or after 5 min.
+  Note: `onboarding/share_setup/` (SetupQr, SetupSender, SetupReceiver) reusing ConfigExporter with the token as passphrase; mobile_scanner (bundled ML Kit / Apple Vision, offline) + qr_flutter. Settings → Share / Receive setup; first-run page 4 "Copy from another phone". iOS: NSCameraUsageDescription added.
 - [ ] **T10.5 👤 Share setup check** (S) — copy the setup from the main phone to the spare phone; hardware check #29.
 
 ## Later (not v1)

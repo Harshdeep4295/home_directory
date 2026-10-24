@@ -107,6 +107,9 @@ class CameraService {
     return Ok(cam);
   }
 
+  /// Re-reads the stored list and tells listeners (after a config import).
+  Future<void> reload() async => _changes.add(await all());
+
   Future<void> remove(String id) async {
     await _save([...(await all()).where((c) => c.id != id)]);
     await _secrets.deleteDevice(id);
