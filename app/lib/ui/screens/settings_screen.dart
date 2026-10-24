@@ -8,6 +8,7 @@ import '../../registry/config_export.dart';
 import '../file_access.dart';
 import '../providers.dart';
 import 'add_devices_screen.dart';
+import 'choose_items_screen.dart';
 import 'debug_menu.dart';
 import 'devices_json_import_screen.dart';
 import 'share_setup_screen.dart';
@@ -58,7 +59,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _snack(String m) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
+  Future<void> _share() async {
+    final c = await chooseItems(context, title: 'Share what?', action: 'Share');
+    if (c == null || !mounted) return;
+    _push(ShareSetupScreen(only: c.only, count: c.count));
+  }
+
   Future<void> _export() async {
+    final c = await chooseItems(
+      context,
+      title: 'Export what?',
+      action: 'Export',
+    );
+    if (c == null || !mounted) return;
     final r = await showDialog<(String, bool)>(
       context: context,
       builder: (_) => const _ExportDialog(),
@@ -68,7 +81,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final bytes = await ref
           .read(servicesProvider)
           .configExporter
-          .export(r.$1, includeSecrets: r.$2);
+          .export(r.$1, includeSecrets: r.$2, only: c.only);
       final where = await ref
           .read(fileAccessProvider)
           .save('offline-home-config.json', bytes);
@@ -168,9 +181,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           leading: const Icon(Icons.qr_code_2),
           title: const Text('Share setup'),
           subtitle: const Text(
-            'Show a QR; another phone on this Wi-Fi copies everything',
+            'Pick everything, places or devices; another phone on this Wi-Fi scans the QR',
           ),
-          onTap: () => _push(const ShareSetupScreen()),
+          onTap: _share,
         ),
         ListTile(
           leading: const Icon(Icons.qr_code_scanner),
@@ -181,7 +194,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ListTile(
           leading: const Icon(Icons.upload),
           title: const Text('Export configuration'),
-          subtitle: const Text('Encrypted with a passphrase you choose'),
+          subtitle: const Text(
+            'Everything, places or devices; encrypted with a passphrase',
+          ),
           onTap: _export,
         ),
         ListTile(
