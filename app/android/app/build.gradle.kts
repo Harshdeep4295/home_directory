@@ -21,7 +21,7 @@ android {
         applicationId = "dev.offlinehome.offline_home"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 26 // PLAN §10
+        minSdk = 25 // PLAN §10; 25 so the LineageOS 7.1 wall tablet runs it
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
