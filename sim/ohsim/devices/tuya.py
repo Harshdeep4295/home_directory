@@ -28,9 +28,10 @@ global incrementing seqno, not the sent seqno"). Beacons are 6699 frames (port 7
 Options:
     key=<16 chars>        local key (default 0123456789abcdef)
     version=3.3|3.1|3.4|3.5  protocol version (default 3.3)
-    profile=plug|bulb|bulba  DP map: plug {1: switch, 9: countdown}; bulb = tinytuya BulbDevice
+    profile=plug|bulb|bulba|tvbacklight  DP map: plug {1: switch, 9: countdown}; bulb = tinytuya BulbDevice
                           type B {20 switch, 21 mode, 22 bright 10..1000, 23 temp, 26 countdown};
-                          bulba = type A {1 switch, 2 mode, 3 bright 25..255, 4 temp, 7 timer}
+                          bulba = type A {1 switch, 2 mode, 3 bright 25..255, 4 temp, 7 timer};
+                          tvbacklight = HDMI-sync backlight {101 mode, 102 switch, no countdown}
     gang=N                multi-gang switch: switch_n = n, countdown_n = 6 + n (PSEUDOCODE §6.3,
                           VERIFY per model); overrides profile
     device22=1            behave like a 22-char-id device that ignores DP_QUERY
@@ -70,6 +71,13 @@ PROFILES: dict[str, dict[str, Any]] = {
         "switch": "20",
         "countdown": "26",
         "dps": {"20": False, "21": "white", "22": 1000, "23": 500, "26": 0},
+    },
+    # HDMI-sync TV backlight, DPs from make-all/tuya-local devices/tv_backlights.yaml
+    # (101 mode, 102 switch, 103 intensity, 104 brightness, 111 colour); no countdown.
+    "tvbacklight": {
+        "switch": "102",
+        "countdown": None,
+        "dps": {"101": "film_mode", "102": False, "103": 3, "104": 100, "111": "0000ff"},
     },
 }
 
@@ -117,9 +125,9 @@ class TuyaSim(TcpSimDevice):
             self.countdown_to_switch = {str(6 + n): str(n) for n in range(1, gangs + 1)}
         else:
             prof = PROFILES[self.options.get("profile", "plug")]
-            self.countdown_to_switch = {prof["countdown"]: prof["switch"]}
+            self.countdown_to_switch = {prof["countdown"]: prof["switch"]} if prof["countdown"] else {}
         self.switch_dp: str = prof["switch"]
-        self.countdown_dp: str = prof["countdown"]
+        self.countdown_dp: str | None = prof["countdown"]
         self.dps: dict[str, Any] = dict(prof["dps"])
         self._deadlines: dict[str, float] = {}
         self._countdown_tasks: dict[str, asyncio.Task[None]] = {}

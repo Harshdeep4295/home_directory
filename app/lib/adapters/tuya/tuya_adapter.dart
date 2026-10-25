@@ -61,6 +61,12 @@ abstract final class TuyaDp {
     valueMax: 255,
   };
 
+  /// HDMI-sync TV backlight (category "dd", DPs 101+): DP 101 mode string
+  /// ("film_mode", "video_mode", …), DP 102 switch. Ported from make-all/tuya-local
+  /// custom_components/tuya_local/devices/tv_backlights.yaml (light: 102 switch,
+  /// 101 video_mode). Brightness (104) depends on the mode there, so power only.
+  static const tvBacklight = {switch_: 102};
+
   /// Gang [n] (1-based) of a multi-gang switch without a stored mapping: switch_n = n,
   /// countdown_n = 6 + n (PSEUDOCODE §6.3 "countdown_n = 7..10"). VERIFY per model —
   /// imports use the device's own switch_N / countdown_N codes instead.
@@ -71,6 +77,12 @@ abstract final class TuyaDp {
   /// string (mode) else C. Like tinytuya, optional roles are kept only when reported.
   static Map<String, int> detect(Map<String, Object?> dps) {
     final Map<String, int> base;
+    if (!dps.containsKey('1') &&
+        !dps.containsKey('20') &&
+        dps['101'] is String &&
+        dps['102'] is bool) {
+      return tvBacklight;
+    }
     if (dps.containsKey('20') && dps.containsKey('1')) {
       return plug;
     } else if (dps.containsKey('20') && dps.containsKey('21')) {
@@ -115,8 +127,20 @@ class TuyaAdapter extends DeviceAdapter {
     this._secrets, {
     this.timeout = LanSocketFactory.defaultTimeout,
     this.heartbeatEvery = const Duration(seconds: 10),
+    this.idleClose = const Duration(seconds: 2),
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
+
+  /// Tuya devices take one local client at a time. Hanging up this long after the last
+  /// request lets other phones (another Offline Home, Smart Life) take turns; the next
+  /// call reconnects. Null keeps the session open (push updates, tests).
+  final Duration? idleClose;
+
+  /// Hang-ups in a row during the key exchange before a never-working key is called
+  /// wrong.
+  static const hangupsForAuth = 3;
+  final Map<String, int> _hangups = {};
+  final Set<String> _keyWorked = {};
 
   /// tinytuya: TCPPORT = 6668
   static const port = 6668;
@@ -216,6 +240,7 @@ class TuyaAdapter extends DeviceAdapter {
       ),
       timeout: timeout,
       heartbeatEvery: heartbeatEvery,
+      idleClose: idleClose,
       now: _now,
       onStatus: (dps) {
         for (final g in (_gangs[tid] ?? {d.id: d}).values) {
@@ -227,8 +252,24 @@ class TuyaAdapter extends DeviceAdapter {
       final n = await conn.negotiate();
       if (n case Err(:final error)) {
         conn.close();
+        // A hang-up during the key exchange is either a busy device (one local
+        // client at a time) or a wrong key; the device says nothing either way.
+        // Busy if this key has worked since start; else a wrong key after
+        // [hangupsForAuth] hang-ups in a row.
+        if (error.kind == DeviceErrorKind.offline) {
+          final h = _hangups[tid] = (_hangups[tid] ?? 0) + 1;
+          if (!_keyWorked.contains(tid) && h >= hangupsForAuth) {
+            return Err(
+              DeviceError.auth(
+                'tuya: device hangs up during key exchange; wrong key?',
+              ),
+            );
+          }
+        }
         return Err(error);
       }
+      _hangups.remove(tid);
+      _keyWorked.add(tid);
     }
     return Ok(_conns[tid] = conn);
   }
@@ -283,6 +324,9 @@ class TuyaAdapter extends DeviceAdapter {
   }
 
   /// True once the adapter learned the device needs device22 queries (persist in meta).
+  /// Whether a session to [d] is open now (tests: idle hang-up).
+  bool isConnected(Device d) => _conns[tuyaIdOf(d)]?.isOpen ?? false;
+
   bool isDevice22(Device d) => _conns[tuyaIdOf(d)]?.payloads.device22 ?? false;
 
   DeviceState _stateFrom(Device d, Map<String, Object?> dps) {
@@ -469,6 +513,7 @@ class _TuyaConn {
     this.payloads, {
     required this.timeout,
     required Duration heartbeatEvery,
+    this.idleClose,
     required this.now,
     required this.onStatus,
   }) {
@@ -479,6 +524,7 @@ class _TuyaConn {
       cancelOnError: true,
     );
     _heartbeat = Timer.periodic(heartbeatEvery, (_) => _beat());
+    _armIdle();
     // A failed write (device reset the connection) fails pending requests now
     // instead of waiting for their timeout.
     _socket.done.then((_) {}, onError: (Object _) => close());
@@ -506,11 +552,34 @@ class _TuyaConn {
 
   bool get isOpen => _open;
 
+  final Duration? idleClose;
+  Timer? _idle;
+
+  /// (Re)starts the idle hang-up; never while a request or negotiation is waiting.
+  void _armIdle() {
+    _idle?.cancel();
+    final d = idleClose;
+    if (d == null || !_open) return;
+    _idle = Timer(d, () {
+      if (_pending.isEmpty && _negotiation == null) {
+        close();
+      } else {
+        _armIdle();
+      }
+    });
+  }
+
   void _onData(Uint8List data) {
     final List<TuyaFrame> frames;
     try {
       frames = _decoder.add(data);
-    } on TuyaDecodeException {
+    } on TuyaDecodeException catch (e) {
+      // During the key exchange a reply that fails the HMAC means another key.
+      final neg = _negotiation;
+      if (neg != null && !neg.isCompleted) {
+        _negotiation = null;
+        neg.completeError(e);
+      }
       close();
       return;
     }
@@ -577,12 +646,12 @@ class _TuyaConn {
     } on SocketException catch (e) {
       return Err(mapSocketError(e, 'tuya'));
     } on StateError {
-      // The frame's HMAC is keyed with the local key, so a device with another key
-      // cannot verify step 1 and hangs up. VERIFY on hardware that it closes (rather
-      // than staying silent, which ends up as a timeout above).
+      // Seen on hardware (2026-10-24): a device already serving another client (a
+      // second phone, Smart Life) hangs up here, so this is reported as busy, not as
+      // a wrong key. A wrong key shows up as a bad HMAC on the reply (above).
       return Err(
-        DeviceError.auth(
-          'tuya 3.4: device closed during key negotiation; wrong key?',
+        DeviceError.offline(
+          'tuya: device hung up during key exchange (busy with another app?)',
         ),
       );
     } finally {
@@ -594,11 +663,13 @@ class _TuyaConn {
     if (!_open) return Err(DeviceError.offline('tuya: connection closed'));
     final seq = _seq++;
     final waiter = Completer<TuyaFrame>();
+    _armIdle();
     _pending[seq] = waiter;
     _pendingCmd[seq] = cmd;
     try {
       _socket.add(_codec.encode(seq, cmd, json));
       final f = await waiter.future.timeout(timeout);
+      _armIdle();
       if (f.retcode != null && f.retcode != 0) {
         return Err(DeviceError.protocol('tuya: retcode ${f.retcode}'));
       }
@@ -646,6 +717,7 @@ class _TuyaConn {
     if (!_open) return;
     _open = false;
     _heartbeat.cancel();
+    _idle?.cancel();
     unawaited(_sub.cancel());
     _socket.destroy();
     for (final w in _pending.values) {
