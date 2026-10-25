@@ -65,11 +65,11 @@ void main() {
     });
   });
 
-  test('unavailable recogniser → permission error', () async {
+  test('unavailable recogniser → unavailable error', () async {
     final events = await SttService(FakeEngine(ok: false))
         .listen(localeId: 'en_IN')
         .toList();
-    expect((events.single as SttError).kind, SttErrorKind.permission);
+    expect((events.single as SttError).kind, SttErrorKind.unavailable);
   });
 
   test('capabilities: locales and initialise once', () async {

@@ -1,4 +1,4 @@
-# Handoff — Offline Home (state as of 2026-10-01, end of M9)
+# Handoff — Offline Home (state as of 2026-10-25, M10 + tablet)
 
 Read `CLAUDE.md` first (rules are non-negotiable), then this file, then `docs/TASKS.md`.
 This note says where the work stands, how to run things, and what is left.
@@ -7,46 +7,53 @@ This note says where the work stands, how to run things, and what is left.
 
 | Milestone | State |
 |---|---|
-| M0–M8 | **Merged into `main`** (M5 = PR #6, M6 = PR #7, M7 = PR #8, M8 = PR #9). |
-| M9 Device categories + camera view | **Merged into `main`** (PR #10, merge commit `6376eb0`). T9.1–T9.5 done; T9.6 = owner's hardware checks #26–#28. |
+| M0–M9 | **Merged into `main`** (PRs #6–#10). |
+| M10 Places, sharing, choose-what-to-share | **Merged** (PRs #12, #13). T10.1–T10.4, T10.6 done; T10.5 = owner's hardware checks. |
+| Fixes after M10 | **Merged**: Tuya idle hang-up + "busy" instead of "key rejected" (PR #14), TV backlight on DP 102 (PR #14), Android 7.1 / minSdk 25 (PR #15). |
+| T10.7 Wall tablet voice (Vosk) | This branch / latest PR. |
 
-- The owner has **installed the APK on Android and confirmed it works end to end**: the scan lists devices,
-  including ones the app does not control, such as a Hikvision/EZVIZ camera. That led to M9.
-- What remains is **real-hardware feedback**: every row of "Pending hardware checks" in `docs/HARDWARE_LOG.md`
-  (#1–#28), especially #26–#28 (EZVIZ camera). Fix whatever they report, adding a regression test for each fix.
-- Deferred / optional: T4.9 real-voice test, T5.10 iOS widget, Later list L1–L5.
-- Latest full local run: 538 Flutter tests + 52 simulator tests green.
-- **Owner's camera**: EZVIZ / Hik-Connect consumer camera. Owner rule: **never reset or change any device's
-  password or settings**. Credentials = user `admin` + the 6-letter sticker verification code (EZVIZ) or the
-  Hik-Connect device password, entered in the app's Add camera dialog.
+- The owner uses the app daily on Android: main phone (release APK from CI), a spare OnePlus and a wall tablet
+  (Samsung SM-T561, LineageOS 7.1, armeabi-v7a, 1.4 GB RAM). All devices are under the place "Guglanas Home".
+- **Owner rules**: never reset or change any device's password or settings; never ask the owner for vendor
+  account credentials; no cloud import for now. Tuya keys came from a `devices.json` (kept outside the repo).
+- Tuya devices allow **one local client**. Two phones open on the app take turns: the adapter now hangs up after
+  2 s idle and reports "busy/offline" (not "key rejected") when another client holds the socket. Auth error only
+  after 3 hang-ups in a row on a key that never worked.
+- Tablet: no Google speech service → voice falls back to the bundled **Vosk** engine (`VoskPlugin.kt`,
+  `FallbackSpeechEngine`). Its camera preview stays black in the QR scanner (CameraX on the Spreadtrum HAL), so
+  set it up with a `devices.json` import or the backup file instead of the QR share.
+- Panasonic AC is cloud-only (Espressif, no open LAN ports) — out of scope. Motor/Fan are flaky on Wi-Fi.
+- Pending owner checks: `docs/HARDWARE_LOG.md` → *Pending hardware checks* (#29 share QR, #30 tablet voice,
+  #31 two-phone Tuya).
 
 ### Test APK pipeline (how the owner gets builds)
 
-- The cloud container **cannot build Android**: dl.google.com is blocked, so there is no Android SDK.
-  APKs are built by `.github/workflows/apk.yml` on GitHub Actions.
-- The workflow runs on every push to `claude/sweet-thompson-fba2km`, or by hand (workflow_dispatch), never on `main`.
-  It publishes the APK to the **`apk-latest` pre-release**. Stable link for the owner:
+- `.github/workflows/apk.yml` builds on every push to `claude/sweet-thompson-fba2km` (or workflow_dispatch) and
+  publishes to the **`apk-latest` pre-release**:
   https://github.com/Harshdeep4295/home_directory/releases/download/apk-latest/offline-home.apk
-  (the release notes name the commit it was built from).
-- The owner authorised pushing to get APKs built. Each build is signed with a fresh debug key, so the owner must
-  **uninstall before installing** a new build (this wipes app data). A fixed signing key was offered but not yet requested.
-- APK size is ~108 MB (universal, with libmpv for camera video). A per-ABI (arm64) build was offered but not yet requested.
-- Check builds with the GitHub MCP tools: `actions_list` (list_workflow_runs, resource_id `apk.yml`) and `get_release_by_tag apk-latest`.
+- `make apk` fetches the Vosk model first (`tools/fetch_vosk_model.sh`, sha256-pinned, into the gitignored
+  `app/android/app/src/main/assets/vosk-en-in/`) and builds ARM-only (`android-arm`, `android-arm64`), ~135 MB.
+- Release builds are signed with the debug key; CI's key differs from the Mac's, so switching a phone between a
+  CI APK and a locally built one needs an uninstall (export a backup first). Same source → `adb install -r` works.
+- Local install from the Mac: `cd app && flutter build apk --release --target-platform android-arm,android-arm64`
+  then `adb -s <serial> install -r build/app/outputs/flutter-apk/app-release.apk`.
 
 ## 2. Workflow the owner agreed to
 
 - One commit per task, message `T<id>: <title>`; tick the task in `docs/TASKS.md` with a one-line note (what was done + open VERIFYs).
-- Commit trailers (required on every commit):
-  ```
-  Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
-  Claude-Session: <link of the session making the commit>
-  ```
-  No model IDs in commits/PRs. PR bodies end with `🤖 Generated with [Claude Code](https://claude.com/claude-code)` + session link.
-- **One PR per milestone** into `main`, created from the latest `main` after the previous milestone merged. The owner authorised **the agent to merge a milestone PR itself once CI (`flutter` + `sim` jobs) is green** (merge method `merge`, pass the full head SHA). After merging: `git fetch origin main && git checkout -B claude/sweet-thompson-fba2km origin/main` and start the next milestone.
-- The owner is **not near the devices**: implement everything, skip 👤 hardware steps, and add each real-device check to the **"Pending hardware checks"** table in `docs/HARDWARE_LOG.md` (rows 1–25 so far). They will run them in one go later.
+- Commit trailer: `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. No model IDs elsewhere in commits/PRs.
+  PR bodies end with `🤖 Generated with [Claude Code](https://claude.com/claude-code)`.
+- **One PR per milestone** into `main`, created from the latest `main` after the previous milestone merged. The owner authorised **the agent to merge a milestone PR itself once CI (`flutter` + `sim` + `apk` jobs) is green** (merge method `merge`, pass the full head SHA). After merging: `git fetch origin main && git checkout -B claude/sweet-thompson-fba2km origin/main` and start the next milestone.
+- The owner is **not near the devices**: implement everything, skip 👤 hardware steps, and add each real-device check to the **"Pending hardware checks"** table in `docs/HARDWARE_LOG.md` . They will run them in one go later.
 - Only ping the owner (push notification) when their input is genuinely needed.
 
-## 3. Environment (cloud container) — how to run things
+## 3. Environment — how to run things
+
+- **Owner's Mac (current)**: Flutter on PATH, Android SDK + adb present; the shell is zsh (unquoted vars don't
+  word-split). Push with the gh credential helper (SSH maps to another GitHub account):
+  `git -c credential.helper= -c credential.helper='!gh auth git-credential' push https://github.com/Harshdeep4295/home_directory.git claude/sweet-thompson-fba2km`.
+  Never commit `app/ios/Flutter/*.xcconfig` or `app/ios/Podfile` (local CocoaPods edits).
+- Cloud container (older sessions):
 
 - Flutter: `export PATH=/opt/flutter/bin:$PATH` (Flutter 3.47.5 / Dart 3.13.4; runs as root, ignore the warning).
 - Python for simulators: a venv from `sim/requirements-dev.txt`. Venvs do not survive into a new container, so recreate it:
@@ -73,7 +80,13 @@ This note says where the work stands, how to run things, and what is left.
 
 ## 5. What is left
 
-All planned milestones (M0–M9) are implemented. Next work comes from the owner's hardware runs:
+- Tablet: install the T10.7 build, run check #30; the main phone still runs an APK from before PR #14 → update it.
+- Ideas: reverse QR (camera-less device shows a QR, phone scans it), Hindi Vosk model, permission page does not
+  refresh after the mic grant on Android 7, Fan/Motor flakiness, the unknown Tuya 3.4 at .15 and a new 3.5 device
+  without a key.
+- Spare phone has `stay_on_while_plugged_in=3` (restore to 0 when done); the tablet keeps it for wall use.
+
+All planned milestones (M0–M10) are implemented. Next work comes from the owner's hardware runs:
 - Work through `docs/HARDWARE_LOG.md` → *Pending hardware checks* as the owner reports results. Fix each
   real-device difference, add a regression test (sim or vector), and resolve the matching `VERIFY` note.
 - **Cameras (M9)**:
@@ -93,12 +106,12 @@ All planned milestones (M0–M9) are implemented. Next work comes from the owner
   - No iOS widget yet (T5.10).
   - media_kit has never been built for iOS.
   - Later list L1–L5 (Fire TV / TV control is L1).
-- Builds: Android is now built in CI (see §1). iOS has never been built; that needs the owner's Mac (`make ios-device`).
+- Builds: Android is built in CI and on the Mac (see §1). iOS has never been built; that needs the owner's Mac (`make ios-device`).
 
 ## 6. Open VERIFY items (need real hardware or official docs)
 
 `grep -rn VERIFY app/lib` lists them in code. Main ones:
-- Tuya: countdown flip semantics + max duration; 3.4/3.5 STATUS push shape; behaviour on a wrong key during 3.4/3.5 negotiation (we map "connection closed during handshake" → auth); beacons on iOS.
+- Tuya: countdown flip semantics + max duration; 3.4/3.5 STATUS push shape; behaviour on a wrong key during 3.4/3.5 negotiation (hang-up → busy/offline; auth after 3 hang-ups on a key that never worked, or an HMAC failure); beacons on iOS.
 - Tuya cloud import: token call without tinytuya's `secret` header; auth error codes 1004/1010/1011.
 - WiZ reply port on broadcast; KLAP static discovery query answered by devices.
 - Android foreground-service type on 14/15; STT error strings; home-screen widget + quick-settings tile never run on a device.

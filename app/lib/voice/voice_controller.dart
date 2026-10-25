@@ -119,6 +119,7 @@ class VoiceController {
             SttErrorKind.noMatch => "Sorry, I didn't catch that.",
             SttErrorKind.permission =>
               'Microphone or speech permission is off.',
+            SttErrorKind.unavailable => 'Voice is not available on this device (no offline speech engine).',
             SttErrorKind.other => 'Speech recognition failed ($message).',
           }, ok: false);
       }

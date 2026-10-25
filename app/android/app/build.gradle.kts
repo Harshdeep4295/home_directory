@@ -31,11 +31,18 @@ android {
         versionName = flutter.versionName
     }
 
+    // Phones and the wall tablet are ARM; plugin x86 libraries only bloat the APK.
+    packaging {
+        jniLibs { excludes += listOf("lib/x86/**", "lib/x86_64/**") }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // JNA (used by Vosk) looks up classes by name from native code.
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
@@ -52,4 +59,8 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // Offline speech fallback (PLAN §5 STT row): the official Vosk Android library, as in
+    // alphacep/vosk-android-demo app/build.gradle.
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
+    implementation("com.alphacephei:vosk-android:0.3.47@aar")
 }

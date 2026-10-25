@@ -93,7 +93,7 @@ Tapo/Kasa credential capture, Hue link-button pairing
 | Crypto | `pointycastle` (AES-ECB/CBC/GCM, HMAC-SHA256), `crypto` (MD5, SHA) | Tuya, Sonoff, KLAP |
 | mDNS | `bonsoir` | Native NSD / NetService — works on iOS without multicast entitlement |
 | Wi-Fi info | own plugins (LanBindingPlugin / LocalNetworkPlugin) | IP, prefix, SSID (Android), internet (Android only); `network_info_plus` dropped in T1.6 |
-| STT | `speech_to_text` with on-device option; Android fallback: Vosk (`vosk_flutter`) | VERIFY each plugin's on-device flag and iOS support at T4.1 |
+| STT | `speech_to_text` with on-device option; Android fallback: Vosk via the official `com.alphacephei:vosk-android` library and a thin Kotlin bridge (`VoskPlugin.kt`; `vosk_flutter` is Dart-2 only), small en-IN model bundled (T10.7) | VERIFY each plugin's on-device flag and iOS support at T4.1 |
 | TTS | `flutter_tts` | offline voices |
 | Android native | Kotlin plugin `LanBindingPlugin`, `TimerForegroundService`, `AlarmReceiver` | |
 | iOS native | Swift plugin `LocalNetworkPlugin` (trigger permission prompt, report status) | |

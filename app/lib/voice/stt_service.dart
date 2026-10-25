@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -42,6 +43,9 @@ enum SttErrorKind {
   modelMissing,
   noMatch,
   permission,
+
+  /// No recogniser on this device at all (and no bundled fallback).
+  unavailable,
   other,
 }
 
@@ -90,7 +94,12 @@ class SttService {
 
   Future<bool> _init() async {
     if (_ready) return true;
-    _ready = await _engine.initialize((e) => _current?.add(e));
+    try {
+      _ready = await _engine.initialize((e) => _current?.add(e));
+    } on Object catch (e) {
+      log.w('stt', 'no recogniser', e);
+      _ready = false;
+    }
     return _ready;
   }
 
@@ -105,7 +114,7 @@ class SttService {
       if (!await _init()) {
         ctl.add(
           const SttError(
-            SttErrorKind.permission,
+            SttErrorKind.unavailable,
             'speech recognition unavailable',
           ),
         );
@@ -140,13 +149,21 @@ class PlatformSpeechEngine implements SpeechEngine {
   void Function(SttEvent)? _onEvent;
 
   @override
-  Future<bool> initialize(void Function(SttError) onError) => _stt.initialize(
-    onError: (SpeechRecognitionError e) {
-      final err = mapPlatformError(e.errorMsg);
-      log.w('stt', 'error ${e.errorMsg} (permanent: ${e.permanent})');
-      (_onEvent ?? onError)(err);
-    },
-  );
+  Future<bool> initialize(void Function(SttError) onError) async {
+    try {
+      return await _stt.initialize(
+        onError: (SpeechRecognitionError e) {
+          final err = mapPlatformError(e.errorMsg);
+          log.w('stt', 'error ${e.errorMsg} (permanent: ${e.permanent})');
+          (_onEvent ?? onError)(err);
+        },
+      );
+    } on PlatformException catch (e) {
+      // e.g. recognizerNotAvailable on Android without a speech service.
+      log.w('stt', 'platform recogniser unavailable: ${e.code}');
+      return false;
+    }
+  }
 
   @override
   Future<List<String>> localeIds() async =>
@@ -211,5 +228,162 @@ class PlatformSpeechEngine implements SpeechEngine {
       return SttError(SttErrorKind.permission, msg);
     }
     return SttError(SttErrorKind.other, msg);
+  }
+}
+
+/// Uses the phone's own on-device recogniser, else the bundled one (Android: Vosk).
+class FallbackSpeechEngine implements SpeechEngine {
+  FallbackSpeechEngine(this.primary, this.fallback);
+  final SpeechEngine primary;
+  final SpeechEngine fallback;
+  SpeechEngine? _active;
+
+  /// Which engine is in use, for diagnostics ("platform" / "bundled").
+  String get activeName => _active == null
+      ? 'none'
+      : identical(_active, primary)
+      ? 'platform'
+      : 'bundled';
+
+  static Future<bool> _try(
+    SpeechEngine e,
+    void Function(SttError) onError,
+  ) async {
+    try {
+      return await e.initialize(onError);
+    } on Object catch (err) {
+      log.w('stt', 'engine init failed', err);
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> initialize(void Function(SttError) onError) async {
+    if (await _try(primary, onError)) {
+      _active = primary;
+    } else if (await _try(fallback, onError)) {
+      _active = fallback;
+      log.i('stt', 'using the bundled offline recogniser');
+    } else {
+      _active = null;
+    }
+    return _active != null;
+  }
+
+  @override
+  Future<List<String>> localeIds() async => await _active?.localeIds() ?? [];
+
+  @override
+  Future<void> listen({
+    required String localeId,
+    required List<String> contextualPhrases,
+    required Duration listenFor,
+    required Duration pauseFor,
+    required void Function(SttEvent) onEvent,
+  }) async {
+    final e = _active;
+    if (e == null) {
+      onEvent(const SttError(SttErrorKind.unavailable, 'no recogniser'));
+      return;
+    }
+    await e.listen(
+      localeId: localeId,
+      contextualPhrases: contextualPhrases,
+      listenFor: listenFor,
+      pauseFor: pauseFor,
+      onEvent: onEvent,
+    );
+  }
+
+  @override
+  Future<void> stop() async => _active?.stop();
+
+  @override
+  Future<void> cancel() async => _active?.cancel();
+}
+
+/// Bundled offline recogniser: Vosk with the small Indian-English model, through the
+/// app's own Android bridge (VoskPlugin.kt). Audio never leaves the device.
+class VoskSpeechEngine implements SpeechEngine {
+  VoskSpeechEngine({MethodChannel? methods, EventChannel? events})
+    : _methods = methods ?? const MethodChannel('offline_home/vosk'),
+      _events = events ?? const EventChannel('offline_home/vosk/events');
+
+  final MethodChannel _methods;
+  final EventChannel _events;
+  StreamSubscription<Object?>? _sub;
+
+  @override
+  Future<bool> initialize(void Function(SttError) onError) async {
+    try {
+      return await _methods.invokeMethod<bool>('available') ?? false;
+    } on MissingPluginException {
+      return false; // iOS, tests
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  /// One model: Indian English (also used for Hinglish, PLAN §7).
+  @override
+  Future<List<String>> localeIds() async => const ['en_IN'];
+
+  @override
+  Future<void> listen({
+    required String localeId,
+    required List<String> contextualPhrases,
+    required Duration listenFor,
+    required Duration pauseFor,
+    required void Function(SttEvent) onEvent,
+  }) async {
+    await _sub?.cancel();
+    var last = '';
+    var done = false;
+    void finish(SttEvent e) {
+      if (done) return;
+      done = true;
+      onEvent(e);
+      unawaited(_sub?.cancel());
+      _sub = null;
+    }
+
+    _sub = _events.receiveBroadcastStream().listen((raw) {
+      final m = (raw as Map).cast<String, Object?>();
+      if (m['partial'] case final String p when p.isNotEmpty) {
+        last = p;
+        if (!done) onEvent(SttPartial(p));
+      } else if (m['final'] case final String f) {
+        final text = f.isNotEmpty ? f : last;
+        finish(
+          text.isEmpty
+              ? const SttError(SttErrorKind.noMatch, 'nothing heard')
+              : SttFinal([text]),
+        );
+      } else if (m.containsKey('timeout')) {
+        finish(
+          last.isEmpty
+              ? const SttError(SttErrorKind.noMatch, 'timeout')
+              : SttFinal([last]),
+        );
+      } else if (m['error'] case final String err) {
+        finish(SttError(SttErrorKind.other, err));
+      }
+    });
+    final ok = await _methods.invokeMethod<bool>('start', {
+      'timeoutMs': listenFor.inMilliseconds,
+    });
+    if (ok != true) {
+      finish(const SttError(SttErrorKind.unavailable, 'offline model missing'));
+    }
+  }
+
+  @override
+  Future<void> stop() => _methods.invokeMethod<void>('stop');
+
+  @override
+  Future<void> cancel() async {
+    await _methods.invokeMethod<void>('cancel');
+    await _sub?.cancel();
+    _sub = null;
   }
 }

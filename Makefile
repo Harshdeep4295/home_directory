@@ -7,7 +7,7 @@ SIMS    ?= wiz
 IOS_DEVICE ?= ios
 APK     := $(APP)/build/app/outputs/flutter-apk/app-release.apk
 
-.PHONY: help deps fmt fmt-check analyze codegen codegen-check flutter-test sim-test test sim run-android run-ios apk install-apk ios-device doctor clean
+.PHONY: vosk-model help deps fmt fmt-check analyze codegen codegen-check flutter-test sim-test test sim run-android run-ios apk install-apk ios-device doctor clean
 
 help: ## list targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-13s %s\n", $$1, $$2}'
@@ -49,8 +49,12 @@ run-android: ## run on a connected Android phone
 run-ios: ## run on a connected iPhone (free Apple ID signing expires after 7 days)
 	cd $(APP) && $(FLUTTER) run -d ios
 
-apk: ## release APK for your own phone (signed with the debug key: fine for sideloading)
-	cd $(APP) && $(FLUTTER) build apk --release
+vosk-model: ## fetch the offline Vosk speech model (Android voice fallback; build-time only)
+	./tools/fetch_vosk_model.sh
+
+apk: vosk-model ## release APK for your own phone (signed with the debug key: fine for sideloading)
+	# ARM only: the phones and the wall tablet; x86 just bloats the sideloaded APK.
+	cd $(APP) && $(FLUTTER) build apk --release --target-platform android-arm,android-arm64
 	@echo "APK: $(APK)  (copy to the phone, or: make install-apk)"
 
 install-apk: apk ## build + install the release APK on the USB-connected Android phone
