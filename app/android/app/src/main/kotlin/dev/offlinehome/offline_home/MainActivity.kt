@@ -8,5 +8,6 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         flutterEngine.plugins.add(LanBindingPlugin())
         flutterEngine.plugins.add(AlarmsPlugin())
+        flutterEngine.plugins.add(VoskPlugin())
     }
 }

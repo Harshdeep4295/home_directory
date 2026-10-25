@@ -229,3 +229,6 @@ spike/survey-*.json
 spike/survey-*.txt
 # macOS
 .DS_Store
+
+# Vosk speech model, fetched at build time (make vosk-model)
+app/android/app/src/main/assets/vosk-en-in/

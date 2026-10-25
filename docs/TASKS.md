@@ -368,6 +368,9 @@ writes clear instructions, then stops.
 - [x] **T10.6 Choose what to share / export** (S) — deps: T10.4
   Do: Share setup and Export configuration first ask what: everything, whole places, or single devices and cameras; a partial file carries only those items, the rooms they use and the keys they need (own key, Tuya parent / Hue bridge from meta, TP-Link account for Kasa/Tapo); cameras merge on import.
   Note: `ChooseItemsScreen`; `ConfigExporter.export(only:)`; phone-wide settings only travel with "everything".
+- [x] **T10.7 Wall tablet: Android 7.1 + bundled offline voice** (M) — deps: T10.4
+  Do: run on the LineageOS 7.1 tablet (minSdk 25, API-26 calls guarded); voice on devices without an on-device recogniser via the official Vosk Android library + small Indian-English model bundled in the APK (fetched at build time, sha256-pinned, `make vosk-model`); ARM-only APK.
+  Note: `VoskPlugin.kt`, `FallbackSpeechEngine`/`VoskSpeechEngine`; model `vosk-model-small-en-in-0.4`. The tablet's camera stays black in the QR scanner (no fix yet). Hardware check #30.
 - [ ] **T10.5 👤 Share setup check** (S) — copy the setup from the main phone to the spare phone; hardware check #29.
 
 ## Later (not v1)

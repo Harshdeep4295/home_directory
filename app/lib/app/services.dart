@@ -218,7 +218,13 @@ class AppServices {
     services.logSink = logSink;
     await services.engine.warmUp();
     final lexicon = await Lexicon.loadAssets();
-    final stt = SttService(PlatformSpeechEngine());
+    // Android devices without an on-device recogniser (the LineageOS tablet) fall back
+    // to the bundled Vosk model.
+    final stt = SttService(
+      Platform.isAndroid
+          ? FallbackSpeechEngine(PlatformSpeechEngine(), VoskSpeechEngine())
+          : PlatformSpeechEngine(),
+    );
     services
       ..stt = stt
       ..voice = VoiceController(
