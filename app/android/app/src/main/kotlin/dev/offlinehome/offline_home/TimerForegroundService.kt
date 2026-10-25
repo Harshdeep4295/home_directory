@@ -47,11 +47,18 @@ class TimerForegroundService : Service() {
     }
 
     private fun startInForeground() {
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Timers", NotificationManager.IMPORTANCE_LOW),
-        )
-        val n: Notification = Notification.Builder(this, CHANNEL_ID)
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(
+                NotificationChannel(CHANNEL_ID, "Timers", NotificationManager.IMPORTANCE_LOW),
+            )
+            Notification.Builder(this, CHANNEL_ID)
+        } else {
+            // Android 7.1 (wall tablet): no channels.
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+        val n: Notification = builder
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Running a timer")
             .setOngoing(true)

@@ -207,7 +207,7 @@ back from devices and fixes drift or removes finished timers.
 `CHANGE_WIFI_MULTICAST_STATE`, `NEARBY_WIFI_DEVICES` (33+), `ACCESS_FINE_LOCATION`
 (≤32, for SSID), `RECORD_AUDIO`, `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`,
 `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` (VERIFY best FGS type),
-`RECEIVE_BOOT_COMPLETED`. `usesCleartextTraffic=true` (LAN HTTP). minSdk 26.
+`RECEIVE_BOOT_COMPLETED`. `usesCleartextTraffic=true` (LAN HTTP). minSdk 25 (Android 7.1: the LineageOS wall tablet; notification channels and startForegroundService are guarded for API 26+).
 
 **iOS** (`Info.plist`): `NSLocalNetworkUsageDescription`, `NSBonjourServices` (list in §5),
 `NSMicrophoneUsageDescription`, `NSSpeechRecognitionUsageDescription`,
